@@ -1,7 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { HashRouter, MemoryRouter } from 'react-router-dom'
-import { vi } from 'vitest'
+import { beforeEach, vi } from 'vitest'
 import App from './App'
+
+beforeEach(() => {
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    value: vi.fn(),
+  })
+})
 
 test('renders the brand and primary quote action', () => {
   render(
@@ -56,4 +63,27 @@ test('scrolls to a requested homepage section after route navigation', async () 
 
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
   delete HTMLElement.prototype.scrollIntoView
+})
+
+test('resets the scroll position when opening a route without a section', async () => {
+  const scrollTo = vi.fn()
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    value: scrollTo,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/projects']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  await waitFor(() =>
+    expect(scrollTo).toHaveBeenCalledWith({
+      behavior: 'auto',
+      left: 0,
+      top: 0,
+    }),
+  )
+  delete window.scrollTo
 })

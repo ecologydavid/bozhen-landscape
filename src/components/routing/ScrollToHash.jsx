@@ -5,7 +5,10 @@ export default function ScrollToHash() {
   const { hash, pathname } = useLocation()
 
   useEffect(() => {
-    if (!hash) return
+    if (!hash) {
+      window.scrollTo({ behavior: 'auto', left: 0, top: 0 })
+      return
+    }
 
     const target = document.getElementById(decodeURIComponent(hash.slice(1)))
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
