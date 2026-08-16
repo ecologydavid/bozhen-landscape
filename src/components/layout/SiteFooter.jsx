@@ -5,7 +5,7 @@ export default function SiteFooter({ onUnavailable = () => {} }) {
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <strong>柏鎮園藝</strong>
+          <strong>柏鎮園藝假山水</strong>
           <p>讓自然成為生活裡，長久而安定的風景。</p>
         </div>
 

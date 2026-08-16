@@ -52,7 +52,12 @@ export default function SiteHeader() {
               {item.label}
             </a>
           ))}
-          <a className="site-nav__quote" href="/#quote" onClick={closeMenu}>
+          <a
+            className="site-nav__quote"
+            href="/#quote"
+            aria-label="導覽：取得專屬報價"
+            onClick={closeMenu}
+          >
             取得專屬報價
           </a>
         </nav>
