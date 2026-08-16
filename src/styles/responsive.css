@@ -203,7 +203,7 @@
 
   .featured-projects__grid > div:first-child .project-card__media,
   .featured-projects__grid > div:not(:first-child) .project-card__media {
-    min-height: min(66vw, 520px);
+    height: min(66vw, 520px);
   }
 
   .brand-story__grid {
@@ -331,7 +331,7 @@
 
   .projects-index__grid .project-card:nth-child(3n + 1) .project-card__media,
   .projects-index__grid .project-card:not(:nth-child(3n + 1)) .project-card__media {
-    min-height: min(68vw, 520px);
+    height: min(68vw, 520px);
   }
 
   .project-hero {

@@ -76,11 +76,11 @@
 }
 
 .projects-index__grid .project-card:nth-child(3n + 1) .project-card__media {
-  min-height: 590px;
+  height: 590px;
 }
 
 .projects-index__grid .project-card:not(:nth-child(3n + 1)) .project-card__media {
-  min-height: 420px;
+  height: 420px;
 }
 
 .projects-index .project-card__body h3,
@@ -268,7 +268,7 @@
 }
 
 .related-projects .project-card__media {
-  min-height: 390px;
+  height: 390px;
 }
 
 .missing-project,
