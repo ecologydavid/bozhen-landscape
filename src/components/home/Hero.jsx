@@ -1,4 +1,5 @@
 import { siteContent } from '../../data/siteContent'
+import { Link } from 'react-router-dom'
 import BrandImage from '../ui/BrandImage'
 
 export default function Hero() {
@@ -17,17 +18,21 @@ export default function Hero() {
         <p className="hero__eyebrow">{hero.eyebrow}</p>
         <h1 id="hero-title">{hero.title}</h1>
         <p className="hero__description">{hero.description}</p>
-        <a className="button button--outline" href="#quote">
+        <Link className="button button--outline" to="/#quote">
           取得專屬報價
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 12h13M13 6l6 6-6 6" />
           </svg>
-        </a>
+        </Link>
       </div>
-      <a className="hero__scroll" href="#services" aria-label="瀏覽服務項目">
+      <Link
+        className="hero__scroll"
+        to="/#services"
+        aria-label="瀏覽服務項目"
+      >
         <span>SCROLL</span>
         <i aria-hidden="true" />
-      </a>
+      </Link>
     </section>
   )
 }

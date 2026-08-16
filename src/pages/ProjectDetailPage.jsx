@@ -12,7 +12,7 @@ function MissingProject() {
         <p>這個案例可能已移動，或尚未公開。</p>
         <div className="missing-project__actions">
           <Link to="/projects">返回案例作品</Link>
-          <a href="/#quote">直接詢問報價</a>
+          <Link to="/#quote">直接詢問報價</Link>
         </div>
       </div>
     </main>
@@ -92,7 +92,7 @@ export default function ProjectDetailPage() {
         <div className="container">
           <p className="section-label">YOUR SPACE, NEXT</p>
           <h2>也想讓空間長出自己的風景？</h2>
-          <a href="/#quote">取得專屬報價</a>
+          <Link to="/#quote">取得專屬報價</Link>
         </div>
       </section>
 

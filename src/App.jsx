@@ -4,6 +4,7 @@ import SiteHeader from './components/layout/SiteHeader'
 import SiteFooter from './components/layout/SiteFooter'
 import MobileQuoteBar from './components/layout/MobileQuoteBar'
 import FeedbackToast from './components/ui/FeedbackToast'
+import ScrollToHash from './components/routing/ScrollToHash'
 import HomePage from './pages/HomePage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
@@ -17,6 +18,7 @@ export default function App() {
   return (
     <div className="site-shell">
       <SiteHeader />
+      <ScrollToHash />
       <Routes>
         <Route path="/" element={<HomePage onUnavailable={showUnavailable} />} />
         <Route path="/projects" element={<ProjectsPage />} />

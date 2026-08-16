@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const navigation = [
-  { label: '服務項目', href: '/#services' },
-  { label: '案例作品', href: '/projects' },
-  { label: '關於柏鎮', href: '/#about' },
+  { label: '服務項目', to: '/#services' },
+  { label: '案例作品', to: '/projects' },
+  { label: '關於柏鎮', to: '/#about' },
 ]
 
 export default function SiteHeader() {
@@ -48,18 +48,18 @@ export default function SiteHeader() {
           aria-label="主要導覽"
         >
           {navigation.map((item) => (
-            <a key={item.href} href={item.href} onClick={closeMenu}>
+            <Link key={item.to} to={item.to} onClick={closeMenu}>
               {item.label}
-            </a>
+            </Link>
           ))}
-          <a
+          <Link
             className="site-nav__quote"
-            href="/#quote"
+            to="/#quote"
             aria-label="導覽：取得專屬報價"
             onClick={closeMenu}
           >
             取得專屬報價
-          </a>
+          </Link>
         </nav>
       </div>
     </header>

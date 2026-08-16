@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { services } from '../../data/services'
 
 export default function SiteFooter({ onUnavailable = () => {} }) {
@@ -18,9 +19,9 @@ export default function SiteFooter({ onUnavailable = () => {} }) {
 
         <div className="site-footer__links">
           <span className="site-footer__label">網站導覽</span>
-          <a href="/">首頁</a>
-          <a href="/projects">案例作品</a>
-          <a href="/#quote">取得報價</a>
+          <Link to="/">首頁</Link>
+          <Link to="/projects">案例作品</Link>
+          <Link to="/#quote">取得報價</Link>
         </div>
 
         <div className="site-footer__contact">

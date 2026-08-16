@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom'
 import ProjectDetailPage from './ProjectDetailPage'
 
 test.each([
@@ -15,4 +15,17 @@ test.each([
   )
 
   expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
+})
+
+test('keeps quote links inside the GitHub Pages hash router', () => {
+  window.location.hash = '#/projects/moss-courtyard'
+  const { container } = render(
+    <HashRouter>
+      <Routes>
+        <Route path="/projects/:slug" element={<ProjectDetailPage />} />
+      </Routes>
+    </HashRouter>,
+  )
+
+  expect(container.querySelectorAll('a[href^="/"]')).toHaveLength(0)
 })

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { projects } from '../../data/projects'
 import ProjectCard from '../ui/ProjectCard'
 import Reveal from '../ui/Reveal'
@@ -13,12 +14,12 @@ export default function FeaturedProjects() {
             <p className="section-label">SELECTED WORKS</p>
             <h2>作品，是最直接的回答</h2>
           </div>
-          <a className="text-link" href="/projects">
+          <Link className="text-link" to="/projects">
             查看所有案例
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 12h13M13 6l6 6-6 6" />
             </svg>
-          </a>
+          </Link>
         </Reveal>
 
         <div className="featured-projects__grid">
