@@ -80,7 +80,7 @@ test('resets the scroll position when opening a route without a section', async 
 
   await waitFor(() =>
     expect(scrollTo).toHaveBeenCalledWith({
-      behavior: 'auto',
+      behavior: 'instant',
       left: 0,
       top: 0,
     }),

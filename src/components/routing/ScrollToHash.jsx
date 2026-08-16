@@ -6,7 +6,7 @@ export default function ScrollToHash() {
 
   useEffect(() => {
     if (!hash) {
-      window.scrollTo({ behavior: 'auto', left: 0, top: 0 })
+      window.scrollTo({ behavior: 'instant', left: 0, top: 0 })
       return
     }
 
