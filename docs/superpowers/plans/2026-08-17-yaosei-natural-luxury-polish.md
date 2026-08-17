@@ -36,6 +36,7 @@
 **Files:**
 - Modify: `package.json`
 - Modify: `package-lock.json`
+- Modify: `index.html`
 - Modify: `src/main.jsx`
 - Modify: `src/styles/tokens.css`
 
@@ -117,7 +118,7 @@ Expected: build passes; `rg` returns no matches; local `.woff2` assets exist.
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add package.json package-lock.json src/main.jsx src/styles/tokens.css
+git add package.json package-lock.json index.html src/main.jsx src/styles/tokens.css
 git commit -m "feat: self-host Yaosei typography"
 ```
 
