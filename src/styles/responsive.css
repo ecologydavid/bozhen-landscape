@@ -9,6 +9,11 @@
     white-space: nowrap;
   }
 
+  .hero__copy,
+  .hero__contact {
+    transform: translateY(-24px);
+  }
+
   .section-heading--split {
     grid-template-columns: 0.55fr 1.6fr 1fr;
     gap: 32px;
@@ -359,6 +364,7 @@
     padding: 30px 24px 34px;
     color: var(--paper-bright);
     pointer-events: none;
+    transform: none;
   }
 
   .hero__shade {
@@ -387,6 +393,7 @@
     grid-column: 1;
     grid-row: 2;
     padding: 30px 10px 0;
+    transform: none;
   }
 
   .hero__description {
