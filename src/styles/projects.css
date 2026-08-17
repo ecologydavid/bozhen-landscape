@@ -91,14 +91,14 @@
   aspect-ratio: 4 / 5;
 }
 
-.projects-index .project-card__body h3,
-.related-projects .project-card__body h3 {
+.projects-index .project-card__title-row h3,
+.related-projects .project-card__title-row h3 {
   color: var(--forest-900);
 }
 
-.projects-index .project-card__body span,
-.related-projects .project-card__body span {
-  color: var(--muted);
+.projects-index .project-card__meta span,
+.related-projects .project-card__meta span {
+  color: var(--moss-800);
 }
 
 .project-hero {
