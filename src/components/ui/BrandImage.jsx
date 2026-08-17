@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function BrandImage({ src, alt, ...imageProps }) {
+export default function BrandImage({ src, alt, onError, ...imageProps }) {
   const [failedSrc, setFailedSrc] = useState('')
   const failed = failedSrc === src
 
@@ -11,7 +11,7 @@ export default function BrandImage({ src, alt, ...imageProps }) {
         role="img"
         aria-label={`${alt}（圖片暫時無法顯示）`}
       >
-        <span>柏鎮園藝</span>
+        <span>曜聖景觀</span>
         <strong>{alt}</strong>
       </div>
     )
@@ -22,7 +22,10 @@ export default function BrandImage({ src, alt, ...imageProps }) {
       {...imageProps}
       src={src}
       alt={alt}
-      onError={() => setFailedSrc(src)}
+      onError={(event) => {
+        setFailedSrc(src)
+        onError?.(event)
+      }}
     />
   )
 }
