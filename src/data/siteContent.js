@@ -31,5 +31,11 @@ export const siteContent = {
     image: media('changhua-residence-03.webp'),
     alt: '彰化私人住宅庭園實景',
   },
+  navigation: {
+    eyebrow: 'SEASONAL FIELD NOTE',
+    title: '從一座庭園，開始認識我們。',
+    image: media('tianzhong-courtyard-03.webp'),
+    alt: '田中私人庭院修剪養護後的實景',
+  },
   clients: ['私人住宅', '別墅透天', '社區公設', '企業商空'],
 }

@@ -14,6 +14,7 @@ const projectDefinitions = [
     title: '彰化私人住宅庭園整理',
     category: '住宅庭園',
     location: '彰化',
+    focalPoint: '52% 48%',
     featured: true,
     images: [
       'changhua-residence-03.webp',
@@ -33,6 +34,7 @@ const projectDefinitions = [
     title: '田中私人庭院養護',
     category: '養護工程',
     location: '彰化田中',
+    focalPoint: '50% 55%',
     featured: true,
     images: [
       'tianzhong-courtyard-04.webp',
@@ -51,6 +53,7 @@ const projectDefinitions = [
     title: '南屯私人宅假山水景',
     category: '假山水景',
     location: '台中南屯',
+    focalPoint: '52% 56%',
     featured: true,
     images: [
       'nantun-residence-01.webp',
@@ -70,6 +73,7 @@ const projectDefinitions = [
     title: '桃園校園植生牆',
     category: '商業綠化',
     location: '桃園',
+    focalPoint: '50% 50%',
     featured: false,
     images: ['taoyuan-greenwall-01.webp', 'taoyuan-greenwall-02.webp'],
     summary: '以立體綠化增加校園空間的自然感，在有限平面中創造更完整的綠意視野。',
@@ -83,6 +87,7 @@ const projectDefinitions = [
     title: '台中日式庭園修剪維護',
     category: '養護工程',
     location: '台中',
+    focalPoint: '48% 52%',
     featured: false,
     images: [
       'taichung-maintenance-01.webp',
@@ -102,6 +107,7 @@ const projectDefinitions = [
     title: '埔里酒廠景觀整理',
     category: '商業綠化',
     location: '南投埔里',
+    focalPoint: '50% 54%',
     featured: false,
     images: [
       'puli-winery-01.webp',

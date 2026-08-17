@@ -26,4 +26,11 @@ test('stores the official Yao Sei brand and direct contact details', () => {
     alt: '彰化私人住宅庭園實景',
   })
   expect(siteContent.hero.image).toMatch(/\.webp$/)
+  expect(siteContent.navigation).toEqual(
+    expect.objectContaining({
+      image: expect.stringMatching(/\.webp$/),
+      alt: expect.any(String),
+      eyebrow: 'SEASONAL FIELD NOTE',
+    }),
+  )
 })

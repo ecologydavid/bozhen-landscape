@@ -30,6 +30,7 @@ test('project slugs are unique and required content is present', () => {
       }),
     )
     expect(project.heroImage).toMatch(/\.webp$/)
+    expect(project.focalPoint).toMatch(/^\d+% \d+%$/)
     expect(project.gallery.length).toBeGreaterThanOrEqual(2)
     expect(project.gallery.every((image) => image.endsWith('.webp'))).toBe(true)
     expect(project.services.length).toBeGreaterThan(0)
