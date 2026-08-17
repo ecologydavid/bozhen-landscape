@@ -4,20 +4,18 @@ import FeaturedProjects from '../components/home/FeaturedProjects'
 import BrandStory from '../components/home/BrandStory'
 import WorkProcess from '../components/home/WorkProcess'
 import ClientTypes from '../components/home/ClientTypes'
-import QuoteForm from '../components/home/QuoteForm'
 import ContactActions from '../components/home/ContactActions'
 
-export default function HomePage({ onUnavailable }) {
+export default function HomePage({ brand, contact, hero }) {
   return (
-    <main>
-      <Hero />
-      <ServiceOverview />
+    <main className="editorial-home">
+      <Hero hero={hero} contact={contact} />
       <FeaturedProjects />
+      <ServiceOverview />
       <BrandStory />
       <WorkProcess />
       <ClientTypes />
-      <QuoteForm onUnavailable={onUnavailable} />
-      <ContactActions onUnavailable={onUnavailable} />
+      <ContactActions brand={brand} contact={contact} />
     </main>
   )
 }

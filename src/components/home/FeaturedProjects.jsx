@@ -25,7 +25,10 @@ export default function FeaturedProjects() {
         <div className="featured-projects__grid">
           {featuredProjects.map((project, index) => (
             <Reveal key={project.slug}>
-              <ProjectCard project={project} priority={index === 0} />
+              <ProjectCard
+                project={project}
+                priority={index === 0}
+              />
             </Reveal>
           ))}
         </div>

@@ -11,12 +11,14 @@ export default function WorkProcess() {
           <p>清楚的溝通與工序，讓每一個設計決定都回應實際需求。</p>
         </Reveal>
 
-        <ol className="process-list">
+        <ol className="process-path">
           {processSteps.map(([number, title, description]) => (
             <Reveal as="li" key={number}>
-              <span>{number}</span>
-              <h3>{title}</h3>
-              <p>{description}</p>
+              <span className="process-step__stone">{number}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </div>
             </Reveal>
           ))}
         </ol>

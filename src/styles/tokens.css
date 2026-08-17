@@ -1,29 +1,49 @@
 :root {
-  --forest-950: #071c14;
-  --forest-900: #0d2b20;
-  --forest-850: #13372a;
-  --forest-800: #1b4434;
-  --forest-700: #2d5b48;
-  --sage-500: #728c77;
-  --sage-300: #a9b8a6;
-  --ivory-100: #f4f0e6;
-  --ivory-50: #faf8f2;
-  --paper: #fffdf8;
-  --ink: #17231d;
-  --muted: #617067;
-  --gold-500: #b99b5d;
-  --gold-400: #cdb273;
-  --gold-200: #e6d8b5;
-  --line: rgba(23, 35, 29, 0.15);
-  --line-light: rgba(255, 253, 248, 0.18);
+  --ink-950: #171a17;
+  --paper: #f4f3ec;
+  --paper-bright: #fbfaf5;
+  --moss-800: #315743;
+  --leaf-500: #8ea38f;
+  --sun-500: #e8a448;
+  --fog-300: #d8d9d2;
+  --font-display: 'LXGW WenKai TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+  --font-body: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+  --font-utility: 'Manrope Variable', 'Noto Sans TC', sans-serif;
+  --font-editorial: var(--font-utility);
+  --container: min(1480px, calc(100% - 64px));
+  --radius-control: 8px;
+  --radius-panel: 10px;
+  --radius-image: 12px;
+  --canvas-radius: 12px;
+  --forest-950: var(--ink-950);
+  --forest-900: #233c30;
+  --forest-850: #294a39;
+  --forest-800: var(--moss-800);
+  --forest-700: #4f755e;
+  --graphite-950: var(--ink-950);
+  --graphite-900: #30342f;
+  --graphite-800: #4c504b;
+  --sage-500: var(--leaf-500);
+  --sage-300: #bdc9bc;
+  --ivory-100: var(--paper);
+  --ivory-50: var(--paper-bright);
+  --gold-500: var(--sun-500);
+  --gold-400: #efb15d;
+  --gold-200: #f3d4a5;
+  --ink: var(--ink-950);
+  --muted: #697069;
+  --line: rgba(23, 26, 23, 0.15);
+  --line-light: rgba(244, 243, 236, 0.2);
   --danger: #9f493f;
-  --font-serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', Georgia, serif;
-  --font-sans: 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
-  --container: min(1180px, calc(100% - 48px));
-  --shadow-soft: 0 22px 60px rgba(7, 28, 20, 0.13);
+  --font-serif: var(--font-display);
+  --font-sans: var(--font-body);
+  --shadow-rest: 0 8px 18px rgba(49, 70, 58, 0.06);
+  --shadow-hover: 0 24px 52px rgba(49, 70, 58, 0.18);
+  --shadow-soft: var(--shadow-rest);
   --shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.24);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --header-height: 88px;
+  --header-height: 68px;
+  --header-height-scrolled: 56px;
 }
 
 *,
@@ -44,9 +64,11 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 16px;
+  font-weight: 400;
   line-height: 1.8;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 body,
@@ -100,10 +122,10 @@ p {
 h1,
 h2,
 h3 {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  line-height: 1.28;
-  letter-spacing: 0.035em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: 0.01em;
 }
 
 h1 {
@@ -146,6 +168,7 @@ ol {
 
 .section-label {
   color: var(--gold-500);
+  font-family: var(--font-utility);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -194,6 +217,15 @@ ol {
 .button--gold {
   background: var(--gold-400);
   color: var(--forest-950);
+}
+
+.button--accent {
+  background: var(--gold-400);
+  color: var(--graphite-950);
+}
+
+.button--accent:hover {
+  background: var(--paper);
 }
 
 .button--gold:hover {
