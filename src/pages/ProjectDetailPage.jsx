@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import BrandImage from '../components/ui/BrandImage'
 import ProjectCard from '../components/ui/ProjectCard'
 import { projects } from '../data/projects'
+import { siteContent } from '../data/siteContent'
 
 function MissingProject() {
   return (
@@ -12,7 +13,7 @@ function MissingProject() {
         <p>這個案例可能已移動，或尚未公開。</p>
         <div className="missing-project__actions">
           <Link to="/projects">返回案例作品</Link>
-          <Link to="/#quote">直接詢問報價</Link>
+          <a href={siteContent.contact.phoneHref}>電話聯絡</a>
         </div>
       </div>
     </main>
@@ -37,7 +38,9 @@ export default function ProjectDetailPage() {
         <BrandImage
           className="project-hero__image"
           src={project.heroImage}
-          alt={project.title}
+          alt={project.alt}
+          loading="eager"
+          decoding="async"
           fetchPriority="high"
         />
         <div className="project-hero__shade" aria-hidden="true" />
@@ -66,10 +69,10 @@ export default function ProjectDetailPage() {
 
       <section className="project-materials">
         <div className="container project-materials__inner">
-          <h2>主要配置</h2>
+          <h2>服務內容</h2>
           <ul>
-            {project.materials.map((material) => (
-              <li key={material}>{material}</li>
+            {project.services.map((service) => (
+              <li key={service}>{service}</li>
             ))}
           </ul>
         </div>
@@ -83,6 +86,7 @@ export default function ProjectDetailPage() {
               src={image}
               alt={`${project.title}案例照片 ${index + 1}`}
               loading="lazy"
+              decoding="async"
             />
           ))}
         </div>
@@ -92,7 +96,13 @@ export default function ProjectDetailPage() {
         <div className="container">
           <p className="section-label">YOUR SPACE, NEXT</p>
           <h2>也想讓空間長出自己的風景？</h2>
-          <Link to="/#quote">取得專屬報價</Link>
+          <a
+            href={siteContent.contact.lineHref}
+            target="_blank"
+            rel="noreferrer"
+          >
+            LINE 聯絡曜聖景觀
+          </a>
         </div>
       </section>
 

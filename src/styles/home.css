@@ -244,6 +244,21 @@
   padding-top: 20px;
 }
 
+.project-card__index {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  padding-top: 5px;
+  color: var(--sun-500) !important;
+  font-family: var(--font-editorial);
+  font-size: 0.78rem !important;
+  letter-spacing: 0.12em;
+}
+
+.project-card__body > div {
+  min-width: 0;
+  flex: 1;
+}
+
 .project-card__body h3 {
   margin-bottom: 3px;
   font-size: clamp(1.2rem, 2.2vw, 1.7rem);

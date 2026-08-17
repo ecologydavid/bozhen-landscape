@@ -39,8 +39,12 @@ export default function ProjectsPage() {
           </p>
 
           <div className="projects-index__grid">
-            {visibleProjects.map((project) => (
-              <ProjectCard key={project.slug} project={project} />
+            {visibleProjects.map((project, index) => (
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                index={String(index + 1).padStart(2, '0')}
+              />
             ))}
           </div>
         </div>

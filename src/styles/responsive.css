@@ -433,13 +433,16 @@
     row-gap: 56px;
   }
 
-  .projects-index__grid .project-card:nth-child(3n + 1) {
+  .projects-index__grid .project-card:nth-child(odd),
+  .projects-index__grid .project-card:nth-child(even) {
     grid-column: auto;
+    padding-top: 0;
   }
 
-  .projects-index__grid .project-card:nth-child(3n + 1) .project-card__media,
-  .projects-index__grid .project-card:not(:nth-child(3n + 1)) .project-card__media {
-    height: min(68vw, 520px);
+  .projects-index__grid .project-card:nth-child(odd) .project-card__media,
+  .projects-index__grid .project-card:nth-child(even) .project-card__media {
+    height: auto;
+    aspect-ratio: 4 / 5;
   }
 
   .project-hero {

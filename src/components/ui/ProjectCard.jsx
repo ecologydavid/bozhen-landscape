@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import BrandImage from './BrandImage'
 
-export default function ProjectCard({ project, priority = false }) {
+export default function ProjectCard({ project, priority = false, index }) {
   return (
     <article className="project-card">
       <Link
@@ -12,12 +12,15 @@ export default function ProjectCard({ project, priority = false }) {
         <div className="project-card__media">
           <BrandImage
             src={project.heroImage}
-            alt={project.title}
+            alt={project.alt}
             loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
           />
           <span className="project-card__category">{project.category}</span>
         </div>
         <div className="project-card__body">
+          {index ? <span className="project-card__index">{index}</span> : null}
           <div>
             <h3>{project.title}</h3>
             <span>{project.location}</span>
