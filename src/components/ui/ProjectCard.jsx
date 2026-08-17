@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import BrandImage from './BrandImage'
+import LeafIcon from './LeafIcon'
 
-export default function ProjectCard({ project, priority = false, index }) {
+export default function ProjectCard({ project, priority = false }) {
   return (
     <article className="project-card">
       <Link
@@ -13,21 +14,28 @@ export default function ProjectCard({ project, priority = false, index }) {
           <BrandImage
             src={project.heroImage}
             alt={project.alt}
+            style={{ objectPosition: project.focalPoint }}
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={priority ? 'high' : 'auto'}
           />
-          <span className="project-card__category">{project.category}</span>
+          <span className="project-card__note">
+            <LeafIcon />
+            {project.location}・{project.category}
+          </span>
         </div>
         <div className="project-card__body">
-          {index ? <span className="project-card__index">{index}</span> : null}
-          <div>
-            <h3>{project.title}</h3>
-            <span>{project.location}</span>
+          <div className="project-card__meta">
+            {project.services.slice(0, 2).map((service) => (
+              <span key={service}>{service}</span>
+            ))}
           </div>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12h13M13 6l6 6-6 6" />
-          </svg>
+          <div className="project-card__title-row">
+            <h3>{project.title}</h3>
+            <span className="project-card__arrow" aria-hidden="true">
+              ↗
+            </span>
+          </div>
         </div>
       </Link>
     </article>

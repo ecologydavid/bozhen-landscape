@@ -10,7 +10,7 @@ test('filters projects without navigating away', async () => {
     </MemoryRouter>,
   )
 
-  expect(container.querySelector('.project-card__index')).toHaveTextContent('01')
+  expect(container.querySelector('.project-card__index')).not.toBeInTheDocument()
 
   const filter = screen.getByRole('button', { name: '假山水景' })
   await userEvent.click(filter)
