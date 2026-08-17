@@ -14,7 +14,11 @@ export default function App() {
 
   return (
     <div className="site-shell">
-      <SiteHeader brand={brand} contact={contact} />
+      <SiteHeader
+        brand={brand}
+        contact={contact}
+        menuFeature={siteContent.navigation}
+      />
       <ScrollToHash />
       <Routes>
         <Route

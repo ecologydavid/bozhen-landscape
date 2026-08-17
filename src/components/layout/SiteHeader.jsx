@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import BrandImage from '../ui/BrandImage'
+import LeafIcon from '../ui/LeafIcon'
 
 const navigation = [
-  { label: '服務項目', to: '/#services' },
-  { label: '案例作品', to: '/projects' },
-  { label: '關於曜聖', to: '/#about' },
+  { label: '作品案例', english: 'PROJECTS', to: '/projects' },
+  { label: '服務內容', english: 'SERVICES', to: '/#services' },
+  { label: '關於曜聖', english: 'ABOUT', to: '/#about' },
+  { label: '聯絡資訊', english: 'CONTACT', to: '/#contact' },
 ]
 
-export default function SiteHeader({ brand, contact }) {
+export default function SiteHeader({ brand, contact, menuFeature }) {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -70,34 +73,67 @@ export default function SiteHeader({ brand, contact }) {
           <span />
         </button>
 
-        <button
-          className={`nav-backdrop${menuOpen ? ' is-visible' : ''}`}
-          type="button"
-          aria-label="關閉主要導覽"
-          tabIndex={menuOpen ? 0 : -1}
-          onClick={closeMenu}
-        />
-
         <nav
           id="primary-navigation"
           className={`site-nav${menuOpen ? ' is-open' : ''}`}
           aria-label="主要導覽"
         >
-          {navigation.map((item) => (
-            <Link key={item.to} to={item.to} onClick={closeMenu}>
-              {item.label}
-            </Link>
-          ))}
-          <a
-            className="site-nav__contact"
-            href={contact.lineHref}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="LINE 聯絡曜聖景觀"
-            onClick={closeMenu}
-          >
-            LINE 聯絡
-          </a>
+          <div className="site-nav__desktop">
+            {navigation.slice(0, 3).map((item) => (
+              <Link key={item.to} to={item.to} onClick={closeMenu}>
+                {item.label}
+              </Link>
+            ))}
+            <a
+              className="site-nav__contact"
+              href={contact.lineHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="LINE 聯絡曜聖景觀"
+              onClick={closeMenu}
+            >
+              LINE 聯絡
+            </a>
+          </div>
+
+          <div className="site-nav__mobile">
+            <div className="site-nav__intro">
+              <h2>探索曜聖</h2>
+              <span>YAO SEI / MENU</span>
+            </div>
+            <div className="site-nav__links">
+              {navigation.map((item) => (
+                <Link key={item.to} to={item.to} onClick={closeMenu}>
+                  <LeafIcon />
+                  <span>
+                    <strong>{item.label}</strong>
+                    <small>{item.english}</small>
+                  </span>
+                  <span aria-hidden="true">↗</span>
+                </Link>
+              ))}
+            </div>
+            <div className="site-nav__feature">
+              <BrandImage src={menuFeature.image} alt={menuFeature.alt} />
+              <div>
+                <small>{menuFeature.eyebrow}</small>
+                <strong>{menuFeature.title}</strong>
+              </div>
+            </div>
+            <div className="site-nav__contact-row">
+              <a
+                href={contact.lineHref}
+                target="_blank"
+                rel="noreferrer"
+                onClick={closeMenu}
+              >
+                LINE 聯絡
+              </a>
+              <a href={contact.phoneHref} onClick={closeMenu}>
+                撥打電話
+              </a>
+            </div>
+          </div>
         </nav>
       </div>
     </header>
