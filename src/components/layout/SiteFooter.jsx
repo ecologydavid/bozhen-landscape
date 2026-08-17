@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import { services } from '../../data/services'
 
-export default function SiteFooter({ onUnavailable = () => {} }) {
+export default function SiteFooter({ brand, contact }) {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <strong>柏鎮園藝假山水</strong>
+          <strong>{brand.name}</strong>
           <p>讓自然成為生活裡，長久而安定的風景。</p>
         </div>
 
@@ -21,32 +21,19 @@ export default function SiteFooter({ onUnavailable = () => {} }) {
           <span className="site-footer__label">網站導覽</span>
           <Link to="/">首頁</Link>
           <Link to="/projects">案例作品</Link>
-          <Link to="/#quote">取得報價</Link>
+          <Link to="/#contact">聯絡我們</Link>
         </div>
 
         <div className="site-footer__contact">
-          <span className="site-footer__label">聯絡柏鎮</span>
-          <button
-            type="button"
-            onClick={() =>
-              onUnavailable('LINE 聯絡功能將於正式上線時開放')
-            }
-          >
-            LINE
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              onUnavailable('Email 聯絡功能將於正式上線時開放')
-            }
-          >
-            Email
-          </button>
+          <span className="site-footer__label">直接聯絡</span>
+          <a href={contact.phoneHref}>{contact.mobile}</a>
+          <a href={contact.lineHref} target="_blank" rel="noreferrer">LINE</a>
+          <a href={contact.emailHref}>Email</a>
         </div>
       </div>
       <div className="site-footer__bottom">
-        <small>© {new Date().getFullYear()} 柏鎮園藝假山水</small>
-        <small>網站目前為形象示意版本</small>
+        <small>© {new Date().getFullYear()} {brand.name}</small>
+        <small>統一編號 {contact.taxId}</small>
       </div>
     </footer>
   )

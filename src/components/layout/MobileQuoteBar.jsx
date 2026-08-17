@@ -1,9 +1,8 @@
-import { Link } from 'react-router-dom'
-
-export default function MobileQuoteBar() {
+export default function MobileQuoteBar({ contact }) {
   return (
-    <div className="mobile-quote-bar">
-      <Link to="/#quote">取得報價</Link>
+    <div className="mobile-contact-bar" aria-label="快速聯絡">
+      <a href={contact.phoneHref}>電話聯絡</a>
+      <a href={contact.lineHref} target="_blank" rel="noreferrer">LINE 聯絡</a>
     </div>
   )
 }

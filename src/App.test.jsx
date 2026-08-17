@@ -10,18 +10,16 @@ beforeEach(() => {
   })
 })
 
-test('renders the brand and primary quote action', () => {
+test('renders the official brand and primary direct contact action', () => {
   render(
     <MemoryRouter>
       <App />
     </MemoryRouter>,
   )
 
-  expect(screen.getByText('柏鎮園藝')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: '取得專屬報價' })).toHaveAttribute(
-    'href',
-    '/#quote',
-  )
+  expect(screen.getAllByText('曜聖景觀有限公司').length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('link', { name: /LINE 聯絡/ }).length).toBeGreaterThan(0)
+  expect(screen.queryByText('取得專屬報價')).not.toBeInTheDocument()
 })
 
 test('uses hash-safe links for GitHub Pages project routes', () => {
@@ -44,7 +42,7 @@ test('keeps homepage section links inside the hash router', () => {
   )
 
   expect(
-    container.querySelectorAll('a[href="#quote"], a[href="#services"]'),
+    container.querySelectorAll('a[href="#contact"], a[href="#services"]'),
   ).toHaveLength(0)
 })
 
@@ -56,7 +54,7 @@ test('scrolls to a requested homepage section after route navigation', async () 
   })
 
   render(
-    <MemoryRouter initialEntries={['/#quote']}>
+    <MemoryRouter initialEntries={['/#contact']}>
       <App />
     </MemoryRouter>,
   )
