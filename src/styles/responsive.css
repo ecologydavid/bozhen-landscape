@@ -1,4 +1,14 @@
 @media (max-width: 1024px) {
+  .hero__actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .hero__phone {
+    white-space: nowrap;
+  }
+
   .section-heading--split {
     grid-template-columns: 0.55fr 1.6fr 1fr;
     gap: 32px;
