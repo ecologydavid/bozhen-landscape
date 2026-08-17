@@ -25,11 +25,21 @@ test('renders the approved works-first homepage sections', () => {
     Node.DOCUMENT_POSITION_FOLLOWING,
   )
   expect(screen.getAllByRole('link', { name: /查看案例/ })).toHaveLength(3)
+  expect(screen.getByText('彰化・私人住宅庭園')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '瀏覽庭園作品' })).toHaveAttribute(
+    'href',
+    '/projects',
+  )
+  expect(screen.getByRole('link', { name: 'LINE 諮詢' })).toHaveAttribute(
+    'href',
+    'https://line.me/ti/p/~0921047049',
+  )
+  expect(document.querySelector('.hero__sun')).not.toBeInTheDocument()
   expect(
     screen.getByRole('heading', { name: '直接與曜聖聯絡' }),
   ).toBeInTheDocument()
   const lineLinks = screen.getAllByRole('link', { name: /LINE 聯絡/ })
-  expect(lineLinks).toHaveLength(2)
+  expect(lineLinks).toHaveLength(1)
   lineLinks.forEach((link) =>
     expect(link).toHaveAttribute('href', 'https://line.me/ti/p/~0921047049'),
   )

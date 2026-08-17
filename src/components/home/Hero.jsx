@@ -1,4 +1,5 @@
 import BrandImage from '../ui/BrandImage'
+import LeafActions from '../ui/LeafActions'
 
 export default function Hero({ hero, contact }) {
   return (
@@ -19,23 +20,16 @@ export default function Hero({ hero, contact }) {
             fetchPriority="high"
           />
           <div className="hero__shade" aria-hidden="true" />
-          <span className="hero__sun" aria-hidden="true" />
+          <span className="hero__field-note">彰化・私人住宅庭園</span>
         </div>
 
         <div className="hero__contact">
           <p className="hero__description">{hero.description}</p>
           <div className="hero__actions">
-            <a
-              className="button button--accent"
-              href={contact.lineHref}
-              target="_blank"
-              rel="noreferrer"
-            >
-              LINE 聯絡
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" />
-              </svg>
-            </a>
+            <LeafActions
+              projectsHref="/projects"
+              lineHref={contact.lineHref}
+            />
             <a className="hero__phone" href={contact.phoneHref}>
               撥打 {contact.mobile}
             </a>
