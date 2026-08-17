@@ -289,6 +289,11 @@
   text-align: center;
 }
 
+.missing-project {
+  background: var(--forest-900);
+  color: var(--paper);
+}
+
 .missing-project h1,
 .not-found-page h1 {
   margin: 24px 0 18px;
@@ -326,4 +331,14 @@
   font-family: var(--font-serif);
   font-size: clamp(7rem, 20vw, 15rem);
   line-height: 0.8;
+}
+
+.missing-project h1,
+.missing-project .container > p:not(.section-label),
+.missing-project .missing-project__actions a {
+  color: var(--paper);
+}
+
+.missing-project .missing-project__actions a {
+  border-color: rgba(244, 243, 236, 0.4);
 }

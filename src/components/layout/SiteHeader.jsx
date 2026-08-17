@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const navigation = [
   { label: '服務項目', to: '/#services' },
@@ -8,6 +8,7 @@ const navigation = [
 ]
 
 export default function SiteHeader({ brand, contact }) {
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -35,9 +36,14 @@ export default function SiteHeader({ brand, contact }) {
   }, [menuOpen])
 
   const closeMenu = () => setMenuOpen(false)
+  const surfaceClass = location.pathname.startsWith('/projects')
+    ? 'site-header--on-dark'
+    : 'site-header--on-light'
 
   return (
-    <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
+    <header
+      className={`site-header ${surfaceClass}${scrolled ? ' is-scrolled' : ''}`}
+    >
       <div className="site-header__inner">
         <Link
           className="brand-mark"

@@ -21,9 +21,25 @@
 .site-header.is-scrolled {
   position: fixed;
   border-bottom-color: transparent;
-  background: rgba(73, 74, 76, 0.95);
+  background: rgba(251, 250, 245, 0.95);
   box-shadow: 0 8px 40px rgba(32, 33, 34, 0.2);
+  color: var(--ink);
   backdrop-filter: blur(18px);
+}
+
+.site-header--on-light {
+  border-bottom-color: rgba(23, 26, 23, 0.1);
+  color: var(--ink);
+}
+
+.site-header--on-light .brand-mark__wording small,
+.site-header.is-scrolled .brand-mark__wording small {
+  color: var(--muted);
+}
+
+.site-header--on-light .site-nav__contact,
+.site-header.is-scrolled .site-nav__contact {
+  border-color: rgba(49, 87, 67, 0.42);
 }
 
 .site-header__inner {

@@ -144,8 +144,9 @@
   .nav-backdrop {
     position: fixed;
     z-index: 1;
-    inset: 0;
+    inset: 0 auto 0 0;
     display: block;
+    width: max(52px, 14vw);
     visibility: hidden;
     background: rgba(23, 26, 23, 0.5);
     opacity: 0;
@@ -162,7 +163,7 @@
   .site-nav {
     position: fixed;
     z-index: 3;
-    inset: 12px;
+    inset: 12px 12px 12px max(52px, 14vw);
     display: flex;
     visibility: hidden;
     align-items: flex-start;

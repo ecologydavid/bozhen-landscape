@@ -6,10 +6,14 @@ import { siteContent } from '../../data/siteContent'
 
 test('opens and closes the mobile navigation with every supported control', async () => {
   const user = userEvent.setup()
-  render(
+  const { container } = render(
     <MemoryRouter>
       <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
     </MemoryRouter>,
+  )
+
+  expect(container.querySelector('.site-header')).toHaveClass(
+    'site-header--on-light',
   )
 
   await user.click(screen.getByRole('button', { name: '開啟選單' }))
