@@ -1,6 +1,7 @@
 .site-shell {
   min-height: 100vh;
   overflow: clip;
+  background: var(--paper-bright);
 }
 
 .site-header {
@@ -20,8 +21,8 @@
 .site-header.is-scrolled {
   position: fixed;
   border-bottom-color: transparent;
-  background: rgba(7, 28, 20, 0.94);
-  box-shadow: 0 8px 40px rgba(7, 28, 20, 0.18);
+  background: rgba(73, 74, 76, 0.95);
+  box-shadow: 0 8px 40px rgba(32, 33, 34, 0.2);
   backdrop-filter: blur(18px);
 }
 
@@ -32,29 +33,44 @@
   align-items: center;
   justify-content: space-between;
   margin-inline: auto;
+  min-width: 0;
 }
 
 .brand-mark {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 13px;
 }
 
-.brand-mark__monogram {
-  display: grid;
-  width: 39px;
-  height: 39px;
-  place-items: center;
-  border: 1px solid rgba(230, 216, 181, 0.7);
-  color: var(--gold-200);
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
+.brand-mark__logo {
+  width: 31px;
+  height: 48px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
-.brand-mark__name {
+.brand-mark__wording {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-mark__wording strong {
   font-family: var(--font-serif);
-  font-size: 1.14rem;
-  letter-spacing: 0.16em;
+  font-size: 1.08rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.brand-mark__wording small {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.5rem;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
 }
 
 .site-nav {
@@ -70,7 +86,7 @@
   letter-spacing: 0.08em;
 }
 
-.site-nav > a:not(.site-nav__quote)::after {
+.site-nav > a:not(.site-nav__contact)::after {
   position: absolute;
   right: 0;
   bottom: -9px;
@@ -88,7 +104,7 @@
   transform-origin: left;
 }
 
-.site-nav__quote {
+.site-nav__contact {
   min-width: 132px;
   padding: 10px 14px;
   border: 1px solid rgba(230, 216, 181, 0.62);
@@ -96,11 +112,16 @@
   transition: background 220ms ease;
 }
 
-.site-nav__quote:hover {
-  background: rgba(205, 178, 115, 0.18);
+.site-nav__contact:hover {
+  background: var(--gold-400);
+  color: var(--graphite-950);
 }
 
 .nav-toggle {
+  display: none;
+}
+
+.nav-backdrop {
   display: none;
 }
 
@@ -168,11 +189,11 @@
 }
 
 .site-footer__links a:hover,
-.site-footer__contact button:hover {
+.site-footer__contact a:hover {
   color: var(--paper);
 }
 
-.site-footer__contact button {
+.site-footer__contact a {
   color: rgba(244, 240, 230, 0.68);
   font-size: 0.82rem;
 }
@@ -249,7 +270,7 @@
   font-weight: 500;
 }
 
-.mobile-quote-bar {
+.mobile-contact-bar {
   display: none;
 }
 

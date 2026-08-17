@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom'
 const navigation = [
   { label: '服務項目', to: '/#services' },
   { label: '案例作品', to: '/projects' },
-  { label: '關於柏鎮', to: '/#about' },
+  { label: '關於曜聖', to: '/#about' },
 ]
 
-export default function SiteHeader() {
+export default function SiteHeader({ brand, contact }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -18,16 +18,38 @@ export default function SiteHeader() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.body.classList.add('nav-open')
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.classList.remove('nav-open')
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [menuOpen])
+
   const closeMenu = () => setMenuOpen(false)
 
   return (
     <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
       <div className="site-header__inner">
-        <Link className="brand-mark" to="/" onClick={closeMenu}>
-          <span className="brand-mark__monogram" aria-hidden="true">
-            柏
+        <Link
+          className="brand-mark"
+          to="/"
+          aria-label={brand.name}
+          onClick={closeMenu}
+        >
+          <img className="brand-mark__logo" src={brand.logoSrc} alt="" />
+          <span className="brand-mark__wording">
+            <strong>{brand.shortName}</strong>
+            <small>{brand.englishName}</small>
           </span>
-          <span className="brand-mark__name">柏鎮園藝</span>
         </Link>
 
         <button
@@ -42,6 +64,14 @@ export default function SiteHeader() {
           <span />
         </button>
 
+        <button
+          className={`nav-backdrop${menuOpen ? ' is-visible' : ''}`}
+          type="button"
+          aria-label="關閉主要導覽"
+          tabIndex={menuOpen ? 0 : -1}
+          onClick={closeMenu}
+        />
+
         <nav
           id="primary-navigation"
           className={`site-nav${menuOpen ? ' is-open' : ''}`}
@@ -52,14 +82,16 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link
-            className="site-nav__quote"
-            to="/#quote"
-            aria-label="導覽：取得專屬報價"
+          <a
+            className="site-nav__contact"
+            href={contact.lineHref}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="LINE 聯絡曜聖景觀"
             onClick={closeMenu}
           >
-            取得專屬報價
-          </Link>
+            LINE 聯絡
+          </a>
         </nav>
       </div>
     </header>

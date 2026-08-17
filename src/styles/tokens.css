@@ -1,25 +1,38 @@
 :root {
-  --forest-950: #071c14;
-  --forest-900: #0d2b20;
-  --forest-850: #13372a;
-  --forest-800: #1b4434;
-  --forest-700: #2d5b48;
-  --sage-500: #728c77;
-  --sage-300: #a9b8a6;
-  --ivory-100: #f4f0e6;
-  --ivory-50: #faf8f2;
-  --paper: #fffdf8;
-  --ink: #17231d;
-  --muted: #617067;
-  --gold-500: #b99b5d;
-  --gold-400: #cdb273;
-  --gold-200: #e6d8b5;
-  --line: rgba(23, 35, 29, 0.15);
-  --line-light: rgba(255, 253, 248, 0.18);
+  --ink-950: #171a17;
+  --paper: #f4f3ec;
+  --paper-bright: #fbfaf5;
+  --moss-800: #315743;
+  --leaf-500: #8ea38f;
+  --sun-500: #e8a448;
+  --fog-300: #d8d9d2;
+  --font-display: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --font-body: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-editorial: 'Cormorant Garamond', Georgia, serif;
+  --container: min(1480px, calc(100% - 64px));
+  --canvas-radius: 26px;
+  --forest-950: var(--ink-950);
+  --forest-900: #233c30;
+  --forest-850: #294a39;
+  --forest-800: var(--moss-800);
+  --forest-700: #4f755e;
+  --graphite-950: var(--ink-950);
+  --graphite-900: #30342f;
+  --graphite-800: #4c504b;
+  --sage-500: var(--leaf-500);
+  --sage-300: #bdc9bc;
+  --ivory-100: var(--paper);
+  --ivory-50: var(--paper-bright);
+  --gold-500: var(--sun-500);
+  --gold-400: #efb15d;
+  --gold-200: #f3d4a5;
+  --ink: var(--ink-950);
+  --muted: #697069;
+  --line: rgba(23, 26, 23, 0.15);
+  --line-light: rgba(244, 243, 236, 0.2);
   --danger: #9f493f;
-  --font-serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', Georgia, serif;
-  --font-sans: 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
-  --container: min(1180px, calc(100% - 48px));
+  --font-serif: var(--font-display);
+  --font-sans: var(--font-body);
   --shadow-soft: 0 22px 60px rgba(7, 28, 20, 0.13);
   --shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.24);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -47,6 +60,7 @@ body {
   line-height: 1.8;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 body,
@@ -194,6 +208,15 @@ ol {
 .button--gold {
   background: var(--gold-400);
   color: var(--forest-950);
+}
+
+.button--accent {
+  background: var(--gold-400);
+  color: var(--graphite-950);
+}
+
+.button--accent:hover {
+  background: var(--paper);
 }
 
 .button--gold:hover {
