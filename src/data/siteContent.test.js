@@ -1,17 +1,13 @@
-import logoSrc from '../assets/brand/yaosei-logo.jpg'
-import companyCardSrc from '../assets/brand/yaosei-company-card.jpg'
-import { media } from './projectMedia'
+import { siteContent } from './siteContent'
 
-export const siteContent = {
-  brand: {
+test('stores the official Yao Sei brand and direct contact details', () => {
+  expect(siteContent.brand).toMatchObject({
     name: '曜聖景觀有限公司',
     shortName: '曜聖景觀',
     contactPerson: '葉柏鎮',
     englishName: 'YAO SEI LIMITED COMPANY',
-    logoSrc,
-    companyCardSrc,
-  },
-  contact: {
+  })
+  expect(siteContent.contact).toMatchObject({
     mobile: '0921-047-049',
     office: '04-8750911',
     fax: '04-8758069',
@@ -23,13 +19,11 @@ export const siteContent = {
     officeHref: 'tel:+88648750911',
     emailHref: 'mailto:a74964163285@gmail.com',
     lineHref: 'https://line.me/ti/p/~0921047049',
-  },
-  hero: {
-    eyebrow: 'YAO SEI LANDSCAPE',
+  })
+  expect(siteContent.hero).toMatchObject({
     title: '把自然，安放進日常',
     description: '庭園設計・植栽綠化・假山水景・後續養護',
-    image: media('changhua-residence-03.webp'),
     alt: '彰化私人住宅庭園實景',
-  },
-  clients: ['私人住宅', '別墅透天', '社區公設', '企業商空'],
-}
+  })
+  expect(siteContent.hero.image).toMatch(/\.webp$/)
+})

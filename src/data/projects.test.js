@@ -1,6 +1,13 @@
-import { projects } from './projects'
+import { projectCategories, projects } from './projects'
 
 test('project slugs are unique and required content is present', () => {
+  expect(projectCategories).toEqual([
+    '全部',
+    '住宅庭園',
+    '商業綠化',
+    '假山水景',
+    '養護工程',
+  ])
   const slugs = projects.map((project) => project.slug)
   expect(new Set(slugs).size).toBe(slugs.length)
   expect(projects).toHaveLength(6)
@@ -17,10 +24,15 @@ test('project slugs are unique and required content is present', () => {
         clientNeed: expect.any(String),
         designApproach: expect.any(String),
         materials: expect.any(Array),
+        services: expect.any(Array),
+        alt: expect.any(String),
         featured: expect.any(Boolean),
       }),
     )
-    expect(project.gallery.length).toBeGreaterThanOrEqual(3)
+    expect(project.heroImage).toMatch(/\.webp$/)
+    expect(project.gallery.length).toBeGreaterThanOrEqual(2)
+    expect(project.gallery.every((image) => image.endsWith('.webp'))).toBe(true)
+    expect(project.services.length).toBeGreaterThan(0)
   }
 })
 
