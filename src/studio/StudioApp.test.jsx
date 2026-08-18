@@ -41,6 +41,7 @@ test('shows workspace only to the admin', () => {
   expect(
     screen.getByRole('heading', { name: '內容工作室' }),
   ).toBeInTheDocument()
+  expect(screen.getAllByRole('main')).toHaveLength(1)
 })
 
 test('shows a permission message to an authenticated non-admin', () => {
