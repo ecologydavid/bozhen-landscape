@@ -7,5 +7,12 @@ test('builds assets with relative paths for GitHub project pages', () => {
 
 test('scopes unit tests to this worktree only', () => {
   expect(config.test.include).toEqual(['src/**/*.{test,spec}.{js,jsx}'])
+  expect(config.test.exclude).toEqual([
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/.worktrees/**',
+    '**/.superpowers/**',
+    '**/workbench/**',
+  ])
   expect(config.test.exclude).toContain('**/.worktrees/**')
 })
