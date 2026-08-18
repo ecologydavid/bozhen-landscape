@@ -91,7 +91,11 @@ export default function AssetLibrary({
           ) return
           mutatePreviews((current) => ({
             ...current,
-            [job.asset.id]: { status: 'ready', url },
+            [job.asset.id]: {
+              status: 'ready',
+              storagePath: job.asset.storage_path,
+              url,
+            },
           }))
         })
         .catch(() => {
@@ -102,7 +106,11 @@ export default function AssetLibrary({
           ) return
           mutatePreviews((current) => ({
             ...current,
-            [job.asset.id]: { status: 'error', url: '' },
+            [job.asset.id]: {
+              status: 'error',
+              storagePath: job.asset.storage_path,
+              url: '',
+            },
           }))
         })
         .finally(() => {
@@ -124,14 +132,48 @@ export default function AssetLibrary({
       const token = pool.nextToken + 1
       pool.nextToken = token
       pool.tokens.set(asset.id, token)
+      pool.paths.set(asset.id, asset.storage_path)
       pool.queue.push({ asset, token })
-      nextPreviews[asset.id] = { status: 'loading', url: '' }
+      nextPreviews[asset.id] = {
+        status: 'loading',
+        storagePath: asset.storage_path,
+        url: '',
+      }
       changed = true
     }
 
     if (changed) replacePreviews(nextPreviews)
     drainPreviewPool(pool)
   }, [drainPreviewPool, replacePreviews])
+
+  const reconcilePreviewPool = useCallback((visibleRows) => {
+    const pool = previewPoolRef.current
+    if (!pool || pool.cancelled) return
+    const visibleById = new Map(visibleRows.map((asset) => [asset.id, asset]))
+
+    for (const [assetId] of pool.tokens) {
+      const visibleAsset = visibleById.get(assetId)
+      if (!visibleAsset || pool.paths.get(assetId) !== visibleAsset.storage_path) {
+        // Running jobs retain their active slot, but deleting their token makes
+        // their eventual result stale and unable to commit preview state.
+        pool.tokens.delete(assetId)
+        pool.paths.delete(assetId)
+      }
+    }
+
+    pool.queue = pool.queue.filter((job) => {
+      const visibleAsset = visibleById.get(job.asset.id)
+      return visibleAsset?.storage_path === job.asset.storage_path
+        && pool.tokens.get(job.asset.id) === job.token
+    })
+
+    const nextPreviews = {}
+    for (const asset of visibleRows) {
+      const preview = previewsRef.current[asset.id]
+      if (preview?.storagePath === asset.storage_path) nextPreviews[asset.id] = preview
+    }
+    replacePreviews(nextPreviews)
+  }, [replacePreviews])
 
   const mergeMutationRows = useCallback((rows, snapshot) => {
     const currentById = new Map(assetsRef.current.map((asset) => [asset.id, asset]))
@@ -174,6 +216,7 @@ export default function AssetLibrary({
       active: 0,
       cancelled: false,
       nextToken: 0,
+      paths: new Map(),
       queue: [],
       tokens: new Map(),
     }
@@ -222,11 +265,13 @@ export default function AssetLibrary({
         const pendingMissingRows = assetsRef.current.filter((asset) => (
           mutationLocksRef.current.has(asset.id) && !rowIds.has(asset.id)
         ))
-        replaceAssets([...mergedRows, ...pendingMissingRows])
+        const visibleRows = [...mergedRows, ...pendingMissingRows]
+        reconcilePreviewPool(visibleRows)
+        replaceAssets(visibleRows)
         nextOffsetRef.current = rows.length
         setHasMore(rows.length === pageSize)
         setLoadState('ready')
-        enqueuePreviews(mergedRows)
+        enqueuePreviews(visibleRows)
       })
       .catch(() => {
         if (!isCurrentProject(generation) || listRevisionRef.current !== revision) return
@@ -239,6 +284,7 @@ export default function AssetLibrary({
     mergeMutationRows,
     pageSize,
     projectId,
+    reconcilePreviewPool,
     refreshToken,
     replaceAssets,
     retryToken,
@@ -347,7 +393,11 @@ export default function AssetLibrary({
     if (current?.status !== 'ready' || current.url !== failedUrl) return
     mutatePreviews((previewState) => ({
       ...previewState,
-      [asset.id]: { status: 'error', url: '' },
+      [asset.id]: {
+        status: 'error',
+        storagePath: asset.storage_path,
+        url: '',
+      },
     }))
   }
 

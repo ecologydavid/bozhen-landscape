@@ -328,6 +328,100 @@ test('bounds private preview signing concurrency to four and uses one aggregate 
   view.unmount()
 })
 
+test('prunes absent queued previews while old running jobs keep the shared four-slot limit', async () => {
+  const oldRows = Array.from({ length: 6 }, (_, index) => assetRow({
+    id: `old-${index + 1}`,
+    original_name: `舊素材 ${index + 1}.jpg`,
+    storage_path: `raw/${projectId}/old-${index + 1}.jpg`,
+  }))
+  const newRows = Array.from({ length: 2 }, (_, index) => assetRow({
+    id: `new-${index + 1}`,
+    original_name: `新素材 ${index + 1}.jpg`,
+    storage_path: `raw/${projectId}/new-${index + 1}.jpg`,
+  }))
+  listAssets.mockReset()
+    .mockResolvedValueOnce(oldRows)
+    .mockResolvedValueOnce(newRows)
+  const signingJobs = []
+  let active = 0
+  let maximum = 0
+  createAssetPreviewUrl.mockImplementation((_client, path) => {
+    const pending = deferred()
+    const job = { path, pending }
+    signingJobs.push(job)
+    active += 1
+    maximum = Math.max(maximum, active)
+    return pending.promise.finally(() => { active -= 1 })
+  })
+  const view = renderLibrary({ pageSize: 6, refreshToken: 0 })
+
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(4))
+  expect(signingJobs.map((job) => job.path)).toEqual(
+    oldRows.slice(0, 4).map((row) => row.storage_path),
+  )
+
+  view.rerender(
+    <AssetLibrary
+      client={defaultClient}
+      projectId={projectId}
+      pageSize={6}
+      refreshToken={1}
+    />,
+  )
+  expect(await screen.findByRole('article', { name: '新素材 1.jpg' })).toBeInTheDocument()
+  expect(screen.queryByRole('article', { name: '舊素材 1.jpg' })).not.toBeInTheDocument()
+  expect(createAssetPreviewUrl).toHaveBeenCalledTimes(4)
+
+  signingJobs[0].pending.resolve('https://signed.example/stale-old-1')
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(5))
+  expect(signingJobs[4].path).toBe(newRows[0].storage_path)
+  expect(maximum).toBe(4)
+  expect(screen.queryByRole('img', { name: '新素材 1.jpg 預覽' }))
+    .not.toBeInTheDocument()
+
+  signingJobs[1].pending.resolve('https://signed.example/stale-old-2')
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(6))
+  expect(signingJobs[5].path).toBe(newRows[1].storage_path)
+  expect(maximum).toBe(4)
+  signingJobs[2].pending.resolve('https://signed.example/stale-old-3')
+  signingJobs[3].pending.resolve('https://signed.example/stale-old-4')
+  signingJobs[4].pending.resolve('https://signed.example/new-1')
+  signingJobs[5].pending.resolve('https://signed.example/new-2')
+
+  expect(await screen.findByRole('img', { name: '新素材 1.jpg 預覽' }))
+    .toHaveAttribute('src', 'https://signed.example/new-1')
+  expect(screen.getByRole('img', { name: '新素材 2.jpg 預覽' }))
+    .toHaveAttribute('src', 'https://signed.example/new-2')
+  expect(signingJobs.map((job) => job.path)).not.toContain(oldRows[4].storage_path)
+  expect(signingJobs.map((job) => job.path)).not.toContain(oldRows[5].storage_path)
+  expect(screen.queryByText('https://signed.example/stale-old-1')).not.toBeInTheDocument()
+  expect(maximum).toBe(4)
+})
+
+test('invalidates a ready preview when the same asset id points to a changed path', async () => {
+  const changedPath = `raw/${projectId}/${firstAssetId}.png`
+  listAssets.mockReset()
+    .mockResolvedValueOnce([assetRow()])
+    .mockResolvedValueOnce([assetRow({ storage_path: changedPath, mime_type: 'image/png' })])
+  createAssetPreviewUrl.mockImplementation(async (_client, path) => (
+    path === changedPath
+      ? 'https://signed.example/current-path'
+      : 'https://signed.example/old-path'
+  ))
+  const view = renderLibrary({ refreshToken: 0 })
+
+  expect(await screen.findByRole('img', { name: '庭園入口.jpg 預覽' }))
+    .toHaveAttribute('src', 'https://signed.example/old-path')
+  view.rerender(
+    <AssetLibrary client={defaultClient} projectId={projectId} refreshToken={1} />,
+  )
+
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(2))
+  expect(createAssetPreviewUrl).toHaveBeenLastCalledWith(defaultClient, changedPath)
+  expect(await screen.findByRole('img', { name: '庭園入口.jpg 預覽' }))
+    .toHaveAttribute('src', 'https://signed.example/current-path')
+})
+
 test('keeps a pending permission mutation authoritative across a same-project refresh', async () => {
   const user = userEvent.setup()
   const update = deferred()
