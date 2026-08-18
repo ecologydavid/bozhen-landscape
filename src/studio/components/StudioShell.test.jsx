@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
@@ -76,6 +76,19 @@ test('marks the matching navigation destination as active', () => {
   )
 })
 
+test('keeps project navigation active for a nested project route', () => {
+  render(
+    <MemoryRouter initialEntries={['/studio/projects/p1']}>
+      <StudioShell />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('link', { name: '案場素材' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+})
+
 test('signs out the current user', async () => {
   const user = userEvent.setup()
   const signOut = vi.fn().mockResolvedValue()
@@ -93,6 +106,43 @@ test('signs out the current user', async () => {
   await user.click(screen.getByRole('button', { name: '登出' }))
 
   expect(signOut).toHaveBeenCalledOnce()
+})
+
+test('disables repeated sign-out attempts while one is pending', async () => {
+  const user = userEvent.setup()
+  let resolveSignOut
+  const signOut = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        resolveSignOut = resolve
+      }),
+  )
+  useStudioAuth.mockReturnValue({
+    user: { email: 'admin@example.com' },
+    signOut,
+  })
+
+  render(
+    <MemoryRouter>
+      <StudioShell />
+    </MemoryRouter>,
+  )
+
+  const signOutButton = screen.getByRole('button', { name: '登出' })
+  await user.click(signOutButton)
+
+  expect(signOutButton).toBeDisabled()
+  expect(signOutButton).toHaveAccessibleName('登出中…')
+
+  await user.click(signOutButton)
+  expect(signOut).toHaveBeenCalledOnce()
+
+  await act(async () => {
+    resolveSignOut()
+  })
+
+  expect(signOutButton).toBeEnabled()
+  expect(signOutButton).toHaveAccessibleName('登出')
 })
 
 test('shows a retryable alert when sign-out fails', async () => {
