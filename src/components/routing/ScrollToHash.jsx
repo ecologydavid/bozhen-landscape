@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 export default function ScrollToHash() {
-  const { hash, pathname } = useLocation()
+  const { hash, pathname, key } = useLocation()
 
   useEffect(() => {
     if (!hash) {
@@ -21,7 +21,7 @@ export default function ScrollToHash() {
       target.setAttribute('tabindex', '-1')
       target.focus({ preventScroll: true })
     }
-  }, [hash, pathname])
+  }, [hash, pathname, key])
 
   return null
 }

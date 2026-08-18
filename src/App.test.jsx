@@ -107,3 +107,36 @@ test('moves focus from a closed navigation link to the next route main content',
   await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
   expect(screen.getByRole('main')).toHaveClass('projects-page')
 })
+
+test('returns navigation focus to contact for changed and repeated contact hashes', async () => {
+  const user = userEvent.setup()
+  const scrollIntoView = vi.fn()
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: scrollIntoView,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/#services']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  await user.click(screen.getByRole('link', { name: '聯絡資訊' }))
+
+  await waitFor(() => expect(document.getElementById('contact')).toHaveFocus())
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass(
+    'is-open',
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  await user.click(screen.getByRole('link', { name: '聯絡資訊' }))
+
+  await waitFor(() => expect(document.getElementById('contact')).toHaveFocus())
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass(
+    'is-open',
+  )
+  expect(scrollIntoView).toHaveBeenCalledTimes(3)
+  delete HTMLElement.prototype.scrollIntoView
+})

@@ -112,7 +112,7 @@ export default function SiteHeader({ brand, contact }) {
                 className="site-nav__item"
                 to={item.to}
                 aria-label={item.label}
-                onClick={closeMenu}
+                onClick={() => closeMenu()}
               >
                 <span className="site-nav__number">{item.number}</span>
                 <span className="site-nav__wording">
@@ -127,21 +127,17 @@ export default function SiteHeader({ brand, contact }) {
           </div>
           <div className="site-nav__contacts">
             <a
-              className="site-nav__contact site-nav__contact--line"
               href={contact.lineHref}
               target="_blank"
               rel="noreferrer"
               aria-label="LINE 聯絡"
-              onClick={closeMenu}
             >
               <LeafIcon name="sprout" />
               <span>LINE 聯絡</span>
             </a>
             <a
-              className="site-nav__contact site-nav__contact--phone"
               href={contact.phoneHref}
               aria-label={`撥打 ${contact.mobile}`}
-              onClick={closeMenu}
             >
               <LeafIcon name="leaf" />
               <span>撥打電話</span>
