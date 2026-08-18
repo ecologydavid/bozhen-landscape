@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HashRouter, MemoryRouter } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
 import App from './App'
@@ -86,5 +87,23 @@ test('resets the scroll position when opening a route without a section', async 
       top: 0,
     }),
   )
+  expect(screen.getByRole('main')).toHaveAttribute('tabindex', '-1')
+  expect(screen.getByRole('main')).toHaveFocus()
   delete window.scrollTo
+})
+
+test('moves focus from a closed navigation link to the next route main content', async () => {
+  const user = userEvent.setup()
+
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  await user.click(screen.getByRole('link', { name: '作品案例' }))
+
+  await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
+  expect(screen.getByRole('main')).toHaveClass('projects-page')
 })

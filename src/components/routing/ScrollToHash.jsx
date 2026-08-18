@@ -7,6 +7,11 @@ export default function ScrollToHash() {
   useEffect(() => {
     if (!hash) {
       window.scrollTo({ behavior: 'instant', left: 0, top: 0 })
+      const main = document.querySelector('main')
+      if (main) {
+        main.setAttribute('tabindex', '-1')
+        main.focus({ preventScroll: true })
+      }
       return
     }
 

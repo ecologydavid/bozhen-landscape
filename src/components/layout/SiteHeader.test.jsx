@@ -43,7 +43,19 @@ test('opens and closes the mobile navigation with every supported control', asyn
   expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
 
   await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  await user.click(screen.getByRole('button', { name: '關閉選單' }))
+  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
   await user.click(screen.getByRole('button', { name: '關閉主要導覽' }))
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass(
+    'is-open',
+  )
+  expect(document.body).not.toHaveClass('nav-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  await user.click(screen.getByRole('link', { name: '作品案例' }))
   expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass(
     'is-open',
   )

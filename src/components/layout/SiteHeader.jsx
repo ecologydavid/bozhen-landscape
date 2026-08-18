@@ -119,7 +119,9 @@ export default function SiteHeader({ brand, contact }) {
                   <strong>{item.label}</strong>
                   <small>{item.english}</small>
                 </span>
-                <LeafIcon name="arrowLeaf" className="site-nav__arrow" />
+                <span className="site-nav__arrow">
+                  <LeafIcon name="arrowLeaf" />
+                </span>
               </Link>
             ))}
           </div>
@@ -142,7 +144,7 @@ export default function SiteHeader({ brand, contact }) {
               onClick={closeMenu}
             >
               <LeafIcon name="leaf" />
-              <span>{contact.mobile}</span>
+              <span>撥打電話</span>
             </a>
           </div>
         </nav>

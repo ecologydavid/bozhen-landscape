@@ -84,6 +84,11 @@
   white-space: nowrap;
 }
 
+.nav-toggle,
+.nav-backdrop {
+  display: none;
+}
+
 .section-heading--split {
   display: grid;
   grid-template-columns: 0.7fr 2fr 1.2fr;
