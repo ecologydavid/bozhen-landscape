@@ -1,0 +1,21 @@
+Third-Party Font Notices
+
+This site includes locally generated subsets from the pinned Fontsource packages below. The full license text copied from each package is included alongside this notice.
+
+Noto Serif TC
+Package: @fontsource/noto-serif-tc
+Copyright notice: Google Inc.
+License: OFL-1.1 (http://scripts.sil.org/OFL)
+License text: Noto-Serif-TC-OFL-1.1.txt
+
+Noto Sans TC
+Package: @fontsource/noto-sans-tc
+Copyright notice: Google Inc.
+License: OFL-1.1 (http://scripts.sil.org/OFL)
+License text: Noto-Sans-TC-OFL-1.1.txt
+
+Manrope
+Package: @fontsource-variable/manrope
+Copyright notice: Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)
+License: OFL-1.1 (https://openfontlicense.org)
+License text: Manrope-OFL-1.1.txt

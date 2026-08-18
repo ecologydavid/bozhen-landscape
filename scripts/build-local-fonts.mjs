@@ -1,14 +1,16 @@
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as fontkit from 'fontkit'
 import subsetFont from 'subset-font'
 
 const sourceRoot = path.resolve('src')
-const outputRoot = path.resolve('src/assets/fonts')
-const cssOutput = path.resolve('src/styles/fonts.css')
+const defaultOutputRoot = path.resolve('src/assets/fonts')
+const defaultCssOutput = path.resolve('src/styles/fonts.css')
 const sourceExtensions = new Set(['.css', '.html', '.js', '.jsx'])
 const printableAscii = Array.from({ length: 95 }, (_, index) => String.fromCodePoint(index + 32)).join('')
+const ownedFontFile = /^(?:manrope-latin|noto-(?:serif|sans)-tc-(?:400|500|600|700)(?:-extra-\d+)?)\.woff2$/
+const preservedNameIds = [0, 1, 2, 4, 6, 13, 14]
 
 const fontDefinitions = [
   { family: 'Noto Serif TC', weight: '500', source: 'node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-500-normal.woff2', output: 'noto-serif-tc-500.woff2', packageName: '@fontsource/noto-serif-tc' },
@@ -23,26 +25,42 @@ const fontDefinitions = [
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true })
   const files = []
-
   for (const entry of entries) {
     const filePath = path.join(directory, entry.name)
     if (entry.isDirectory()) files.push(...await walk(filePath))
     else if (sourceExtensions.has(path.extname(entry.name))) files.push(filePath)
   }
-
   return files
 }
 
 async function writeIfChanged(filePath, contents) {
   try {
-    const current = await readFile(filePath)
-    if (Buffer.compare(current, contents) === 0) return false
+    if (Buffer.compare(await readFile(filePath), contents) === 0) return false
   } catch {
     // The initial generation creates the committed local artifact.
   }
-
   await writeFile(filePath, contents)
   return true
+}
+
+function ownedOutputPath(outputRoot, fileName) {
+  const resolvedRoot = path.resolve(outputRoot)
+  const target = path.resolve(resolvedRoot, fileName)
+  if (!ownedFontFile.test(fileName) || path.dirname(target) !== resolvedRoot) {
+    throw new Error(`Refusing to manage non-font output: ${fileName}`)
+  }
+  return target
+}
+
+async function removeStaleFontFiles(outputRoot, currentOutputs) {
+  const resolvedRoot = path.resolve(outputRoot)
+  const current = new Set(currentOutputs)
+  const entries = await readdir(resolvedRoot, { withFileTypes: true })
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !ownedFontFile.test(entry.name) || current.has(entry.name)) continue
+    await rm(ownedOutputPath(resolvedRoot, entry.name))
+  }
 }
 
 function fontFaceCss({ family, output, unicodeRange, variable, weight }) {
@@ -51,7 +69,6 @@ function fontFaceCss({ family, output, unicodeRange, variable, weight }) {
 
 function unicodeRangeContains(range, character) {
   const codePoint = character.codePointAt(0)
-
   return range.split(',').some((token) => {
     const [start, end = start] = token.trim().slice(2).split('-')
     return codePoint >= Number.parseInt(start, 16) && codePoint <= Number.parseInt(end, 16)
@@ -59,7 +76,19 @@ function unicodeRangeContains(range, character) {
 }
 
 function formatUnicodeRange(characters) {
-  return characters.map((character) => `U+${character.codePointAt(0).toString(16).toUpperCase()}`).join(', ')
+  const codePoints = [...new Set(characters.map((character) => character.codePointAt(0)))].sort((left, right) => left - right)
+  const ranges = []
+
+  for (const codePoint of codePoints) {
+    const current = ranges.at(-1)
+    if (current && codePoint === current.end + 1) current.end = codePoint
+    else ranges.push({ start: codePoint, end: codePoint })
+  }
+
+  return ranges.map(({ start, end }) => {
+    const first = `U+${start.toString(16).toUpperCase()}`
+    return start === end ? first : `${first}-${end.toString(16).toUpperCase()}`
+  }).join(', ')
 }
 
 async function resolveShardSources(font, characters) {
@@ -73,10 +102,7 @@ async function resolveShardSources(font, characters) {
   for (const character of characters) {
     const shard = shards.find(({ unicodeRange }) => unicodeRangeContains(unicodeRange, character))
     if (!shard) throw new Error(`No Fontsource shard covers ${font.family} U+${character.codePointAt(0).toString(16).toUpperCase()}`)
-
-    const sourceCharacters = resolved.get(shard.source) ?? []
-    sourceCharacters.push(character)
-    resolved.set(shard.source, sourceCharacters)
+    resolved.set(shard.source, [...(resolved.get(shard.source) ?? []), character])
   }
 
   return [...resolved.entries()].sort(([left], [right]) => left.localeCompare(right))
@@ -95,26 +121,28 @@ function supplementOutputName(font, source) {
 
 export async function collectSubsetCharacters() {
   const sourceFiles = [...await walk(sourceRoot), path.resolve('index.html')]
-    .filter((filePath) => filePath !== cssOutput)
+    .filter((filePath) => filePath !== defaultCssOutput)
     .sort()
   const sourceText = (await Promise.all(sourceFiles.map((filePath) => readFile(filePath, 'utf8')))).join('')
-
   return [...new Set([...`${printableAscii}${sourceText}`].filter((character) => character.codePointAt(0) >= 32))]
     .sort((left, right) => left.codePointAt(0) - right.codePointAt(0))
     .join('')
 }
 
-export async function validateGeneratedFontCoverage(characters) {
-  const cjkFonts = fontDefinitions.filter((font) => font.packageName)
+export async function validateGeneratedFontCoverage(characters, manifest) {
+  const currentManifest = manifest ?? {
+    ...JSON.parse(await readFile(path.join(defaultOutputRoot, 'font-manifest.json'), 'utf8')),
+    outputRoot: defaultOutputRoot,
+  }
   const missing = []
 
-  for (const font of cjkFonts) {
-    const filePrefix = path.basename(font.output, '.woff2')
-    const faceFiles = (await readdir(outputRoot)).filter((fileName) => fileName.startsWith(filePrefix) && fileName.endsWith('.woff2'))
-    const faces = await Promise.all(faceFiles.map(async (fileName) => fontkit.create(await readFile(path.join(outputRoot, fileName)))))
+  for (const font of fontDefinitions.filter((font) => font.packageName)) {
+    const faces = await Promise.all(currentManifest.fontFaces
+      .filter((face) => face.family === font.family && face.weight === font.weight)
+      .map(async (face) => ({ ...face, font: fontkit.create(await readFile(ownedOutputPath(currentManifest.outputRoot, face.output))) })))
 
     for (const character of characters) {
-      if (!faces.some((face) => face.hasGlyphForCodePoint(character.codePointAt(0)))) {
+      if (!faces.some((face) => (!face.unicodeRange || unicodeRangeContains(face.unicodeRange, character)) && face.font.hasGlyphForCodePoint(character.codePointAt(0)))) {
         missing.push(`${font.family} ${font.weight} U+${character.codePointAt(0).toString(16).toUpperCase()}`)
       }
     }
@@ -123,45 +151,49 @@ export async function validateGeneratedFontCoverage(characters) {
   return missing
 }
 
-async function buildLocalFonts() {
-  const usedCharacters = await collectSubsetCharacters()
-  await mkdir(outputRoot, { recursive: true })
+export async function generateLocalFonts({ characters, outputRoot = defaultOutputRoot, cssOutput = defaultCssOutput } = {}) {
+  const subsetCharacters = characters ?? await collectSubsetCharacters()
+  const resolvedOutputRoot = path.resolve(outputRoot)
+  const manifestOutput = path.join(resolvedOutputRoot, 'font-manifest.json')
+  await mkdir(resolvedOutputRoot, { recursive: true })
 
   const fontFaces = []
   let changed = 0
   for (const font of fontDefinitions) {
-    const subset = await subsetFont(await readFile(font.source), usedCharacters, {
-      targetFormat: 'woff2',
-      preserveNameIds: [1, 2, 4, 6],
-    })
-    if (await writeIfChanged(path.join(outputRoot, font.output), subset)) changed += 1
-    fontFaces.push(font)
+    const subset = await subsetFont(await readFile(font.source), subsetCharacters, { targetFormat: 'woff2', preserveNameIds: preservedNameIds })
+    if (await writeIfChanged(ownedOutputPath(resolvedOutputRoot, font.output), subset)) changed += 1
+    if (!font.packageName) {
+      fontFaces.push(font)
+      continue
+    }
 
-    if (!font.packageName) continue
+    const missing = missingGlyphs(subset, subsetCharacters)
+    fontFaces.push({ ...font, unicodeRange: formatUnicodeRange([...subsetCharacters].filter((character) => !missing.includes(character))) })
 
-    const missing = missingGlyphs(subset, usedCharacters)
-    for (const [source, characters] of await resolveShardSources(font, missing)) {
+    for (const [source, shardCharacters] of await resolveShardSources(font, missing)) {
       const output = supplementOutputName(font, source)
-      const supplement = await subsetFont(await readFile(path.join('node_modules', font.packageName, 'files', source)), characters.join(''), {
-        targetFormat: 'woff2',
-        preserveNameIds: [1, 2, 4, 6],
-      })
-      if (await writeIfChanged(path.join(outputRoot, output), supplement)) changed += 1
-      fontFaces.push({ ...font, output, unicodeRange: formatUnicodeRange(characters) })
+      const supplement = await subsetFont(await readFile(path.join('node_modules', font.packageName, 'files', source)), shardCharacters.join(''), { targetFormat: 'woff2', preserveNameIds: preservedNameIds })
+      if (await writeIfChanged(ownedOutputPath(resolvedOutputRoot, output), supplement)) changed += 1
+      fontFaces.push({ ...font, output, unicodeRange: formatUnicodeRange(shardCharacters) })
     }
   }
 
-  const missing = await validateGeneratedFontCoverage(usedCharacters)
+  await removeStaleFontFiles(resolvedOutputRoot, fontFaces.map(({ output }) => output))
+  const manifest = { fontFaces, outputRoot: resolvedOutputRoot }
+  const missing = await validateGeneratedFontCoverage(subsetCharacters, manifest)
   if (missing.length) throw new Error(`Generated local fonts are missing glyphs: ${missing.join(', ')}`)
 
-  const css = [
-    '/* Generated by scripts/build-local-fonts.mjs from pinned Fontsource sources. */',
-    ...fontFaces.map(fontFaceCss),
-  ].join('\n\n') + '\n'
+  const css = ['/* Generated by scripts/build-local-fonts.mjs from pinned Fontsource sources. */', ...fontFaces.map(fontFaceCss)].join('\n\n') + '\n'
   if (await writeIfChanged(cssOutput, Buffer.from(css))) changed += 1
+  if (await writeIfChanged(manifestOutput, Buffer.from(`${JSON.stringify({ fontFaces }, null, 2)}\n`))) changed += 1
 
-  const fontBytes = await Promise.all(fontFaces.map(async ({ output }) => (await stat(path.join(outputRoot, output))).size))
-  console.log(`Generated ${fontFaces.length} local font subsets (${fontBytes.reduce((sum, size) => sum + size, 0)} bytes; ${changed} files changed).`)
+  const fontBytes = await Promise.all(fontFaces.map(async ({ output }) => (await stat(ownedOutputPath(resolvedOutputRoot, output))).size))
+  return { ...manifest, changed, fontBytes: fontBytes.reduce((sum, size) => sum + size, 0) }
+}
+
+async function buildLocalFonts() {
+  const result = await generateLocalFonts()
+  console.log(`Generated ${result.fontFaces.length} local font subsets (${result.fontBytes} bytes; ${result.changed} files changed).`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

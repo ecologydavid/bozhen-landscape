@@ -8,10 +8,11 @@
   "scripts": {
     "test": "vitest",
     "assets:build": "node scripts/build-project-assets.mjs",
+    "licenses:build": "node scripts/sync-font-licenses.mjs",
     "fonts:build": "node scripts/build-local-fonts.mjs",
     "fonts:check": "node scripts/check-font-budget.mjs",
     "dev": "vite",
-    "build": "npm run fonts:build && vite build && npm run fonts:check",
+    "build": "npm run licenses:build && npm run fonts:build && vite build && npm run fonts:check",
     "preview": "vite preview",
     "lint": "eslint ."
   },
