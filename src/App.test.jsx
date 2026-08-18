@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HashRouter, MemoryRouter, useNavigate } from 'react-router-dom'
@@ -70,12 +71,14 @@ test('scrolls to a requested homepage section after route navigation', async () 
   })
 
   render(
-    <MemoryRouter initialEntries={['/#contact']}>
-      <App />
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={['/#contact']}>
+        <App />
+      </MemoryRouter>
+    </StrictMode>,
   )
 
-  await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+  await waitFor(() => expect(scrollIntoView).toHaveBeenCalled())
   const contact = document.getElementById('contact')
   expect(contact).not.toHaveAttribute('tabindex', '-1')
   expect(contact).not.toHaveFocus()
@@ -90,9 +93,11 @@ test('resets the scroll position when opening a route without a section', async 
   })
 
   render(
-    <MemoryRouter initialEntries={['/projects']}>
-      <App />
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={['/projects']}>
+        <App />
+      </MemoryRouter>
+    </StrictMode>,
   )
 
   await waitFor(() =>
