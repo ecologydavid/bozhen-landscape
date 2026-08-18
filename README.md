@@ -11,6 +11,11 @@
 - 無報價表單，不儲存訪客資料。
 - 專案圖片由人工核准的 HEIC／JPG 原稿產出本地 AVIF／WebP；Google Drive 原稿不會被建置腳本修改。
 
+## 環境需求
+
+- Node.js 24.x（與 GitHub Pages workflow 使用的版本一致）。
+- npm。
+
 ## 本機開發
 
 ```powershell
@@ -24,6 +29,8 @@ npm run dev
 npm test -- --run
 npm run lint
 npm run build
+# 首次執行瀏覽器測試前，只需安裝一次 Chromium
+npx playwright install chromium
 npm run test:e2e
 ```
 
@@ -34,6 +41,8 @@ npm run test:e2e
 3. 人工核准後才在 `scripts/project-asset-manifest.mjs` 設定 `approved: true`。
 4. 執行 `npm run assets:build` 產生 AVIF／WebP。
 5. 檢查修美前後對照與網站裁切後，再提交 `src/assets/projects`。
+
+`npm run assets:build` 是素材維護者重新產圖時使用的指令。全新 clone 不包含已忽略版控的私有 `workbench/landscape-originals` 原稿，因此直接執行會出現 `Missing source`；一般開發與 `npm run build` 會直接使用已提交至 `src/assets/projects` 的 AVIF／WebP，不需要原稿。
 
 ## 內容維護
 
