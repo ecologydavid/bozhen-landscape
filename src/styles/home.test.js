@@ -9,3 +9,15 @@ test('fills the Hero media frame with its image and fallback on desktop', () => 
     /\.hero__image,\s*\.hero__media > \.image-fallback \{\s*position: absolute;\s*inset: 0;\s*width: 100%;\s*height: 100%;\s*object-fit: cover;\s*object-position: 50% 52%;/,
   )
 })
+
+test('fills service cards with images or accessible fallbacks without duplicate overlay copy', () => {
+  expect(stylesheet).toMatch(
+    /\.service-item__image,\s*\.service-item > picture,\s*\.service-item > \.image-fallback \{\s*position: absolute;\s*z-index: -2;\s*inset: 0;\s*width: 100%;\s*height: 100%;/,
+  )
+  expect(stylesheet).toMatch(
+    /\.service-item > \.image-fallback \{[\s\S]*?min-height: 0;[\s\S]*?padding: 0;/,
+  )
+  expect(stylesheet).toMatch(
+    /\.service-item > \.image-fallback > \* \{\s*visibility: hidden;/,
+  )
+})

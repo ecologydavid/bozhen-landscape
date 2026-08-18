@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { expect, test } from 'vitest'
 
 const stylesheet = readFileSync(resolve('src/styles/responsive.css'), 'utf8')
+const tokens = readFileSync(resolve('src/styles/tokens.css'), 'utf8')
 
 test('hides only Hero inline contact links at mobile widths', () => {
   expect(stylesheet).toMatch(
@@ -44,4 +45,11 @@ test('reveals the mobile drawer before its focus target is scheduled', () => {
   expect(stylesheet).toMatch(
     /\.site-nav\.is-open \{[\s\S]*?visibility: visible;[\s\S]*?transition-delay: 0s;/,
   )
+})
+
+test('lets the document shrink below 320 CSS pixels when a Windows scrollbar is present', () => {
+  expect(tokens).toMatch(
+    /body \{[\s\S]*?min-width: 0;[\s\S]*?overflow-x: hidden;/,
+  )
+  expect(tokens).not.toMatch(/body \{[\s\S]*?min-width: 320px;/)
 })
