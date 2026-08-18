@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import Hero from '../components/home/Hero'
 import ServiceOverview from '../components/home/ServiceOverview'
 import FeaturedProjects from '../components/home/FeaturedProjects'
@@ -10,10 +11,11 @@ import { homeScenes } from '../data/homeScenes'
 import { useActiveScene } from '../hooks/useActiveScene'
 
 export default function HomePage({ brand, contact, hero }) {
-  const activeScene = useActiveScene(homeScenes.map((scene) => scene.id))
+  const homeRef = useRef(null)
+  const activeScene = useActiveScene(homeScenes.map((scene) => scene.id), homeRef)
 
   return (
-    <main className="editorial-home" data-active-scene={activeScene}>
+    <main ref={homeRef} className="editorial-home" data-active-scene={activeScene}>
       <ScrollEnvironment scenes={homeScenes} activeScene={activeScene} />
       <Hero hero={hero} contact={contact} />
       <FeaturedProjects />

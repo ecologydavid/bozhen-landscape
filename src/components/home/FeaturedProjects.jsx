@@ -11,12 +11,13 @@ export default function FeaturedProjects() {
       className="featured-projects section scene-section"
       id="works"
       data-scene="stone"
+      aria-labelledby="featured-projects-title"
     >
       <div className="container">
         <Reveal className="section-heading section-heading--projects">
           <div>
             <p className="section-label">SELECTED WORKS</p>
-            <h2>作品，是最直接的回答</h2>
+            <h2 id="featured-projects-title">作品，是最直接的回答</h2>
           </div>
           <Link className="text-link" to="/projects">
             查看所有案例

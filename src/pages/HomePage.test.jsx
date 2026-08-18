@@ -1,7 +1,26 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { afterEach, vi } from 'vitest'
 import HomePage from './HomePage'
 import { siteContent } from '../data/siteContent'
+import { homeScenes } from '../data/homeScenes'
+
+let observerCallback
+
+class ObserverMock {
+  constructor(callback) {
+    observerCallback = callback
+    this.observed = []
+  }
+
+  observe(node) {
+    this.observed.push(node)
+  }
+
+  disconnect() {}
+}
+
+afterEach(() => vi.unstubAllGlobals())
 
 test('renders the approved works-first homepage sections', () => {
   const { container } = render(
@@ -26,6 +45,19 @@ test('renders the approved works-first homepage sections', () => {
     'data-active-scene',
     'plant',
   )
+  const home = container.querySelector('.editorial-home')
+  expect([...home.querySelectorAll(':scope > section')].map((section) => section.className)).toEqual([
+    'hero scene-section',
+    'featured-projects section scene-section',
+    'services section scene-section',
+    'work-process section scene-section',
+    'brand-story section',
+    'client-types section',
+    'contact-panel section scene-section',
+  ])
+  homeScenes.forEach(({ id, sectionId }) => {
+    expect(home.querySelector(`#${sectionId}`)).toHaveAttribute('data-scene', id)
+  })
 
   const heroHeading = screen.getByRole('heading', { name: '把自然，安放進日常' })
   const worksHeading = screen.getByRole('heading', { name: '作品，是最直接的回答' })
@@ -54,4 +86,34 @@ test('renders the approved works-first homepage sections', () => {
   expect(
     screen.queryByRole('button', { name: '送出報價需求' }),
   ).not.toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '作品，是最直接的回答' })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '以專業工法，完成自然的尺度' })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '從理解現場，到風景落成' })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '直接與曜聖聯絡' })).toBeInTheDocument()
+})
+
+test('syncs the active home scene with its environment layer', () => {
+  vi.stubGlobal('IntersectionObserver', ObserverMock)
+  const { container } = render(
+    <MemoryRouter>
+      <HomePage
+        brand={siteContent.brand}
+        contact={siteContent.contact}
+        hero={siteContent.hero}
+      />
+    </MemoryRouter>,
+  )
+
+  const home = container.querySelector('.editorial-home')
+  const water = home.querySelector('[data-scene="water"]')
+
+  act(() =>
+    observerCallback([
+      { target: water, isIntersecting: true, intersectionRatio: 0.72 },
+    ]),
+  )
+
+  expect(home).toHaveAttribute('data-active-scene', 'water')
+  expect(home.querySelector('[data-environment="water"]')).toHaveClass('is-active')
+  expect(home.querySelector('[data-environment="plant"]')).not.toHaveClass('is-active')
 })

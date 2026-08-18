@@ -77,6 +77,19 @@
   background: transparent;
 }
 
+.scene-section[data-scene='stone'] {
+  --ink: #18221c;
+  --muted: #48544b;
+  --moss-800: #274635;
+  --sun-500: #7a5017;
+  --gold-500: #7a5017;
+  --gold-400: #84591c;
+  --line: rgba(24, 34, 28, 0.23);
+  background: rgba(250, 249, 245, 0.88);
+  color: var(--ink);
+  transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);
+}
+
 .scene-section[data-scene='water'],
 .scene-section[data-scene='craft'] {
   --ink: #faf9f5;

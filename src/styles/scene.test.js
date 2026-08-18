@@ -20,3 +20,11 @@ test('provides transparent light-on-dark surfaces for scene-marked sections', ()
     /\.scene-section\[data-scene='care'\],\s*\.scene-section\.contact-panel\s*\{[\s\S]*?--ink:\s*#faf9f5;[\s\S]*?background:\s*rgba\(18,\s*28,\s*22,\s*0\.76\);/,
   )
 })
+
+test('keeps the stone scene readable over its crossfading environment', () => {
+  const stylesheet = readFileSync(resolve('src/styles/scene.css'), 'utf8')
+
+  expect(stylesheet).toMatch(
+    /\.scene-section\[data-scene='stone'\]\s*\{[\s\S]*?--ink:\s*#18221c;[\s\S]*?--muted:\s*#48544b;[\s\S]*?--moss-800:\s*#274635;[\s\S]*?--sun-500:\s*#7a5017;[\s\S]*?--gold-500:\s*#7a5017;[\s\S]*?--gold-400:\s*#84591c;[\s\S]*?background:\s*rgba\(250,\s*249,\s*245,\s*0\.88\);[\s\S]*?color:\s*var\(--ink\);/,
+  )
+})

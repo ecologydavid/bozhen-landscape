@@ -9,7 +9,12 @@ const ArrowIcon = () => (
 
 export default function ContactActions({ brand, contact }) {
   return (
-    <section className="contact-panel section scene-section" id="contact" data-scene="care">
+    <section
+      className="contact-panel section scene-section"
+      id="contact"
+      data-scene="care"
+      aria-labelledby="contact-panel-title"
+    >
       <div className="container contact-panel__grid">
         <Reveal className="contact-panel__brand">
           <BrandImage
@@ -21,7 +26,7 @@ export default function ContactActions({ brand, contact }) {
 
         <Reveal className="contact-panel__content">
           <p className="section-label">CONTACT YAO SEI</p>
-          <h2>直接與曜聖聯絡</h2>
+          <h2 id="contact-panel-title">直接與曜聖聯絡</h2>
           <p className="contact-panel__intro">
             告訴葉先生你的空間位置與需求，我們會與你確認現場條件、服務內容及後續安排。
           </p>

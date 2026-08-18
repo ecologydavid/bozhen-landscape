@@ -48,15 +48,17 @@ function getViewportIntersectionRatio(node) {
   return (visibleWidth * visibleHeight) / (width * height)
 }
 
-export function useActiveScene(sceneIds) {
+export function useActiveScene(sceneIds, sceneRoot) {
   const [activeScene, setActiveScene] = useState(sceneIds[0])
   const sceneKey = sceneIds.join('|')
 
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return undefined
 
+    const root =
+      sceneRoot && 'current' in sceneRoot ? sceneRoot.current : sceneRoot
     const supportedScenes = new Set(sceneKey ? sceneKey.split('|') : [])
-    const nodes = [...document.querySelectorAll('[data-scene]')].filter((node) =>
+    const nodes = [...(root || document).querySelectorAll('[data-scene]')].filter((node) =>
       supportedScenes.has(node.dataset.scene),
     )
     const ratios = new Map(nodes.map((node) => [node, 0]))
@@ -143,7 +145,7 @@ export function useActiveScene(sceneIds) {
         else window.clearTimeout(frameId)
       }
     }
-  }, [sceneKey])
+  }, [sceneKey, sceneRoot])
 
   return activeScene
 }

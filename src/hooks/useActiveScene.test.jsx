@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useRef } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { useActiveScene } from './useActiveScene'
@@ -32,6 +32,22 @@ function Probe({ sceneIds = ['plant', 'stone'] }) {
   const active = useActiveScene(sceneIds)
 
   return <output>{active}</output>
+}
+
+function ScopedProbe() {
+  const rootRef = useRef(null)
+  const active = useActiveScene(['plant', 'stone'], rootRef)
+
+  return (
+    <>
+      <aside data-scene="stone" />
+      <main ref={rootRef}>
+        <section data-scene="plant" />
+        <section data-scene="stone" />
+      </main>
+      <output>{active}</output>
+    </>
+  )
 }
 
 beforeEach(() => {
@@ -138,6 +154,17 @@ test('does not observe or activate unsupported scene markers', () => {
   )
 
   expect(screen.getByText('plant')).toBeInTheDocument()
+})
+
+test('does not observe matching markers outside the supplied scene root', () => {
+  const { container } = render(<ScopedProbe />)
+
+  const externalMarker = container.querySelector('aside[data-scene="stone"]')
+  const scopedMarkers = container.querySelectorAll('main [data-scene]')
+  const observer = observerInstances[0]
+
+  expect(observer.observed).toEqual([...scopedMarkers])
+  expect(observer.observed).not.toContain(externalMarker)
 })
 
 test('refines cached ratios against the central pixel root on a wide viewport', () => {
