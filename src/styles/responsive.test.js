@@ -9,3 +9,9 @@ test('hides only Hero inline contact links at mobile widths', () => {
     /@media \(max-width: 768px\) \{[\s\S]*?\.hero__actions > \.leaf-contact-links \{\s*display: none;/,
   )
 })
+
+test('sizes the fixed drawer from its mobile insets', () => {
+  expect(stylesheet).toMatch(
+    /\.site-nav \{[\s\S]*?inset: 12px 12px 12px max\(52px, 14vw\);[\s\S]*?height: auto;[\s\S]*?max-height: calc\(100dvh - 24px\);/,
+  )
+})

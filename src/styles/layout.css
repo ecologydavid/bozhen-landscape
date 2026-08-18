@@ -21,10 +21,18 @@
 .site-header.is-scrolled {
   position: fixed;
   border-bottom-color: transparent;
-  background: rgba(251, 250, 245, 0.95);
+  background: transparent;
   box-shadow: 0 8px 40px rgba(32, 33, 34, 0.2);
   color: var(--ink);
+}
+
+.site-header.is-scrolled::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: rgba(251, 250, 245, 0.95);
   backdrop-filter: blur(18px);
+  content: '';
 }
 
 .site-header--on-light {
@@ -38,6 +46,8 @@
 }
 
 .site-header__inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   width: var(--container);
   height: 100%;

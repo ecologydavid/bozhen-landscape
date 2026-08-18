@@ -62,8 +62,8 @@ test('scrolls to a requested homepage section after route navigation', async () 
 
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
   const contact = document.getElementById('contact')
-  expect(contact).toHaveAttribute('tabindex', '-1')
-  expect(contact).toHaveFocus()
+  expect(contact).not.toHaveAttribute('tabindex', '-1')
+  expect(contact).not.toHaveFocus()
   delete HTMLElement.prototype.scrollIntoView
 })
 
@@ -87,8 +87,8 @@ test('resets the scroll position when opening a route without a section', async 
       top: 0,
     }),
   )
-  expect(screen.getByRole('main')).toHaveAttribute('tabindex', '-1')
-  expect(screen.getByRole('main')).toHaveFocus()
+  expect(screen.getByRole('main')).not.toHaveAttribute('tabindex', '-1')
+  expect(screen.getByRole('main')).not.toHaveFocus()
   delete window.scrollTo
 })
 
@@ -139,4 +139,32 @@ test('returns navigation focus to contact for changed and repeated contact hashe
   )
   expect(scrollIntoView).toHaveBeenCalledTimes(3)
   delete HTMLElement.prototype.scrollIntoView
+})
+
+test('uses instant hash scrolling when reduced motion is preferred', async () => {
+  const scrollIntoView = vi.fn()
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: scrollIntoView,
+  })
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockReturnValue({ matches: true }),
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/#services']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  await waitFor(() =>
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'auto',
+      block: 'start',
+    }),
+  )
+  expect(document.getElementById('services')).not.toHaveFocus()
+  delete HTMLElement.prototype.scrollIntoView
+  delete window.matchMedia
 })

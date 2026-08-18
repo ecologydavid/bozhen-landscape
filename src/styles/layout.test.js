@@ -9,3 +9,12 @@ test('keeps the desktop navigation shell aligned', () => {
     /\.site-nav \{\s*display: flex;\s*align-items: center;\s*gap: clamp\(24px, 3vw, 46px\);\s*\}/,
   )
 })
+
+test('keeps the scrolled-header blur outside the drawer containing block', () => {
+  expect(stylesheet).not.toMatch(
+    /\.site-header\.is-scrolled \{[^}]*backdrop-filter:/,
+  )
+  expect(stylesheet).toMatch(
+    /\.site-header\.is-scrolled::before \{[\s\S]*backdrop-filter: blur\(18px\);/,
+  )
+})

@@ -9,6 +9,7 @@ export default function SiteHeader({ brand, contact }) {
   const [scrolled, setScrolled] = useState(false)
   const toggleRef = useRef(null)
   const firstLinkRef = useRef(null)
+  const navRef = useRef(null)
   const returnFocusRef = useRef(false)
 
   const closeMenu = ({ returnFocus = false } = {}) => {
@@ -32,14 +33,39 @@ export default function SiteHeader({ brand, contact }) {
     if (!menuOpen) return undefined
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') closeMenu({ returnFocus: true })
+      if (event.key === 'Escape') {
+        closeMenu({ returnFocus: true })
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const focusableLinks = Array.from(
+        navRef.current?.querySelectorAll('a[href]') ?? [],
+      )
+      const firstLink = focusableLinks.at(0)
+      const lastLink = focusableLinks.at(-1)
+      if (!firstLink || !lastLink) return
+
+      const activeElement = document.activeElement
+      if (event.shiftKey && activeElement === firstLink) {
+        event.preventDefault()
+        lastLink.focus()
+      } else if (!event.shiftKey && activeElement === lastLink) {
+        event.preventDefault()
+        firstLink.focus()
+      }
     }
 
     document.body.classList.add('nav-open')
     window.addEventListener('keydown', handleKeyDown)
-    firstLinkRef.current?.focus()
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) firstLinkRef.current?.focus()
+    })
 
     return () => {
+      cancelled = true
       document.body.classList.remove('nav-open')
       window.removeEventListener('keydown', handleKeyDown)
     }
@@ -96,6 +122,7 @@ export default function SiteHeader({ brand, contact }) {
         />
 
         <nav
+          ref={navRef}
           id="primary-navigation"
           className={`site-nav${menuOpen ? ' is-open' : ''}`}
           aria-label="主要導覽"
@@ -131,6 +158,7 @@ export default function SiteHeader({ brand, contact }) {
               target="_blank"
               rel="noreferrer"
               aria-label="LINE 聯絡"
+              onClick={() => closeMenu({ returnFocus: true })}
             >
               <LeafIcon name="sprout" />
               <span>LINE 聯絡</span>
@@ -138,6 +166,7 @@ export default function SiteHeader({ brand, contact }) {
             <a
               href={contact.phoneHref}
               aria-label={`撥打 ${contact.mobile}`}
+              onClick={() => closeMenu({ returnFocus: true })}
             >
               <LeafIcon name="leaf" />
               <span>撥打電話</span>

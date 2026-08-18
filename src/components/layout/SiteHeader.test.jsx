@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
@@ -60,4 +60,71 @@ test('opens and closes the mobile navigation with every supported control', asyn
     'is-open',
   )
   expect(document.body).not.toHaveClass('nav-open')
+})
+
+test('traps keyboard focus within the open navigation', async () => {
+  const user = userEvent.setup()
+  render(
+    <MemoryRouter>
+      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+
+  await user.tab({ shift: true })
+  expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toHaveFocus()
+
+  await user.tab()
+  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+})
+
+test('closes the navigation and restores toggle focus from contact actions', async () => {
+  const user = userEvent.setup()
+  render(
+    <MemoryRouter>
+      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  const lineLink = screen.getByRole('link', { name: 'LINE 聯絡' })
+  lineLink.addEventListener('click', (event) => event.preventDefault(), {
+    once: true,
+  })
+  await user.click(lineLink)
+  expect(document.body).not.toHaveClass('nav-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  const phoneLink = screen.getByRole('link', { name: '撥打 0921-047-049' })
+  phoneLink.addEventListener('click', (event) => event.preventDefault(), {
+    once: true,
+  })
+  await user.click(phoneLink)
+  expect(document.body).not.toHaveClass('nav-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
+})
+
+test('keeps the drawer interactive after the header becomes scrolled', async () => {
+  const user = userEvent.setup()
+  Object.defineProperty(window, 'scrollY', {
+    configurable: true,
+    value: 25,
+  })
+  const { container } = render(
+    <MemoryRouter>
+      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  window.dispatchEvent(new Event('scroll'))
+  await waitFor(() =>
+    expect(container.querySelector('.site-header')).toHaveClass('is-scrolled'),
+  )
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).toHaveClass(
+    'is-open',
+  )
 })
