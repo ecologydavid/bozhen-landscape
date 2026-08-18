@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { uploadAsset } from '../api/assets'
-import { reconcileAssetRecovery } from '../lib/assetRecovery'
+import {
+  reconcileAssetRecovery,
+  triggerAssetRecovery,
+} from '../lib/assetRecovery'
 import { supabase } from '../lib/supabase'
 import { acceptedImageTypes, assetFileSchema } from '../schemas/asset'
 
@@ -44,11 +47,7 @@ export default function AssetUploader({
 
   useEffect(() => {
     function runRecovery() {
-      try {
-        Promise.resolve(recover(client)).catch(() => {})
-      } catch {
-        // Recovery remains opportunistic and never blocks uploader controls.
-      }
+      triggerAssetRecovery(client, recover)
     }
 
     if (!mountRecoveryStartedRef.current) {

@@ -258,6 +258,27 @@ test('runs recovery on mount and online, then removes the listener on unmount', 
   consoleError.mockRestore()
 })
 
+test('a never-settling mount recovery does not block upload completion or input reset', async () => {
+  const recover = vi.fn(() => new Promise(() => {}))
+  const upload = vi.fn().mockResolvedValue({ id: 'asset-1' })
+  const user = userEvent.setup()
+
+  render(
+    <AssetUploader
+      projectId={projectId}
+      upload={upload}
+      recover={recover}
+    />,
+  )
+  const input = screen.getByLabelText('選擇圖片')
+  await user.upload(input, createFile('garden.jpg'))
+
+  await waitFor(() => expect(upload).toHaveBeenCalledOnce())
+  await waitFor(() => expect(input).toBeEnabled())
+  expect(input.value).toBe('')
+  expect(screen.getByText('garden.jpg').closest('li')).toHaveTextContent('上傳成功')
+})
+
 test('prevents an overlapping batch while uploads are in flight', async () => {
   const pending = deferred()
   const upload = vi.fn().mockReturnValue(pending.promise)

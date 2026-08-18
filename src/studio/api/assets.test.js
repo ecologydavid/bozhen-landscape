@@ -1,10 +1,16 @@
 import { expect, test, vi } from 'vitest'
 import { StorageApiError, StorageUnknownError } from '@supabase/storage-js'
-import { recordAssetRecovery } from '../lib/assetRecovery'
+import {
+  readAssetRecoveryItems,
+  reconcileAssetRecovery,
+  recordAssetRecovery,
+} from '../lib/assetRecovery'
 import { uploadAsset } from './assets'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 const assetId = '22222222-2222-4222-8222-222222222222'
+const uppercaseProjectId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
+const uppercaseAssetId = 'BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB'
 const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, permission_status, created_by, created_at'
 
 function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
@@ -15,10 +21,12 @@ function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
 
 function deferred() {
   let resolve
-  const promise = new Promise((resolvePromise) => {
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
     resolve = resolvePromise
+    reject = rejectPromise
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 function expectedAssetPayload(file = createFile()) {
@@ -232,6 +240,37 @@ test('runs pending recovery after validation and isolates recovery failure from 
   )
 })
 
+test('a never-settling recovery drain cannot delay UUID generation or upload', async () => {
+  const recoverPending = vi.fn(() => new Promise(() => {}))
+  const randomUUID = vi.fn(() => assetId)
+  const mock = createClient()
+
+  const result = uploadAsset(mock.client, projectId, createFile(), {
+    randomUUID,
+    recoverPending,
+    recordRecovery: vi.fn().mockReturnValue(true),
+  })
+
+  await vi.waitFor(() => expect(mock.upload).toHaveBeenCalledOnce())
+  expect(randomUUID).toHaveBeenCalledOnce()
+  await expect(result).resolves.toEqual({ id: assetId })
+})
+
+test('a late recovery rejection is handled without delaying a valid upload', async () => {
+  const recovery = deferred()
+  const recoverPending = vi.fn(() => recovery.promise)
+  const mock = createClient()
+
+  const result = upload(mock.client, createFile(), projectId, { recoverPending })
+
+  await vi.waitFor(() => expect(mock.upload).toHaveBeenCalledOnce())
+  await expect(result).resolves.toEqual({ id: assetId })
+
+  recovery.reject(new Error('background recovery failed'))
+  await Promise.resolve()
+  await Promise.resolve()
+})
+
 test('invalid input never starts opportunistic recovery', async () => {
   const recoverPending = vi.fn()
   const mock = createClient()
@@ -243,6 +282,84 @@ test('invalid input never starts opportunistic recovery', async () => {
     { recoverPending },
   )).rejects.toThrow()
   expect(recoverPending).not.toHaveBeenCalled()
+})
+
+test('canonicalizes uppercase project and generated asset UUIDs for path and row payload', async () => {
+  const mock = createClient()
+  const lowercaseProjectId = uppercaseProjectId.toLowerCase()
+  const lowercaseAssetId = uppercaseAssetId.toLowerCase()
+  const expectedPath = `raw/${lowercaseProjectId}/${lowercaseAssetId}.jpg`
+
+  await uploadAsset(mock.client, uppercaseProjectId, createFile(), {
+    randomUUID: () => uppercaseAssetId,
+    recoverPending: vi.fn(),
+    recordRecovery: vi.fn().mockReturnValue(true),
+  })
+
+  expect(mock.upload).toHaveBeenCalledWith(
+    expectedPath,
+    expect.any(File),
+    { contentType: 'image/jpeg', upsert: false },
+  )
+  expect(mock.insert).toHaveBeenCalledWith(expect.objectContaining({
+    id: lowercaseAssetId,
+    project_id: lowercaseProjectId,
+    storage_path: expectedPath,
+  }))
+})
+
+test('records and replays an uppercase-origin ambiguous upload with canonical identifiers', async () => {
+  window.localStorage.clear()
+  const lowercaseProjectId = uppercaseProjectId.toLowerCase()
+  const lowercaseAssetId = uppercaseAssetId.toLowerCase()
+  const expectedPath = `raw/${lowercaseProjectId}/${lowercaseAssetId}.jpg`
+  const insertError = { message: 'TypeError: first fetch failed', code: '' }
+  const retryError = { message: 'TypeError: retry fetch failed', code: '' }
+  const uploadMock = createClient()
+  uploadMock.single
+    .mockReset()
+    .mockResolvedValueOnce({ data: null, error: insertError, status: 0 })
+    .mockResolvedValueOnce({ data: null, error: retryError, status: 0 })
+
+  await expect(uploadAsset(uploadMock.client, uppercaseProjectId, createFile(), {
+    randomUUID: () => uppercaseAssetId,
+    recoverPending: vi.fn(),
+  })).rejects.toBe(insertError)
+
+  const [recoveryItem] = readAssetRecoveryItems()
+  expect(recoveryItem).toEqual(expect.objectContaining({
+    assetId: lowercaseAssetId,
+    projectId: lowercaseProjectId,
+    storagePath: expectedPath,
+    asset: expect.objectContaining({
+      id: lowercaseAssetId,
+      project_id: lowercaseProjectId,
+      storage_path: expectedPath,
+    }),
+  }))
+
+  const replayMock = createClient({ insertResult: {
+    data: recoveryItem.asset,
+    error: null,
+    status: 201,
+  } })
+  await expect(reconcileAssetRecovery(replayMock.client)).resolves.toEqual({
+    resolved: 1,
+    remaining: 0,
+  })
+  expect(replayMock.insert).toHaveBeenCalledWith(recoveryItem.asset)
+  expect(replayMock.remove).not.toHaveBeenCalled()
+})
+
+test('rejects an invalid generated asset id before opening the Storage bucket', async () => {
+  const mock = createClient()
+
+  await expect(uploadAsset(mock.client, projectId, createFile(), {
+    randomUUID: () => '../escape',
+    recoverPending: vi.fn(),
+  })).rejects.toThrow('Invalid asset id: expected UUID')
+  expect(mock.storage.from).not.toHaveBeenCalled()
+  expect(mock.client.from).not.toHaveBeenCalled()
 })
 
 test('removes the uploaded object before rethrowing the same insert error', async () => {

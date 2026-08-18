@@ -4,6 +4,7 @@ import {
   readAssetRecoveryItems,
   reconcileAssetRecovery,
   recordAssetRecovery,
+  triggerAssetRecovery,
 } from './assetRecovery'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
@@ -88,6 +89,45 @@ test('stores one validated record per deterministic project and asset key', () =
     asset: assetPayload(),
     createdAt: '2026-08-18T10:00:00.000Z',
   })
+})
+
+test('canonicalizes uppercase identifiers in a valid cleanup record', () => {
+  const uppercaseProjectId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
+  const uppercaseAssetId = 'BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB'
+  const lowercaseProjectId = uppercaseProjectId.toLowerCase()
+  const lowercaseAssetId = uppercaseAssetId.toLowerCase()
+  const lowercasePath = `raw/${lowercaseProjectId}/${lowercaseAssetId}.jpg`
+
+  expect(recordAssetRecovery({
+    kind: 'cleanup',
+    assetId: uppercaseAssetId,
+    projectId: uppercaseProjectId,
+    storagePath: lowercasePath,
+  })).toBe(true)
+  expect(readAssetRecoveryItems()).toEqual([expect.objectContaining({
+    kind: 'cleanup',
+    assetId: lowercaseAssetId,
+    projectId: lowercaseProjectId,
+    storagePath: lowercasePath,
+  })])
+})
+
+test('coalesces concurrent recovery drains and safely handles rejection', async () => {
+  const drain = deferred()
+  const client = {}
+  const recover = vi.fn(() => drain.promise)
+
+  const first = triggerAssetRecovery(client, recover)
+  const second = triggerAssetRecovery(client, recover)
+
+  expect(recover).toHaveBeenCalledOnce()
+  expect(second).toBe(first)
+
+  drain.resolve(Promise.reject(new Error('recovery failed')))
+  await expect(first).resolves.toBeNull()
+
+  await triggerAssetRecovery(client, recover)
+  expect(recover).toHaveBeenCalledTimes(2)
 })
 
 test('rejects malformed recovered insert payloads and unavailable local storage safely', () => {

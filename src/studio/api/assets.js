@@ -3,6 +3,7 @@ import {
   assetRowsMatch,
   reconcileAssetRecovery,
   recordAssetRecovery,
+  triggerAssetRecovery,
 } from '../lib/assetRecovery'
 import { assetFileSchema } from '../schemas/asset'
 
@@ -20,7 +21,15 @@ function parseProjectId(projectId) {
     throw new TypeError('Invalid project id: expected UUID')
   }
 
-  return projectId
+  return projectId.toLowerCase()
+}
+
+function parseAssetId(assetId) {
+  if (!z.uuid().safeParse(assetId).success) {
+    throw new TypeError('Invalid asset id: expected UUID')
+  }
+
+  return assetId.toLowerCase()
 }
 
 function reportCleanupFailure(reportCleanupError, cleanupError, context) {
@@ -135,13 +144,9 @@ export async function uploadAsset(
   const parsedFile = assetFileSchema.parse(file)
   const parsedProjectId = parseProjectId(projectId)
 
-  try {
-    await recoverPending(client)
-  } catch {
-    // Existing recovery work must not prevent a new validated upload.
-  }
+  triggerAssetRecovery(client, recoverPending)
 
-  const assetId = randomUUID()
+  const assetId = parseAssetId(randomUUID())
   const extension = extensionByMimeType[parsedFile.type]
   const storagePath = `raw/${parsedProjectId}/${assetId}.${extension}`
   const bucket = client.storage.from('studio-assets')

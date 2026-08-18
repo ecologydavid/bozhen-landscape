@@ -8,6 +8,7 @@ const extensionByMimeType = {
   'image/heif': 'heif',
 }
 const recoveryKinds = new Set(['cleanup', 'reconcile_insert'])
+const recoveryDrainsByClient = new WeakMap()
 
 export const assetRecoveryStorageKey = 'studio:asset-recovery:v1:'
 
@@ -237,4 +238,41 @@ export async function reconcileAssetRecovery(
     resolved,
     remaining: readEntries(storage).length,
   }
+}
+
+export function triggerAssetRecovery(client, recover = reconcileAssetRecovery) {
+  if (
+    (typeof client !== 'object' && typeof client !== 'function')
+    || client === null
+    || typeof recover !== 'function'
+  ) {
+    return Promise.resolve(null)
+  }
+
+  let drainsByRecover = recoveryDrainsByClient.get(client)
+  if (!drainsByRecover) {
+    drainsByRecover = new WeakMap()
+    recoveryDrainsByClient.set(client, drainsByRecover)
+  }
+
+  const activeDrain = drainsByRecover.get(recover)
+  if (activeDrain) return activeDrain
+
+  let recoveryResult
+  try {
+    recoveryResult = recover(client)
+  } catch {
+    return Promise.resolve(null)
+  }
+
+  let handledDrain
+  handledDrain = Promise.resolve(recoveryResult)
+    .catch(() => null)
+    .finally(() => {
+      if (drainsByRecover.get(recover) === handledDrain) {
+        drainsByRecover.delete(recover)
+      }
+    })
+  drainsByRecover.set(recover, handledDrain)
+  return handledDrain
 }
