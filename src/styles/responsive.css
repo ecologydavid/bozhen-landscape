@@ -200,7 +200,7 @@
     transition:
       opacity 220ms ease,
       transform 220ms ease,
-      visibility 220ms ease;
+      visibility 0s linear 220ms;
   }
 
   .site-nav.is-open {
@@ -208,6 +208,7 @@
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
+    transition-delay: 0s;
   }
 
   .site-nav__item:active .site-nav__wording {

@@ -21,3 +21,12 @@ test('keeps the scrolled mobile header blur within its rounded surface', () => {
     /\.site-header\.is-scrolled::before \{\s*border-radius: inherit;\s*background: rgba\(251, 250, 245, 0\.94\);/,
   )
 })
+
+test('reveals the mobile drawer before its focus target is scheduled', () => {
+  expect(stylesheet).toMatch(
+    /\.site-nav \{[\s\S]*?visibility: hidden;[\s\S]*?transition:[\s\S]*?visibility 0s linear 220ms;/,
+  )
+  expect(stylesheet).toMatch(
+    /\.site-nav\.is-open \{[\s\S]*?visibility: visible;[\s\S]*?transition-delay: 0s;/,
+  )
+})
