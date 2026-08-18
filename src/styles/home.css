@@ -89,24 +89,92 @@
 }
 
 .hero__actions {
-  display: flex;
-  align-items: center;
-  gap: 26px;
+  display: grid;
+  gap: 22px;
 }
 
-.hero__phone {
-  padding-block: 8px;
+.hero__projects-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(49, 87, 67, 0.38);
   color: var(--moss-800);
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  transition: border-color 180ms ease, color 180ms ease;
+  transition: border-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.hero__phone:hover {
+.hero__projects-link:hover {
   border-color: var(--sun-500);
   color: var(--ink);
+  transform: translateX(4px);
+}
+
+.hero__projects-link .leaf-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.leaf-contact-links {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.14fr 0.86fr;
+  gap: 10px;
+  align-items: start;
+  padding-top: 9px;
+}
+
+.leaf-contact-links::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 14px;
+  border-top: 1px solid var(--moss-800);
+  border-radius: 50%;
+  content: '';
+  opacity: 0.42;
+  transform: rotate(-1.5deg);
+}
+
+.leaf-contact-links a {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 17px;
+  border: 1px solid var(--moss-800);
+  border-radius: 8px 24px 8px 5px;
+  background: var(--moss-800);
+  color: var(--paper);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.leaf-contact-links .leaf-contact-links__phone {
+  min-height: 48px;
+  margin: 9px 0 0 -9px;
+  border-radius: 22px 8px 5px 8px;
+  background: var(--paper);
+  color: var(--moss-800);
+}
+
+.leaf-contact-links a:hover {
+  box-shadow: 0 11px 22px rgba(23, 26, 23, 0.18);
+  transform: translateY(-3px);
+}
+
+.leaf-contact-links a:active {
+  transform: scale(0.98);
 }
 
 .services {

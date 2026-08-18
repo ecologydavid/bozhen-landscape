@@ -1,4 +1,7 @@
+import { Link } from 'react-router-dom'
 import BrandImage from '../ui/BrandImage'
+import LeafContactLinks from '../ui/LeafContactLinks'
+import LeafIcon from '../ui/LeafIcon'
 
 export default function Hero({ hero, contact }) {
   return (
@@ -30,20 +33,11 @@ export default function Hero({ hero, contact }) {
         <div className="hero__contact">
           <p className="hero__description">{hero.description}</p>
           <div className="hero__actions">
-            <a
-              className="button button--accent"
-              href={contact.lineHref}
-              target="_blank"
-              rel="noreferrer"
-            >
-              LINE 聯絡
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" />
-              </svg>
-            </a>
-            <a className="hero__phone" href={contact.phoneHref}>
-              撥打 {contact.mobile}
-            </a>
+            <Link className="hero__projects-link" to="/projects">
+              <LeafIcon name="arrowLeaf" />
+              <span>瀏覽庭園作品</span>
+            </Link>
+            <LeafContactLinks contact={contact} />
           </div>
         </div>
       </div>
