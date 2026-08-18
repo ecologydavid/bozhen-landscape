@@ -11,6 +11,8 @@ const recoveryKinds = new Set(['cleanup', 'reconcile_insert'])
 const recoveryDrainsByClient = new WeakMap()
 
 export const assetRecoveryStorageKey = 'studio:asset-recovery:v1:'
+// A stuck browser request must not suppress recovery attempts indefinitely.
+export const assetRecoveryLeaseMs = 30_000
 
 function localStorageOrNull() {
   try {
@@ -240,7 +242,14 @@ export async function reconcileAssetRecovery(
   }
 }
 
-export function triggerAssetRecovery(client, recover = reconcileAssetRecovery) {
+export function triggerAssetRecovery(
+  client,
+  recover = reconcileAssetRecovery,
+  {
+    now = () => Date.now(),
+    leaseMs = assetRecoveryLeaseMs,
+  } = {},
+) {
   if (
     (typeof client !== 'object' && typeof client !== 'function')
     || client === null
@@ -255,24 +264,30 @@ export function triggerAssetRecovery(client, recover = reconcileAssetRecovery) {
     recoveryDrainsByClient.set(client, drainsByRecover)
   }
 
+  const startedAt = now()
   const activeDrain = drainsByRecover.get(recover)
-  if (activeDrain) return activeDrain
+  if (
+    activeDrain
+    && startedAt - activeDrain.startedAt < leaseMs
+  ) {
+    return activeDrain.promise
+  }
 
   let recoveryResult
   try {
     recoveryResult = recover(client)
-  } catch {
-    return Promise.resolve(null)
+  } catch (error) {
+    recoveryResult = Promise.reject(error)
   }
 
-  let handledDrain
-  handledDrain = Promise.resolve(recoveryResult)
+  const drain = { startedAt, promise: null }
+  drain.promise = Promise.resolve(recoveryResult)
     .catch(() => null)
     .finally(() => {
-      if (drainsByRecover.get(recover) === handledDrain) {
+      if (drainsByRecover.get(recover) === drain) {
         drainsByRecover.delete(recover)
       }
     })
-  drainsByRecover.set(recover, handledDrain)
-  return handledDrain
+  drainsByRecover.set(recover, drain)
+  return drain.promise
 }

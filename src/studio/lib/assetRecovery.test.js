@@ -1,5 +1,6 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 import {
+  assetRecoveryLeaseMs,
   assetRecoveryStorageKey,
   readAssetRecoveryItems,
   reconcileAssetRecovery,
@@ -128,6 +129,45 @@ test('coalesces concurrent recovery drains and safely handles rejection', async 
 
   await triggerAssetRecovery(client, recover)
   expect(recover).toHaveBeenCalledTimes(2)
+})
+
+test('expires a stuck drain lease without letting its late completion evict the replacement', async () => {
+  const oldDrain = deferred()
+  const replacementDrain = deferred()
+  const client = {}
+  let now = 1_000
+  const recover = vi.fn()
+    .mockReturnValueOnce(oldDrain.promise)
+    .mockReturnValueOnce(replacementDrain.promise)
+    .mockResolvedValueOnce({ resolved: 0, remaining: 0 })
+  const options = { now: () => now, leaseMs: 30 }
+
+  expect(assetRecoveryLeaseMs).toBe(30_000)
+  const first = triggerAssetRecovery(client, recover, options)
+  const coalesced = triggerAssetRecovery(client, recover, options)
+  expect(coalesced).toBe(first)
+  expect(recover).toHaveBeenCalledOnce()
+
+  now += 31
+  const replacement = triggerAssetRecovery(client, recover, options)
+  expect(replacement).not.toBe(first)
+  expect(recover).toHaveBeenCalledTimes(2)
+
+  oldDrain.resolve({ resolved: 0, remaining: 1 })
+  await first
+
+  const stillReplacement = triggerAssetRecovery(client, recover, options)
+  expect(stillReplacement).toBe(replacement)
+  expect(recover).toHaveBeenCalledTimes(2)
+
+  replacementDrain.resolve(Promise.reject(new Error('replacement failed')))
+  await expect(replacement).resolves.toBeNull()
+
+  await expect(triggerAssetRecovery(client, recover, options)).resolves.toEqual({
+    resolved: 0,
+    remaining: 0,
+  })
+  expect(recover).toHaveBeenCalledTimes(3)
 })
 
 test('rejects malformed recovered insert payloads and unavailable local storage safely', () => {
