@@ -5,11 +5,22 @@ import { beforeEach, vi } from 'vitest'
 import StudioApp from './StudioApp'
 
 vi.mock('./auth/StudioAuthProvider', () => ({ useStudioAuth: vi.fn() }))
+vi.mock('./api/projects', () => ({
+  createProject: vi.fn(),
+  getCurrentFacts: vi.fn(),
+  getProject: vi.fn(),
+  listProjects: vi.fn(),
+  saveFactVersion: vi.fn(),
+  updateProject: vi.fn(),
+}))
+vi.mock('./lib/supabase', () => ({ supabase: { source: 'test' } }))
 
 import { useStudioAuth } from './auth/StudioAuthProvider'
+import { listProjects } from './api/projects'
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
+  listProjects.mockResolvedValue([])
 })
 
 test('shows login to an anonymous visitor', () => {
@@ -42,6 +53,41 @@ test('shows workspace only to the admin', () => {
     screen.getByRole('heading', { name: '內容工作室' }),
   ).toBeInTheDocument()
   expect(screen.getAllByRole('main')).toHaveLength(1)
+})
+
+test('routes an admin to the project list', async () => {
+  useStudioAuth.mockReturnValue({
+    status: 'admin',
+    user: { email: 'admin@example.com' },
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/studio/projects']}>
+      <StudioApp />
+    </MemoryRouter>,
+  )
+
+  expect(await screen.findByRole('heading', { name: '案場素材' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '新增案場' })).toHaveAttribute(
+    'href',
+    '/studio/projects/new',
+  )
+})
+
+test('routes an admin to the new project editor', () => {
+  useStudioAuth.mockReturnValue({
+    status: 'admin',
+    user: { email: 'admin@example.com' },
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/studio/projects/new']}>
+      <StudioApp />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('heading', { name: '新增案場' })).toBeInTheDocument()
+  expect(screen.getByLabelText('內部名稱')).toBeInTheDocument()
 })
 
 test('shows a permission message to an authenticated non-admin', () => {

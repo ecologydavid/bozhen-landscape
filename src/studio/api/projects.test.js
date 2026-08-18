@@ -9,6 +9,7 @@ import {
 } from './projects'
 
 const projectFields = 'id, internal_name, public_name, region, audience, site_type, status, created_at, updated_at'
+const projectListFields = `${projectFields}, studio_assets(count)`
 const factFields = 'id, project_id, version, facts, is_current, created_by, created_at'
 
 const projectInput = {
@@ -75,14 +76,22 @@ function createRpcMock(result = { data: null, error: null }) {
   return { client, rpc, single }
 }
 
-test('lists projects using only the explicit Task 6 fields', async () => {
-  const rows = [{ id: 'project-1', internal_name: '二林企業廠區' }]
+test('lists projects with a real normalized asset relationship count', async () => {
+  const rows = [
+    { id: 'project-1', internal_name: '二林企業廠區', studio_assets: [{ count: 3 }] },
+    { id: 'project-2', internal_name: '住宅庭園', studio_assets: { count: '2' } },
+    { id: 'project-3', internal_name: '空案場', studio_assets: [] },
+  ]
   const { client, select } = createListMock({ data: rows, error: null })
 
-  await expect(listProjects(client)).resolves.toBe(rows)
+  await expect(listProjects(client)).resolves.toEqual([
+    { id: 'project-1', internal_name: '二林企業廠區', asset_count: 3 },
+    { id: 'project-2', internal_name: '住宅庭園', asset_count: 2 },
+    { id: 'project-3', internal_name: '空案場', asset_count: 0 },
+  ])
   expect(client.from).toHaveBeenCalledWith('studio_projects')
   expect(select).toHaveBeenCalledOnce()
-  expect(select).toHaveBeenCalledWith(projectFields)
+  expect(select).toHaveBeenCalledWith(projectListFields)
   expect(select).not.toHaveBeenCalledWith('*')
 })
 

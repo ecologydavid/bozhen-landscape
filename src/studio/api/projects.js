@@ -1,6 +1,7 @@
 import { projectFactsSchema, projectInputSchema } from '../schemas/project'
 
 const projectFields = 'id, internal_name, public_name, region, audience, site_type, status, created_at, updated_at'
+const projectListFields = `${projectFields}, studio_assets(count)`
 const factFields = 'id, project_id, version, facts, is_current, created_by, created_at'
 
 function toProjectRow(input) {
@@ -16,10 +17,18 @@ function toProjectRow(input) {
 export async function listProjects(client) {
   const { data, error } = await client
     .from('studio_projects')
-    .select(projectFields)
+    .select(projectListFields)
 
   if (error) throw error
-  return data
+  return data.map(({ studio_assets: assets, ...project }) => {
+    const rawCount = Array.isArray(assets) ? assets[0]?.count : assets?.count
+    const count = Number(rawCount)
+
+    return {
+      ...project,
+      asset_count: Number.isFinite(count) && count >= 0 ? count : 0,
+    }
+  })
 }
 
 export async function getProject(client, projectId) {
