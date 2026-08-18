@@ -1,38 +1,50 @@
-# 柏鎮園藝假山水形象報價網站
+# 曜聖景觀形象網站
 
-以 React、Vite 與原生 CSS 製作的靜態形象網站。首頁採「作品先行、報價收尾」架構，包含服務介紹、精選案例、品牌工法、合作流程、報價表單示意、案例總覽與案例詳情。
+以 React、Vite 與原生 CSS 製作的靜態品牌網站，採 HashRouter 支援 GitHub Pages 子路徑部署。
+
+## 目前功能
+
+- React／HashRouter 靜態品牌網站，支援 GitHub Pages 子路徑。
+- 一屏一景首頁：植物、石組、水景、造景、養景。
+- 獨立案例總覽與案例詳情頁。
+- 正式 LINE、手機、公司電話與 Email 直接聯絡。
+- 無報價表單，不儲存訪客資料。
+- 專案圖片由人工核准的 HEIC／JPG 原稿產出本地 AVIF／WebP；Google Drive 原稿不會被建置腳本修改。
 
 ## 本機開發
 
 ```powershell
 npm install
 npm run dev
+```
+
+## 本機驗證
+
+```powershell
 npm test -- --run
 npm run lint
 npm run build
-npm run preview
+npm run test:e2e
 ```
+
+## 素材維護
+
+1. 原稿只放在忽略版控的 `workbench/landscape-originals`。
+2. 自然商業修美副本放在 `workbench/landscape-edited`。
+3. 人工核准後才在 `scripts/project-asset-manifest.mjs` 設定 `approved: true`。
+4. 執行 `npm run assets:build` 產生 AVIF／WebP。
+5. 檢查修美前後對照與網站裁切後，再提交 `src/assets/projects`。
 
 ## 內容維護
 
 - 服務項目：`src/data/services.js`
 - 案例內容與圖片：`src/data/projects.js`
-- 品牌文案、客群與表單選項：`src/data/siteContent.js`
+- 品牌與聯絡資料：`src/data/siteContent.js`
 - 服務流程：`src/data/processSteps.js`
-
-目前案例照片使用示意圖片。正式素材確認後，只需替換 `siteContent.js` 與 `projects.js` 內的圖片網址，不必修改版面元件。
-
-## 本版功能範圍
-
-這一版刻意不連接 LINE、Email、報價 API、網站分析與 Google Drive 圖片。報價表單、LINE 與 Email 按鈕只會顯示「正式上線時開放」提示，不會傳送或儲存訪客資料。
-
-正式上線階段可再依序加入：
-
-1. 正式 LINE 官方帳號與公司 Email。
-2. 報價資料庫、通知與人工審核流程。
-3. GA4、Meta Pixel 與轉換事件。
-4. Google Drive 正式照片的壓縮、裁切及本地化素材。
+- 核准素材清單：`scripts/project-asset-manifest.mjs`
 
 ## 部署
 
-`vercel.json` 已提供 SPA rewrite，讓 `/projects/:slug` 等前端路由重新整理時仍回到 React 入口。執行 `npm run build` 後，靜態成品會輸出到 `dist/`。
+正式站由 `.github/workflows/deploy-pages.yml` 部署至 GitHub Pages。推送到 `master`，或在 GitHub Actions 手動執行 workflow 時，流程會安裝相依套件、執行單元測試、程式碼檢查、正式建置與 Playwright 響應式測試；全部通過後才上傳 `dist/` 並發布。
+
+網站使用 HashRouter，因此首頁、案例總覽與案例詳情皆由 `#` 後方的前端路由處理，不需要 Vercel rewrite。
