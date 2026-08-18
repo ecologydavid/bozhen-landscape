@@ -389,7 +389,7 @@
 
   .leaf-contact-links--mobile {
     width: min(100%, 430px);
-    margin: auto;
+    margin-inline: auto;
   }
 
   .feedback-region {
