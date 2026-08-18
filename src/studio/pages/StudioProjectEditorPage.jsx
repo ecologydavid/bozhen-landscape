@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  ProjectIdCollisionError,
   createProject,
   getCurrentFacts,
   getProject,
@@ -8,11 +9,19 @@ import {
   updateProject,
 } from '../api/projects'
 import FactArrayField from '../components/FactArrayField'
+import {
+  clearCreateProjectId,
+  clearFactAttempt,
+  getOrCreateCreateProjectId,
+  readFactAttempt,
+  reconcileFactAttempt,
+  recoverLoadedFactAttempt,
+  replaceCreateProjectId,
+  writeFactAttempt,
+} from '../lib/projectRecovery'
 import { supabase } from '../lib/supabase'
 import { projectFactsSchema, projectInputSchema } from '../schemas/project'
 
-const createProjectIdKey = 'studio:create-project-id'
-const factAttemptKeyPrefix = 'studio:fact-attempt:'
 const arrayFieldNames = [
   'services',
   'constraints',
@@ -159,92 +168,6 @@ function errorsFromIssues(results, indexMaps) {
   return errors
 }
 
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-}
-
-function getCreateProjectId() {
-  try {
-    const existingId = window.sessionStorage.getItem(createProjectIdKey)
-    if (isUuid(existingId || '')) return existingId
-  } catch {
-    // Continue with an in-memory ID when storage is unavailable.
-  }
-
-  const projectId = globalThis.crypto.randomUUID()
-  try {
-    window.sessionStorage.setItem(createProjectIdKey, projectId)
-  } catch {
-    // The repository still receives a stable ID for this mounted flow.
-  }
-  return projectId
-}
-
-function clearCreateProjectId() {
-  try {
-    window.sessionStorage.removeItem(createProjectIdKey)
-  } catch {
-    // A successful save must not be downgraded by unavailable storage.
-  }
-}
-
-function factAttemptKey(projectId) {
-  return `${factAttemptKeyPrefix}${projectId}`
-}
-
-function clearFactAttempt(projectId) {
-  try {
-    window.sessionStorage.removeItem(factAttemptKey(projectId))
-  } catch {
-    // A confirmed database result remains authoritative.
-  }
-}
-
-function readFactAttempt(projectId) {
-  try {
-    const rawAttempt = window.sessionStorage.getItem(factAttemptKey(projectId))
-    if (!rawAttempt) return null
-    const attempt = JSON.parse(rawAttempt)
-    const parsedFacts = projectFactsSchema.safeParse(attempt?.facts)
-    const baselineIsValid = attempt?.baselineVersion === null
-      || (Number.isInteger(attempt?.baselineVersion) && attempt.baselineVersion >= 1)
-    if (!parsedFacts.success || !baselineIsValid) {
-      clearFactAttempt(projectId)
-      return null
-    }
-    return { facts: parsedFacts.data, baselineVersion: attempt.baselineVersion }
-  } catch {
-    clearFactAttempt(projectId)
-    return null
-  }
-}
-
-function writeFactAttempt(projectId, facts, baselineVersion) {
-  try {
-    window.sessionStorage.setItem(
-      factAttemptKey(projectId),
-      JSON.stringify({ facts, baselineVersion }),
-    )
-  } catch {
-    // The save remains usable, but cannot be reconciled across a refresh.
-  }
-}
-
-function normalizedFactsEqual(left, right) {
-  const leftResult = projectFactsSchema.safeParse(left)
-  const rightResult = projectFactsSchema.safeParse(right)
-  return leftResult.success
-    && rightResult.success
-    && JSON.stringify(leftResult.data) === JSON.stringify(rightResult.data)
-}
-
-function isNewerMatchingVersion(currentFacts, attempt) {
-  const baseline = attempt.baselineVersion ?? 0
-  return Number.isInteger(currentFacts?.version)
-    && currentFacts.version > baseline
-    && normalizedFactsEqual(currentFacts.facts, attempt.facts)
-}
-
 async function saveFactsRecoverably(projectId, facts, baselineVersion, isActive) {
   const pendingAttempt = readFactAttempt(projectId)
 
@@ -257,19 +180,17 @@ async function saveFactsRecoverably(projectId, facts, baselineVersion, isActive)
     }
     if (!isActive()) return null
 
-    if (isNewerMatchingVersion(currentFacts, pendingAttempt)) {
-      clearFactAttempt(projectId)
-      if (normalizedFactsEqual(pendingAttempt.facts, facts)) return currentFacts
-      baselineVersion = currentFacts.version
-    } else if (normalizedFactsEqual(pendingAttempt.facts, facts)) {
-      baselineVersion = pendingAttempt.baselineVersion
-    } else if (Number.isInteger(currentFacts?.version)) {
-      baselineVersion = currentFacts.version
-    }
+    const reconciliation = reconcileFactAttempt(
+      projectId,
+      currentFacts,
+      facts,
+      baselineVersion,
+    )
+    if (reconciliation.status === 'confirmed') return reconciliation.currentFacts
+    baselineVersion = reconciliation.baselineVersion
   }
 
   if (!isActive()) return null
-  const attempt = { facts, baselineVersion }
   writeFactAttempt(projectId, facts, baselineVersion)
 
   try {
@@ -282,10 +203,13 @@ async function saveFactsRecoverably(projectId, facts, baselineVersion, isActive)
     try {
       const currentFacts = await getCurrentFacts(supabase, projectId)
       if (!isActive()) return null
-      if (isNewerMatchingVersion(currentFacts, attempt)) {
-        clearFactAttempt(projectId)
-        return currentFacts
-      }
+      const reconciliation = reconcileFactAttempt(
+        projectId,
+        currentFacts,
+        facts,
+        baselineVersion,
+      )
+      if (reconciliation.status === 'confirmed') return reconciliation.currentFacts
     } catch {
       // Keep the attempt for the next reconciliation.
     }
@@ -313,7 +237,9 @@ function MetadataInput({ id, label, value, error, onChange }) {
 function StudioProjectEditor({ mode, projectId }) {
   const navigate = useNavigate()
   const isEdit = mode === 'edit'
-  const [createProjectId] = useState(() => isEdit ? null : getCreateProjectId())
+  const [createProjectId, setCreateProjectId] = useState(
+    () => isEdit ? null : getOrCreateCreateProjectId(),
+  )
   const [metadata, setMetadata] = useState(() => ({ ...emptyMetadata }))
   const [facts, setFacts] = useState(() => {
     if (isEdit) return emptyFactsForEditing()
@@ -326,6 +252,7 @@ function StudioProjectEditor({ mode, projectId }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [saveState, setSaveState] = useState('idle')
   const [saveMessage, setSaveMessage] = useState('')
+  const [recoveryMessage, setRecoveryMessage] = useState('')
   const [currentVersion, setCurrentVersion] = useState(null)
   const formRef = useRef(null)
   const isMountedRef = useRef(true)
@@ -361,8 +288,14 @@ function StudioProjectEditor({ mode, projectId }) {
           audience: project.audience || '',
           siteType: project.site_type || '',
         })
-        setFacts(factsForEditing(currentFacts?.facts))
-        setCurrentVersion(currentFacts?.version ?? null)
+        const recovery = recoverLoadedFactAttempt(projectId, currentFacts)
+        setFacts(factsForEditing(recovery.facts))
+        setCurrentVersion(recovery.version)
+        setRecoveryMessage(
+          recovery.status === 'pending'
+            ? '已還原上次未確認的事實卡內容；請再次儲存以核對並完成版本。'
+            : '',
+        )
         setLoadedProjectId(projectId)
         setLoadState('ready')
       })
@@ -416,8 +349,15 @@ function StudioProjectEditor({ mode, projectId }) {
         await createProject(supabase, projectResult.data, { projectId: createProjectId })
       }
       if (!isActive()) return
-    } catch {
+    } catch (error) {
       if (!isActive()) return
+      if (!isEdit && error instanceof ProjectIdCollisionError) {
+        clearFactAttempt(createProjectId)
+        setCreateProjectId(replaceCreateProjectId())
+        setSaveMessage('新增識別碼已更新，請再試一次。')
+        setSaveState('metadata-error')
+        return
+      }
       setSaveMessage('無法儲存案場資料，請再試一次。')
       setSaveState('metadata-error')
       return
@@ -433,6 +373,7 @@ function StudioProjectEditor({ mode, projectId }) {
       if (!isActive() || !saved) return
       setCurrentVersion(saved.version)
       setSaveMessage(`已儲存事實卡版本 ${saved.version}`)
+      setRecoveryMessage('')
       setSaveState('success')
       if (!isEdit) {
         clearCreateProjectId()
@@ -504,6 +445,10 @@ function StudioProjectEditor({ mode, projectId }) {
       </header>
 
       <form ref={formRef} className="studio-editor-form" noValidate onSubmit={handleSubmit}>
+        {recoveryMessage ? (
+          <p className="studio-recovery-warning" role="alert">{recoveryMessage}</p>
+        ) : null}
+
         {validationFailed ? (
           <div className="studio-validation-summary" role="alert">
             請修正表單中的欄位，再重新儲存。

@@ -6,6 +6,7 @@ import StudioApp from './StudioApp'
 
 vi.mock('./auth/StudioAuthProvider', () => ({ useStudioAuth: vi.fn() }))
 vi.mock('./api/projects', () => ({
+  ProjectIdCollisionError: class ProjectIdCollisionError extends Error {},
   createProject: vi.fn(),
   getCurrentFacts: vi.fn(),
   getProject: vi.fn(),

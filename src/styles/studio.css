@@ -471,6 +471,16 @@ body.studio-active {
   font-weight: 700;
 }
 
+.studio-recovery-warning {
+  padding: 12px 15px;
+  border: 1px solid rgba(151, 102, 26, 0.35);
+  border-radius: 10px;
+  background: rgba(190, 137, 47, 0.1);
+  color: var(--ink-900);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .studio-save-error,
 .studio-save-success {
   padding: 12px 15px;

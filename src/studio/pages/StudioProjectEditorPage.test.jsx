@@ -6,6 +6,7 @@ import { beforeEach, vi } from 'vitest'
 import StudioProjectEditorPage from './StudioProjectEditorPage'
 
 vi.mock('../api/projects', () => ({
+  ProjectIdCollisionError: class ProjectIdCollisionError extends Error {},
   createProject: vi.fn(),
   getCurrentFacts: vi.fn(),
   getProject: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock('../api/projects', () => ({
 vi.mock('../lib/supabase', () => ({ supabase: { source: 'test' } }))
 
 import {
+  ProjectIdCollisionError,
   createProject,
   getCurrentFacts,
   getProject,
@@ -589,4 +591,106 @@ test('completes a create save after Strict Mode replays effects', async () => {
 
   expect(await screen.findByText('已儲存事實卡版本 1')).toBeInTheDocument()
   expect(saveFactVersion).toHaveBeenCalledOnce()
+})
+
+test('restores an ambiguous edit attempt after remount and reconciles without old facts', async () => {
+  const user = userEvent.setup()
+  const attemptedFacts = {
+    ...factRow.facts,
+    services: ['重新規劃', '植栽配置'],
+  }
+  const committedFacts = {
+    ...factRow,
+    version: 2,
+    facts: attemptedFacts,
+  }
+  getProject.mockResolvedValue(projectRow)
+  getCurrentFacts
+    .mockResolvedValueOnce(factRow)
+    .mockResolvedValueOnce(factRow)
+    .mockResolvedValueOnce(factRow)
+    .mockResolvedValueOnce(committedFacts)
+  updateProject.mockResolvedValue(projectRow)
+  saveFactVersion.mockRejectedValue(new Error('transport unknown'))
+  const firstRender = renderEdit()
+  const service = await screen.findByLabelText('已確認服務 1')
+  await user.clear(service)
+  await user.type(service, '重新規劃')
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('事實卡版本狀態尚待確認')
+  firstRender.unmount()
+
+  renderEdit()
+
+  expect(await screen.findByDisplayValue('重新規劃')).toBeInTheDocument()
+  expect(screen.queryByDisplayValue('景觀規劃')).not.toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent('已還原上次未確認的事實卡內容')
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(await screen.findByText('已儲存事實卡版本 2')).toBeInTheDocument()
+  expect(saveFactVersion).toHaveBeenCalledOnce()
+  expect(saveFactVersion).toHaveBeenCalledWith(
+    expect.anything(),
+    'p1',
+    attemptedFacts,
+  )
+})
+
+test('clears a proven committed edit attempt when remount loads its newer version', async () => {
+  const user = userEvent.setup()
+  const attemptedFacts = {
+    ...factRow.facts,
+    services: ['已提交規劃', '植栽配置'],
+  }
+  const committedFacts = {
+    ...factRow,
+    version: 2,
+    facts: attemptedFacts,
+  }
+  getProject.mockResolvedValue(projectRow)
+  getCurrentFacts
+    .mockResolvedValueOnce(factRow)
+    .mockRejectedValueOnce(new Error('reconciliation unavailable'))
+    .mockResolvedValueOnce(committedFacts)
+  updateProject.mockResolvedValue(projectRow)
+  saveFactVersion.mockRejectedValue(new Error('transport unknown'))
+  const firstRender = renderEdit()
+  const service = await screen.findByLabelText('已確認服務 1')
+  await user.clear(service)
+  await user.type(service, '已提交規劃')
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('事實卡版本狀態尚待確認')
+  firstRender.unmount()
+
+  renderEdit()
+
+  expect(await screen.findByDisplayValue('已提交規劃')).toBeInTheDocument()
+  expect(screen.getByText('目前版本 2')).toBeInTheDocument()
+  expect(screen.queryByText(/已還原上次未確認/)).not.toBeInTheDocument()
+  expect(window.sessionStorage.getItem('studio:fact-attempt:p1')).toBeNull()
+})
+
+test('rotates a stale create UUID after a collision without losing typed values', async () => {
+  const user = userEvent.setup()
+  createProject.mockRejectedValueOnce(new ProjectIdCollisionError())
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('新增識別碼已更新，請再試一次。')
+  expect(screen.getByLabelText('公開名稱')).toHaveValue('中部企業廠區景觀')
+  const replacementId = window.sessionStorage.getItem(createProjectIdKey)
+  expect(replacementId).not.toBe(createProjectId)
+  expect(replacementId).toMatch(/^[0-9a-f-]{36}$/i)
+
+  createProject.mockResolvedValueOnce({ ...projectRow, id: replacementId })
+  saveFactVersion.mockResolvedValueOnce({ ...factRow, project_id: replacementId, version: 1 })
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  await waitFor(() => expect(createProject).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({ publicName: '中部企業廠區景觀' }),
+    { projectId: replacementId },
+  ))
 })

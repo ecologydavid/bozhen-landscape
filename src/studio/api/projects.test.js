@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import {
+  ProjectIdCollisionError,
   createProject,
   getCurrentFacts,
   getProject,
@@ -58,13 +59,23 @@ function createInsertMock(result = { data: null, error: null }) {
   return { client, insert, select, single }
 }
 
-function createUpsertMock(result = { data: null, error: null }) {
-  const single = vi.fn().mockResolvedValue(result)
-  const select = vi.fn(() => ({ single }))
-  const upsert = vi.fn(() => ({ select }))
-  const client = { from: vi.fn(() => ({ upsert })) }
+function createConflictRecoveryMock(existingProject) {
+  const conflict = { code: '23505', message: 'duplicate key details' }
+  const insertSingle = vi.fn().mockResolvedValue({ data: null, error: conflict })
+  const insertSelect = vi.fn(() => ({ single: insertSingle }))
+  const insert = vi.fn(() => ({ select: insertSelect }))
+  const maybeSingle = vi.fn().mockResolvedValue({ data: existingProject, error: null })
+  const filtered = { maybeSingle }
+  const eq = vi.fn(() => filtered)
+  filtered.eq = eq
+  const readSelect = vi.fn(() => ({ eq }))
+  const client = {
+    from: vi.fn()
+      .mockReturnValueOnce({ insert })
+      .mockReturnValueOnce({ select: readSelect }),
+  }
 
-  return { client, upsert, select, single }
+  return { client, eq, insert, insertSelect, insertSingle, maybeSingle, readSelect }
 }
 
 function createUpdateMock(result = { data: null, error: null }) {
@@ -137,34 +148,100 @@ test('creates a project from validated camelCase input using exact database fiel
   expect(single).toHaveBeenCalledOnce()
 })
 
-test('idempotently upserts a create flow with a separately validated client UUID', async () => {
+test('inserts a create flow with a separately validated client UUID', async () => {
   const projectId = '11111111-1111-4111-8111-111111111111'
   const row = { id: projectId }
-  const { client, upsert, select, single } = createUpsertMock({ data: row, error: null })
+  const { client, insert, select, single } = createInsertMock({ data: row, error: null })
 
   await expect(createProject(client, projectInput, { projectId })).resolves.toBe(row)
-  expect(upsert).toHaveBeenCalledWith(
-    {
-      id: projectId,
-      internal_name: '二林企業廠區',
-      public_name: '中部企業廠區景觀',
-      region: '彰化',
-      audience: 'builder',
-      site_type: '企業廠區',
-    },
-    { onConflict: 'id' },
-  )
+  expect(insert).toHaveBeenCalledWith({
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+  })
   expect(select).toHaveBeenCalledWith(projectFields)
   expect(single).toHaveBeenCalledOnce()
 })
 
+test('recovers an ambiguous create conflict only when stored metadata matches', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const existingProject = {
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+    status: 'draft',
+    created_at: '2026-08-18T00:00:00Z',
+    updated_at: '2026-08-18T00:00:00Z',
+  }
+  const { client, insert, eq } = createConflictRecoveryMock(existingProject)
+
+  await expect(createProject(client, projectInput, { projectId })).resolves.toBe(existingProject)
+  expect(insert).toHaveBeenCalledWith({
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+  })
+  expect(eq).toHaveBeenCalledWith('id', projectId)
+})
+
+test('reuses the same UUID after a lost create response and recovers the matching row', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const firstAttempt = createInsertMock({
+    data: null,
+    error: { code: 'PGRST000', message: 'transport response unavailable' },
+  })
+
+  await expect(createProject(firstAttempt.client, projectInput, { projectId })).rejects.toBeTruthy()
+
+  const existingProject = {
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+  }
+  const retry = createConflictRecoveryMock(existingProject)
+
+  await expect(createProject(retry.client, projectInput, { projectId })).resolves.toBe(existingProject)
+  expect(firstAttempt.insert.mock.calls[0][0].id).toBe(projectId)
+  expect(retry.insert.mock.calls[0][0].id).toBe(projectId)
+})
+
+test('rejects a stale UUID collision without updating or overwriting the project', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const existingProject = {
+    id: projectId,
+    internal_name: '另一個案場',
+    public_name: '不同公開名稱',
+    region: '台北',
+    audience: 'corporate',
+    site_type: '商業空間',
+  }
+  const { client } = createConflictRecoveryMock(existingProject)
+
+  await expect(createProject(client, projectInput, { projectId }))
+    .rejects.toBeInstanceOf(ProjectIdCollisionError)
+  expect(client.from).toHaveBeenCalledTimes(2)
+  expect(client.from.mock.results.every(({ value }) => !value.update && !value.upsert)).toBe(true)
+})
+
 test('rejects an invalid create flow id before querying Supabase', async () => {
-  const { client, upsert } = createUpsertMock()
+  const { client, insert } = createInsertMock()
 
   await expect(createProject(client, projectInput, { projectId: 'caller-id' }))
     .rejects.toThrow(/projectId/)
   expect(client.from).not.toHaveBeenCalled()
-  expect(upsert).not.toHaveBeenCalled()
+  expect(insert).not.toHaveBeenCalled()
 })
 
 test('updates a project from validated camelCase input using exact database fields', async () => {

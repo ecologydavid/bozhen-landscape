@@ -8,6 +8,14 @@ const createProjectOptionsSchema = z.object({
   projectId: z.uuid().optional(),
 })
 
+export class ProjectIdCollisionError extends Error {
+  constructor() {
+    super('The stored create project identifier belongs to different project metadata.')
+    this.name = 'ProjectIdCollisionError'
+    this.code = 'PROJECT_ID_COLLISION'
+  }
+}
+
 function toProjectRow(input) {
   return {
     internal_name: input.internalName,
@@ -49,17 +57,22 @@ export async function getProject(client, projectId) {
 export async function createProject(client, input, options = {}) {
   const parsedInput = projectInputSchema.parse(input)
   const { projectId } = createProjectOptionsSchema.parse(options)
-  const query = projectId
-    ? client
-        .from('studio_projects')
-        .upsert({ id: projectId, ...toProjectRow(parsedInput) }, { onConflict: 'id' })
-    : client
-        .from('studio_projects')
-        .insert(toProjectRow(parsedInput))
+  const projectRow = toProjectRow(parsedInput)
+  const query = client
+    .from('studio_projects')
+    .insert(projectId ? { id: projectId, ...projectRow } : projectRow)
   const { data, error } = await query
     .select(projectFields)
     .single()
 
+  if (error && projectId && error.code === '23505') {
+    const existingProject = await getProject(client, projectId)
+    const metadataMatches = existingProject
+      && Object.entries(projectRow).every(([field, value]) => existingProject[field] === value)
+
+    if (metadataMatches) return existingProject
+    throw new ProjectIdCollisionError()
+  }
   if (error) throw error
   return data
 }
