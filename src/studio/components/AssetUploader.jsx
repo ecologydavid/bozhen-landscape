@@ -18,19 +18,33 @@ export default function AssetUploader({
 }) {
   const inputId = useId()
   const inputRef = useRef(null)
-  const mountedRef = useRef(true)
+  const lifecycleGenerationRef = useRef(0)
+  const activeGenerationRef = useRef(null)
   const processingRef = useRef(false)
   const batchRef = useRef(0)
   const [items, setItems] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  useEffect(() => () => {
-    mountedRef.current = false
+  useEffect(() => {
+    lifecycleGenerationRef.current += 1
+    const generation = lifecycleGenerationRef.current
+    activeGenerationRef.current = generation
+
+    return () => {
+      if (activeGenerationRef.current === generation) {
+        activeGenerationRef.current = null
+        processingRef.current = false
+      }
+    }
   }, [])
 
-  function updateItem(itemId, nextStatus) {
-    if (!mountedRef.current) return
+  function isActiveGeneration(generation) {
+    return activeGenerationRef.current === generation
+  }
+
+  function updateItem(itemId, nextStatus, generation) {
+    if (!isActiveGeneration(generation)) return
     setItems((currentItems) => currentItems.map((item) => (
       item.id === itemId ? { ...item, status: nextStatus } : item
     )))
@@ -38,6 +52,9 @@ export default function AssetUploader({
 
   async function handleFilesSelected(event) {
     if (processingRef.current) return
+
+    const generation = activeGenerationRef.current
+    if (!isActiveGeneration(generation)) return
 
     const files = Array.from(event.target.files || [])
     if (files.length === 0) return
@@ -60,30 +77,30 @@ export default function AssetUploader({
 
     try {
       for (const item of nextItems) {
-        if (!mountedRef.current) return
+        if (!isActiveGeneration(generation)) return
 
         const validation = assetFileSchema.safeParse(item.file)
         if (!validation.success) {
           safeErrors.push(validation.error.issues[0].message)
-          updateItem(item.id, 'failure')
+          updateItem(item.id, 'failure', generation)
           continue
         }
 
-        updateItem(item.id, 'uploading')
+        updateItem(item.id, 'uploading', generation)
 
         try {
           const row = await upload(client, projectId, validation.data)
-          if (!mountedRef.current) return
-          updateItem(item.id, 'success')
+          if (!isActiveGeneration(generation)) return
+          updateItem(item.id, 'success', generation)
           onUploaded?.(row)
         } catch {
-          if (!mountedRef.current) return
+          if (!isActiveGeneration(generation)) return
           safeErrors.push('圖片上傳失敗，請再試一次。')
-          updateItem(item.id, 'failure')
+          updateItem(item.id, 'failure', generation)
         }
       }
 
-      if (mountedRef.current && safeErrors.length > 0) {
+      if (isActiveGeneration(generation) && safeErrors.length > 0) {
         setErrorMessage(
           files.length === 1
             ? safeErrors[0]
@@ -91,8 +108,8 @@ export default function AssetUploader({
         )
       }
     } finally {
-      processingRef.current = false
-      if (mountedRef.current) {
+      if (isActiveGeneration(generation)) {
+        processingRef.current = false
         if (inputRef.current) inputRef.current.value = ''
         setIsProcessing(false)
       }

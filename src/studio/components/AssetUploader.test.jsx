@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { vi } from 'vitest'
 
 vi.mock('../lib/supabase', () => ({ supabase: { name: 'test client' } }))
@@ -57,6 +58,43 @@ test('uploads multiple files sequentially in selection order', async () => {
 
   await act(async () => second.resolve({ id: 'asset-2' }))
   await waitFor(() => expect(screen.getByLabelText('選擇圖片')).toBeEnabled())
+  expect(screen.getAllByText('上傳成功')).toHaveLength(2)
+})
+
+test('uploads sequentially and reports success inside Strict Mode', async () => {
+  const first = deferred()
+  const second = deferred()
+  const firstRow = { id: 'asset-1' }
+  const secondRow = { id: 'asset-2' }
+  const upload = vi.fn()
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(second.promise)
+  const onUploaded = vi.fn()
+  const files = [createFile('first.jpg'), createFile('second.png', 'image/png')]
+  const user = userEvent.setup()
+
+  render(
+    <StrictMode>
+      <AssetUploader
+        projectId={projectId}
+        upload={upload}
+        onUploaded={onUploaded}
+      />
+    </StrictMode>,
+  )
+  await user.upload(screen.getByLabelText('選擇圖片'), files)
+
+  expect(upload).toHaveBeenCalledTimes(1)
+  expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳中')
+  expect(screen.getByText('second.png').closest('li')).toHaveTextContent('等待中')
+
+  await act(async () => first.resolve(firstRow))
+  expect(upload).toHaveBeenCalledTimes(2)
+  expect(onUploaded).toHaveBeenCalledWith(firstRow)
+
+  await act(async () => second.resolve(secondRow))
+  await waitFor(() => expect(screen.getByLabelText('選擇圖片')).toBeEnabled())
+  expect(onUploaded).toHaveBeenNthCalledWith(2, secondRow)
   expect(screen.getAllByText('上傳成功')).toHaveLength(2)
 })
 
