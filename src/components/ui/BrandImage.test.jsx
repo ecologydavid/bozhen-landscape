@@ -22,9 +22,9 @@ test('keeps string sources compatible without an AVIF source', () => {
   expect(screen.getByRole('img', { name: '庭園' })).toHaveAttribute('src', '/garden.webp')
 })
 
-test('scopes fallback state to the current source and preserves caller errors', () => {
+test('retries the WebP before reporting one final image error', () => {
   const onError = vi.fn()
-  const { rerender } = render(
+  const { container, rerender } = render(
     <BrandImage
       src={{ src: '/broken.webp', avifSrc: '/broken.avif' }}
       alt="測試庭園"
@@ -34,14 +34,46 @@ test('scopes fallback state to the current source and preserves caller errors', 
   )
 
   fireEvent.error(screen.getByRole('img', { name: '測試庭園' }))
+  expect(onError).not.toHaveBeenCalled()
+  expect(container.querySelector('source')).not.toBeInTheDocument()
+  expect(screen.getByRole('img', { name: '測試庭園' })).toHaveAttribute(
+    'src',
+    '/broken.webp',
+  )
+
+  fireEvent.error(screen.getByRole('img', { name: '測試庭園' }))
   expect(onError).toHaveBeenCalledTimes(1)
   expect(
     screen.getByRole('img', { name: '測試庭園（圖片暫時無法顯示）' }),
   ).toHaveClass('image-fallback', 'hero__image')
 
-  rerender(<BrandImage src="/working.webp" alt="測試庭園" />)
+  rerender(
+    <BrandImage
+      src={{ src: '/working.webp', avifSrc: '/working.avif' }}
+      alt="測試庭園"
+    />,
+  )
+  expect(container.querySelector('source')).toHaveAttribute(
+    'srcset',
+    '/working.avif',
+  )
   expect(screen.getByRole('img', { name: '測試庭園' })).toHaveAttribute(
     'src',
     '/working.webp',
+  )
+
+  rerender(
+    <BrandImage
+      src={{ src: '/broken.webp', avifSrc: '/broken.avif' }}
+      alt="測試庭園"
+    />,
+  )
+  expect(container.querySelector('source')).toHaveAttribute(
+    'srcset',
+    '/broken.avif',
+  )
+  expect(screen.getByRole('img', { name: '測試庭園' })).toHaveAttribute(
+    'src',
+    '/broken.webp',
   )
 })

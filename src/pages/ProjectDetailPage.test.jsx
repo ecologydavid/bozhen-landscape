@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom'
 import ProjectDetailPage from './ProjectDetailPage'
 
@@ -35,4 +35,22 @@ test('shows real project metadata and a direct LINE contact action', () => {
     'href',
     'https://line.me/ti/p/~0921047049',
   )
+})
+
+test('keeps gallery pictures and final fallbacks as direct grid children', () => {
+  const { container } = render(
+    <MemoryRouter initialEntries={['/projects/nantun-rock-water-garden']}>
+      <Routes>
+        <Route path="/projects/:slug" element={<ProjectDetailPage />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+  const gallery = container.querySelector('.project-gallery__grid')
+
+  expect(gallery.firstElementChild).toHaveProperty('tagName', 'PICTURE')
+  const firstImage = gallery.querySelector('img')
+  fireEvent.error(firstImage)
+  fireEvent.error(gallery.querySelector('img'))
+
+  expect(gallery.firstElementChild).toHaveClass('image-fallback')
 })

@@ -4,10 +4,10 @@ const normalizeSource = (source) => (
   typeof source === 'string' ? { src: source, avifSrc: '' } : source
 )
 
-export default function BrandImage({ src, alt, onError, className, ...imageProps }) {
-  const media = normalizeSource(src)
-  const [failedSrc, setFailedSrc] = useState('')
-  const failed = failedSrc === media.src
+function BrandImageSource({ media, alt, onError, className, ...imageProps }) {
+  const [failureStage, setFailureStage] = useState('')
+  const avifFailed = failureStage === 'avif'
+  const failed = failureStage === 'webp'
 
   if (failed) {
     return (
@@ -24,17 +24,30 @@ export default function BrandImage({ src, alt, onError, className, ...imageProps
 
   return (
     <picture>
-      {media.avifSrc ? <source srcSet={media.avifSrc} type="image/avif" /> : null}
+      {media.avifSrc && !avifFailed
+        ? <source srcSet={media.avifSrc} type="image/avif" />
+        : null}
       <img
+        key={avifFailed ? 'webp' : 'preferred'}
         {...imageProps}
         className={className}
         src={media.src}
         alt={alt}
         onError={(event) => {
-          setFailedSrc(media.src)
+          if (media.avifSrc && !avifFailed) {
+            setFailureStage('avif')
+            return
+          }
+          setFailureStage('webp')
           onError?.(event)
         }}
       />
     </picture>
   )
+}
+
+export default function BrandImage({ src, ...imageProps }) {
+  const media = normalizeSource(src)
+  const mediaKey = `${media.src}\u0000${media.avifSrc}`
+  return <BrandImageSource key={mediaKey} media={media} {...imageProps} />
 }

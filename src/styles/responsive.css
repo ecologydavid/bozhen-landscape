@@ -450,10 +450,11 @@
     grid-template-columns: 1fr;
   }
 
-  .project-gallery img,
-  .project-gallery .image-fallback,
-  .project-gallery img:first-child,
-  .project-gallery .image-fallback:first-child {
+  .project-gallery__grid > picture,
+  .project-gallery__grid > .image-fallback,
+  .project-gallery__grid > picture:first-child,
+  .project-gallery__grid > .image-fallback:first-child {
+    grid-row: auto;
     height: min(70vw, 560px);
   }
 
