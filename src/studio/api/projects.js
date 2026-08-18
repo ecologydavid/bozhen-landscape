@@ -72,10 +72,12 @@ export async function getCurrentFacts(client, projectId) {
 
 export async function saveFactVersion(client, projectId, facts) {
   const parsedFacts = projectFactsSchema.parse(facts)
-  const { data, error } = await client.rpc('studio_save_fact_version', {
-    target_project_id: projectId,
-    next_facts: parsedFacts,
-  })
+  const { data, error } = await client
+    .rpc('studio_save_fact_version', {
+      target_project_id: projectId,
+      next_facts: parsedFacts,
+    })
+    .single()
 
   if (error) throw error
   return data
