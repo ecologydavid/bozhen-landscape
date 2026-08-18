@@ -53,7 +53,7 @@ test('lists projects using only the explicit Task 6 fields', async () => {
   const { client, query } = createSupabaseMock({ data: rows, error: null })
 
   await expect(listProjects(client)).resolves.toBe(rows)
-  expect(client.from).toHaveBeenCalledWith('projects')
+  expect(client.from).toHaveBeenCalledWith('studio_projects')
   expect(query.select).toHaveBeenCalledOnce()
   expect(query.select).toHaveBeenCalledWith(projectFields)
   expect(query.select).not.toHaveBeenCalledWith('*')
@@ -64,6 +64,7 @@ test('gets one project by id with an explicit field list', async () => {
   const { client, query } = createSupabaseMock({ data: row, error: null })
 
   await expect(getProject(client, 'project-1')).resolves.toBe(row)
+  expect(client.from).toHaveBeenCalledWith('studio_projects')
   expect(query.select).toHaveBeenCalledWith(projectFields)
   expect(query.eq).toHaveBeenCalledWith('id', 'project-1')
   expect(query.maybeSingle).toHaveBeenCalledOnce()
@@ -79,6 +80,7 @@ test('creates a project from validated camelCase input using exact database fiel
     status: 'published',
     id: 'caller-controlled',
   })).resolves.toBe(row)
+  expect(client.from).toHaveBeenCalledWith('studio_projects')
   expect(query.insert).toHaveBeenCalledWith({
     internal_name: '二林企業廠區',
     public_name: '中部企業廠區景觀',
@@ -99,6 +101,7 @@ test('updates a project from validated camelCase input using exact database fiel
     publicName: '  中部企業廠區景觀  ',
     updatedAt: 'caller-controlled',
   })).resolves.toBe(row)
+  expect(client.from).toHaveBeenCalledWith('studio_projects')
   expect(query.update).toHaveBeenCalledWith({
     internal_name: '二林企業廠區',
     public_name: '中部企業廠區景觀',
@@ -132,7 +135,7 @@ test('gets the current fact version with explicit project and current filters', 
   const { client, query } = createSupabaseMock({ data: row, error: null })
 
   await expect(getCurrentFacts(client, 'project-1')).resolves.toBe(row)
-  expect(client.from).toHaveBeenCalledWith('project_fact_versions')
+  expect(client.from).toHaveBeenCalledWith('studio_project_fact_versions')
   expect(query.select).toHaveBeenCalledWith(factFields)
   expect(query.select).not.toHaveBeenCalledWith('*')
   expect(query.eq).toHaveBeenNthCalledWith(1, 'project_id', 'project-1')

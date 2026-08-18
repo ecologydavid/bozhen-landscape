@@ -15,7 +15,7 @@ function toProjectRow(input) {
 
 export async function listProjects(client) {
   const { data, error } = await client
-    .from('projects')
+    .from('studio_projects')
     .select(projectFields)
 
   if (error) throw error
@@ -24,7 +24,7 @@ export async function listProjects(client) {
 
 export async function getProject(client, projectId) {
   const { data, error } = await client
-    .from('projects')
+    .from('studio_projects')
     .select(projectFields)
     .eq('id', projectId)
     .maybeSingle()
@@ -36,7 +36,7 @@ export async function getProject(client, projectId) {
 export async function createProject(client, input) {
   const parsedInput = projectInputSchema.parse(input)
   const { data, error } = await client
-    .from('projects')
+    .from('studio_projects')
     .insert(toProjectRow(parsedInput))
     .select(projectFields)
     .single()
@@ -48,7 +48,7 @@ export async function createProject(client, input) {
 export async function updateProject(client, projectId, input) {
   const parsedInput = projectInputSchema.parse(input)
   const { data, error } = await client
-    .from('projects')
+    .from('studio_projects')
     .update(toProjectRow(parsedInput))
     .eq('id', projectId)
     .select(projectFields)
@@ -60,7 +60,7 @@ export async function updateProject(client, projectId, input) {
 
 export async function getCurrentFacts(client, projectId) {
   const { data, error } = await client
-    .from('project_fact_versions')
+    .from('studio_project_fact_versions')
     .select(factFields)
     .eq('project_id', projectId)
     .eq('is_current', true)
