@@ -40,6 +40,10 @@ beforeEach(() => {
   originalCancelAnimationFrame = window.cancelAnimationFrame
   originalInnerWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth')
   originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+  Object.defineProperties(window, {
+    innerWidth: { configurable: true, value: 1200 },
+    innerHeight: { configurable: true, value: 1000 },
+  })
   window.IntersectionObserver = ObserverMock
   requestAnimationFrameMock = vi.fn((callback) => {
     frameCallback = callback
@@ -71,7 +75,7 @@ test('activates the most visible scene', () => {
   const observer = observerInstances[0]
 
   expect(observer.options).toEqual({
-    rootMargin: '-18% 0px -38% 0px',
+    rootMargin: '-180px 0px -380px 0px',
     threshold: [0.2, 0.4, 0.6, 0.8],
   })
   expect(observer.observed).toEqual([...nodes])
@@ -136,35 +140,42 @@ test('does not observe or activate unsupported scene markers', () => {
   expect(screen.getByText('plant')).toBeInTheDocument()
 })
 
-test('refines cached ratios against the observer root bounds on scroll', () => {
+test('refines cached ratios against the central pixel root on a wide viewport', () => {
   document.body.innerHTML =
     '<section data-scene="plant"></section><section data-scene="stone"></section>'
+
+  Object.defineProperties(window, {
+    innerWidth: { configurable: true, value: 1920 },
+    innerHeight: { configurable: true, value: 947 },
+  })
 
   render(<Probe />)
 
   const [plant, stone] = document.querySelectorAll('[data-scene]')
-  Object.defineProperties(window, {
-    innerWidth: { configurable: true, value: 1200 },
-    innerHeight: { configurable: true, value: 800 },
+  const observer = observerInstances[0]
+  const rootTop = window.innerHeight * 0.18
+  const rootBottom = window.innerHeight * 0.62
+
+  expect(observer.options).toEqual({
+    rootMargin: '-170.46px 0px -359.86px 0px',
+    threshold: [0.2, 0.4, 0.6, 0.8],
   })
 
-  const rootTop = window.innerWidth * 0.18
-  const rootBottom = window.innerHeight - window.innerWidth * 0.38
   vi.spyOn(plant, 'getBoundingClientRect').mockReturnValue({
-    top: 300,
+    top: 0,
     right: window.innerWidth,
-    bottom: rootBottom + 356,
+    bottom: 700,
     left: 0,
     width: window.innerWidth,
-    height: 400,
+    height: 700,
   })
   vi.spyOn(stone, 'getBoundingClientRect').mockReturnValue({
-    top: rootTop,
-    right: window.innerWidth,
-    bottom: rootBottom + 656,
-    left: 0,
+    top: rootTop + 20,
+    right: window.innerWidth * 0.9,
+    bottom: rootBottom - 20,
+    left: window.innerWidth * -0.1,
     width: window.innerWidth,
-    height: rootBottom + 656 - rootTop,
+    height: rootBottom - rootTop - 40,
   })
 
   act(() =>
@@ -183,6 +194,31 @@ test('refines cached ratios against the observer root bounds on scroll', () => {
 
   act(() => frameCallback())
   expect(screen.getByText('stone')).toBeInTheDocument()
+})
+
+test('recreates the observer when the viewport height changes', () => {
+  document.body.innerHTML =
+    '<section data-scene="plant"></section><section data-scene="stone"></section>'
+
+  render(<Probe />)
+
+  const nodes = document.querySelectorAll('[data-scene]')
+  const initialObserver = observerInstances[0]
+
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: 800,
+  })
+  act(() => window.dispatchEvent(new Event('resize')))
+
+  const resizedObserver = observerInstances[1]
+
+  expect(initialObserver.disconnect).toHaveBeenCalledOnce()
+  expect(resizedObserver.options).toEqual({
+    rootMargin: '-144px 0px -304px 0px',
+    threshold: [0.2, 0.4, 0.6, 0.8],
+  })
+  expect(resizedObserver.observed).toEqual([...nodes])
 })
 
 test('keeps observer ratios when jsdom geometry has no area', () => {

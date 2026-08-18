@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react'
 
 const intersectionThresholds = [0.2, 0.4, 0.6, 0.8]
+const minimumRootHeight = 96
+
+function getSceneRootGeometry(viewportHeight) {
+  const rootHeight = Math.min(
+    viewportHeight,
+    Math.max(viewportHeight * 0.44, Math.min(minimumRootHeight, viewportHeight)),
+  )
+  const rootTop = Math.max(
+    0,
+    Math.min(viewportHeight - rootHeight, viewportHeight * 0.4 - rootHeight / 2),
+  )
+  const rootBottom = rootTop + rootHeight
+  const topMargin = Math.round(rootTop * 100) / 100
+  const bottomMargin = Math.round((viewportHeight - rootBottom) * 100) / 100
+
+  return {
+    top: rootTop,
+    bottom: rootBottom,
+    rootMargin: `-${topMargin}px 0px -${bottomMargin}px 0px`,
+  }
+}
 
 function getViewportIntersectionRatio(node) {
   const rect = node.getBoundingClientRect()
@@ -13,10 +34,7 @@ function getViewportIntersectionRatio(node) {
     return null
   }
 
-  const rootTop = Math.min(viewportHeight, viewportWidth * 0.18)
-  const rootBottom = Math.max(0, viewportHeight - viewportWidth * 0.38)
-
-  if (rootBottom <= rootTop) return null
+  const root = getSceneRootGeometry(viewportHeight)
 
   const visibleWidth = Math.max(
     0,
@@ -24,7 +42,7 @@ function getViewportIntersectionRatio(node) {
   )
   const visibleHeight = Math.max(
     0,
-    Math.min(rect.bottom, rootBottom) - Math.max(rect.top, rootTop),
+    Math.min(rect.bottom, root.bottom) - Math.max(rect.top, root.top),
   )
 
   return (visibleWidth * visibleHeight) / (width * height)
@@ -52,25 +70,34 @@ export function useActiveScene(sceneIds) {
       }
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!ratios.has(entry.target)) return
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (!ratios.has(entry.target)) return
 
-          ratios.set(
-            entry.target,
-            entry.isIntersecting ? entry.intersectionRatio : 0,
-          )
-        })
-        updateActiveScene()
-      },
-      {
-        rootMargin: '-18% 0px -38% 0px',
-        threshold: intersectionThresholds,
-      },
-    )
+        ratios.set(
+          entry.target,
+          entry.isIntersecting ? entry.intersectionRatio : 0,
+        )
+      })
+      updateActiveScene()
+    }
+    const createObserver = (viewportHeight) => {
+      const geometry = getSceneRootGeometry(viewportHeight)
+      const observer = new IntersectionObserver(
+        observerCallback,
+        {
+          rootMargin: geometry.rootMargin,
+          threshold: intersectionThresholds,
+        },
+      )
 
-    nodes.forEach((node) => observer.observe(node))
+      nodes.forEach((node) => observer.observe(node))
+
+      return observer
+    }
+    let observedViewportHeight =
+      window.innerHeight || document.documentElement.clientHeight
+    let observer = createObserver(observedViewportHeight)
 
     const refineRatios = () => {
       frameId = null
@@ -90,13 +117,26 @@ export function useActiveScene(sceneIds) {
         : window.setTimeout(refineRatios, 0)
     }
 
+    const handleResize = () => {
+      const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight
+
+      if (viewportHeight !== observedViewportHeight) {
+        observer.disconnect()
+        observedViewportHeight = viewportHeight
+        observer = createObserver(viewportHeight)
+      }
+
+      scheduleRefinement()
+    }
+
     window.addEventListener('scroll', scheduleRefinement, { passive: true })
-    window.addEventListener('resize', scheduleRefinement)
+    window.addEventListener('resize', handleResize)
 
     return () => {
       observer.disconnect()
       window.removeEventListener('scroll', scheduleRefinement)
-      window.removeEventListener('resize', scheduleRefinement)
+      window.removeEventListener('resize', handleResize)
 
       if (frameId !== null) {
         if (window.cancelAnimationFrame) window.cancelAnimationFrame(frameId)

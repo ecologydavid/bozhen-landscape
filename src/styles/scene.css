@@ -77,8 +77,32 @@
   background: transparent;
 }
 
+.scene-section[data-scene='water'],
+.scene-section[data-scene='craft'] {
+  --ink: #faf9f5;
+  --muted: rgba(250, 249, 245, 0.78);
+  --line: rgba(250, 249, 245, 0.24);
+  color: var(--ink);
+}
+
+.scene-section[data-scene='water'] {
+  background: rgba(13, 29, 23, 0.84);
+  transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);
+}
+
+.scene-section[data-scene='craft'] {
+  background: rgba(15, 28, 23, 0.7);
+  transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);
+}
+
+.scene-section[data-scene='care'],
 .scene-section.contact-panel {
-  background: var(--graphite-900);
+  --ink: #faf9f5;
+  --muted: rgba(250, 249, 245, 0.78);
+  --line: rgba(250, 249, 245, 0.24);
+  background: rgba(18, 28, 22, 0.76);
+  color: var(--ink);
+  transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);
 }
 
 @media (min-width: 1025px) {
