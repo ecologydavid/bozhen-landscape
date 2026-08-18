@@ -121,59 +121,58 @@
 .leaf-contact-links {
   position: relative;
   display: grid;
-  grid-template-columns: 1.14fr 0.86fr;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.14fr) minmax(0, .86fr);
   align-items: start;
   padding-top: 9px;
 }
 
 .leaf-contact-links::before {
   position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 14px;
-  border-top: 1px solid var(--moss-800);
-  border-radius: 50%;
+  top: 1px;
+  right: 2%;
+  left: 2%;
+  height: 22px;
+  border-top: 1px solid rgba(54, 90, 69, 0.4);
+  border-radius: 50% 50% 0 0;
   content: '';
-  opacity: 0.42;
-  transform: rotate(-1.5deg);
+  transform: rotate(-1.8deg);
 }
 
-.leaf-contact-links a {
-  display: flex;
+.leaf-contact-links__item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
   min-height: 52px;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 17px;
+  padding-inline: 17px;
   border: 1px solid var(--moss-800);
   border-radius: 8px 24px 8px 5px;
   background: var(--moss-800);
+  box-shadow: var(--shadow-rest);
   color: var(--paper);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  text-align: center;
   white-space: nowrap;
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease);
 }
 
-.leaf-contact-links .leaf-contact-links__phone {
+.leaf-contact-links__phone {
+  z-index: 2;
   min-height: 48px;
   margin: 9px 0 0 -9px;
   border-radius: 22px 8px 5px 8px;
-  background: var(--paper);
+  background: var(--paper-bright);
   color: var(--moss-800);
 }
 
-.leaf-contact-links a:hover {
-  box-shadow: 0 11px 22px rgba(23, 26, 23, 0.18);
+.leaf-contact-links__item:hover {
+  box-shadow: var(--shadow-hover);
   transform: translateY(-3px);
 }
 
-.leaf-contact-links a:active {
+.leaf-contact-links__item:active {
   transform: scale(0.98);
 }
 

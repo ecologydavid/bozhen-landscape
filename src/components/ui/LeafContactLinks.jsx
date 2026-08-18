@@ -4,7 +4,7 @@ export default function LeafContactLinks({ contact, className = '' }) {
   return (
     <div className={`leaf-contact-links ${className}`.trim()}>
       <a
-        className="leaf-contact-links__line"
+        className="leaf-contact-links__item leaf-contact-links__line"
         href={contact.lineHref}
         target="_blank"
         rel="noreferrer"
@@ -14,7 +14,7 @@ export default function LeafContactLinks({ contact, className = '' }) {
         <span>LINE 聯絡</span>
       </a>
       <a
-        className="leaf-contact-links__phone"
+        className="leaf-contact-links__item leaf-contact-links__phone"
         href={contact.phoneHref}
         aria-label={`撥打 ${contact.mobile}`}
       >
