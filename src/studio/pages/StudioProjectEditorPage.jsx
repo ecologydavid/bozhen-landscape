@@ -1,5 +1,5 @@
-import { useEffect, useId, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   createProject,
   getCurrentFacts,
@@ -7,8 +7,20 @@ import {
   saveFactVersion,
   updateProject,
 } from '../api/projects'
+import FactArrayField from '../components/FactArrayField'
 import { supabase } from '../lib/supabase'
 import { projectFactsSchema, projectInputSchema } from '../schemas/project'
+
+const createProjectIdKey = 'studio:create-project-id'
+const factAttemptKeyPrefix = 'studio:fact-attempt:'
+const arrayFieldNames = [
+  'services',
+  'constraints',
+  'approach',
+  'verifiedMaterials',
+  'results',
+  'forbiddenDetails',
+]
 
 const emptyMetadata = {
   internalName: '',
@@ -16,17 +28,6 @@ const emptyMetadata = {
   region: '',
   audience: '',
   siteType: '',
-}
-
-const emptyFacts = {
-  clientNeed: '',
-  services: [''],
-  constraints: [''],
-  approach: [''],
-  verifiedMaterials: [''],
-  results: [''],
-  publicCta: '',
-  forbiddenDetails: [''],
 }
 
 const arrayFields = [
@@ -38,127 +39,305 @@ const arrayFields = [
   { name: 'forbiddenDetails', label: '禁止公開細節', addLabel: '新增禁止公開細節' },
 ]
 
-const validationMessages = {
-  internalName: '內部名稱至少需要 2 個字',
-  publicName: '公開名稱至少需要 2 個字',
-  region: '地區至少需要 2 個字',
-  audience: '請選擇受眾',
-  siteType: '場域類型至少需要 2 個字',
-  clientNeed: '客戶需求至少需要 10 個字',
+const fieldLabels = {
+  internalName: '內部名稱',
+  publicName: '公開名稱',
+  region: '地區',
+  audience: '受眾',
+  siteType: '場域類型',
+  clientNeed: '客戶需求',
+  services: '已確認服務',
+  constraints: '限制條件',
+  approach: '執行方式',
+  verifiedMaterials: '已確認材料',
+  results: '已確認成果',
+  publicCta: '公開行動呼籲',
+  forbiddenDetails: '禁止公開細節',
+}
+
+const requiredArrayMessages = {
   services: '至少填寫一項已確認服務',
   approach: '至少填寫一項執行方式',
   results: '至少填寫一項已確認成果',
-  publicCta: '請填寫公開行動呼籲',
-  constraints: '請確認限制條件的內容長度',
-  verifiedMaterials: '請確認已確認材料的內容長度',
-  forbiddenDetails: '請確認禁止公開細節的內容長度',
 }
 
-function toEditableArray(value) {
-  return Array.isArray(value) && value.length > 0 ? value : ['']
+function createFactRow(value = '') {
+  return { id: globalThis.crypto.randomUUID(), value }
+}
+
+function toEditableRows(values) {
+  const editableValues = Array.isArray(values) && values.length > 0 ? values : ['']
+  return editableValues.map((value) => createFactRow(value))
+}
+
+function emptyFactsForEditing() {
+  return {
+    clientNeed: '',
+    services: toEditableRows([]),
+    constraints: toEditableRows([]),
+    approach: toEditableRows([]),
+    verifiedMaterials: toEditableRows([]),
+    results: toEditableRows([]),
+    publicCta: '',
+    forbiddenDetails: toEditableRows([]),
+  }
 }
 
 function factsForEditing(facts = {}) {
   return {
     clientNeed: facts.clientNeed || '',
-    services: toEditableArray(facts.services),
-    constraints: toEditableArray(facts.constraints),
-    approach: toEditableArray(facts.approach),
-    verifiedMaterials: toEditableArray(facts.verifiedMaterials),
-    results: toEditableArray(facts.results),
+    services: toEditableRows(facts.services),
+    constraints: toEditableRows(facts.constraints),
+    approach: toEditableRows(facts.approach),
+    verifiedMaterials: toEditableRows(facts.verifiedMaterials),
+    results: toEditableRows(facts.results),
     publicCta: facts.publicCta || '',
-    forbiddenDetails: toEditableArray(facts.forbiddenDetails),
+    forbiddenDetails: toEditableRows(facts.forbiddenDetails),
   }
 }
 
-function factsForValidation(facts) {
-  return {
-    ...facts,
-    services: facts.services.filter((value) => value.trim() !== ''),
-    constraints: facts.constraints.filter((value) => value.trim() !== ''),
-    approach: facts.approach.filter((value) => value.trim() !== ''),
-    verifiedMaterials: facts.verifiedMaterials.filter((value) => value.trim() !== ''),
-    results: facts.results.filter((value) => value.trim() !== ''),
-    forbiddenDetails: facts.forbiddenDetails.filter((value) => value.trim() !== ''),
+function factsForValidation(editableFacts) {
+  const facts = {
+    clientNeed: editableFacts.clientNeed,
+    publicCta: editableFacts.publicCta,
   }
+  const indexMaps = {}
+
+  for (const field of arrayFieldNames) {
+    facts[field] = []
+    indexMaps[field] = []
+    editableFacts[field].forEach((row, rowIndex) => {
+      if (row.value.trim() === '') return
+      facts[field].push(row.value)
+      indexMaps[field].push(rowIndex)
+    })
+  }
+
+  return { facts, indexMaps }
 }
 
-function messagesFromIssues(...results) {
-  const messages = {}
+function issueMessage(issue) {
+  const field = issue.path[0]
+  const label = fieldLabels[field] || '此欄位'
+  const isArrayItem = typeof issue.path[1] === 'number'
+
+  if (field === 'audience') return '請選擇受眾'
+  if (issue.code === 'too_small' && !isArrayItem && requiredArrayMessages[field]) {
+    return requiredArrayMessages[field]
+  }
+  if (issue.code === 'too_small') {
+    return `${label}${isArrayItem ? '每項' : ''}至少需要 ${issue.minimum} 個字`
+  }
+  if (issue.code === 'too_big') {
+    return `${label}${isArrayItem ? '每項' : ''}不可超過 ${issue.maximum} 個字`
+  }
+  return `請確認${label}`
+}
+
+function errorsFromIssues(results, indexMaps) {
+  const errors = {}
 
   for (const result of results) {
     if (result.success) continue
     for (const issue of result.error.issues) {
       const field = issue.path[0]
-      if (!messages[field]) messages[field] = validationMessages[field] || '請確認此欄位'
+      const submittedIndex = issue.path[1]
+      const rowIndex = typeof submittedIndex === 'number'
+        ? indexMaps[field]?.[submittedIndex]
+        : undefined
+      if (!errors[field]) {
+        errors[field] = {
+          message: issueMessage(issue),
+          itemIndexes: rowIndex === undefined ? [] : [rowIndex],
+        }
+      } else if (rowIndex !== undefined && !errors[field].itemIndexes.includes(rowIndex)) {
+        errors[field].itemIndexes.push(rowIndex)
+      }
     }
   }
 
-  return messages
+  return errors
 }
 
-function StudioArrayEditor({ field, values, error, onChange }) {
-  const fieldId = useId()
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
 
-  function updateRow(index, value) {
-    onChange(values.map((current, rowIndex) => rowIndex === index ? value : current))
+function getCreateProjectId() {
+  try {
+    const existingId = window.sessionStorage.getItem(createProjectIdKey)
+    if (isUuid(existingId || '')) return existingId
+  } catch {
+    // Continue with an in-memory ID when storage is unavailable.
   }
 
-  function removeRow(index) {
-    onChange(values.filter((_, rowIndex) => rowIndex !== index))
+  const projectId = globalThis.crypto.randomUUID()
+  try {
+    window.sessionStorage.setItem(createProjectIdKey, projectId)
+  } catch {
+    // The repository still receives a stable ID for this mounted flow.
+  }
+  return projectId
+}
+
+function clearCreateProjectId() {
+  try {
+    window.sessionStorage.removeItem(createProjectIdKey)
+  } catch {
+    // A successful save must not be downgraded by unavailable storage.
+  }
+}
+
+function factAttemptKey(projectId) {
+  return `${factAttemptKeyPrefix}${projectId}`
+}
+
+function clearFactAttempt(projectId) {
+  try {
+    window.sessionStorage.removeItem(factAttemptKey(projectId))
+  } catch {
+    // A confirmed database result remains authoritative.
+  }
+}
+
+function readFactAttempt(projectId) {
+  try {
+    const rawAttempt = window.sessionStorage.getItem(factAttemptKey(projectId))
+    if (!rawAttempt) return null
+    const attempt = JSON.parse(rawAttempt)
+    const parsedFacts = projectFactsSchema.safeParse(attempt?.facts)
+    const baselineIsValid = attempt?.baselineVersion === null
+      || (Number.isInteger(attempt?.baselineVersion) && attempt.baselineVersion >= 1)
+    if (!parsedFacts.success || !baselineIsValid) {
+      clearFactAttempt(projectId)
+      return null
+    }
+    return { facts: parsedFacts.data, baselineVersion: attempt.baselineVersion }
+  } catch {
+    clearFactAttempt(projectId)
+    return null
+  }
+}
+
+function writeFactAttempt(projectId, facts, baselineVersion) {
+  try {
+    window.sessionStorage.setItem(
+      factAttemptKey(projectId),
+      JSON.stringify({ facts, baselineVersion }),
+    )
+  } catch {
+    // The save remains usable, but cannot be reconciled across a refresh.
+  }
+}
+
+function normalizedFactsEqual(left, right) {
+  const leftResult = projectFactsSchema.safeParse(left)
+  const rightResult = projectFactsSchema.safeParse(right)
+  return leftResult.success
+    && rightResult.success
+    && JSON.stringify(leftResult.data) === JSON.stringify(rightResult.data)
+}
+
+function isNewerMatchingVersion(currentFacts, attempt) {
+  const baseline = attempt.baselineVersion ?? 0
+  return Number.isInteger(currentFacts?.version)
+    && currentFacts.version > baseline
+    && normalizedFactsEqual(currentFacts.facts, attempt.facts)
+}
+
+async function saveFactsRecoverably(projectId, facts, baselineVersion, isActive) {
+  const pendingAttempt = readFactAttempt(projectId)
+
+  if (pendingAttempt) {
+    let currentFacts
+    try {
+      currentFacts = await getCurrentFacts(supabase, projectId)
+    } catch {
+      throw new Error('fact attempt unresolved')
+    }
+    if (!isActive()) return null
+
+    if (isNewerMatchingVersion(currentFacts, pendingAttempt)) {
+      clearFactAttempt(projectId)
+      if (normalizedFactsEqual(pendingAttempt.facts, facts)) return currentFacts
+      baselineVersion = currentFacts.version
+    } else if (normalizedFactsEqual(pendingAttempt.facts, facts)) {
+      baselineVersion = pendingAttempt.baselineVersion
+    } else if (Number.isInteger(currentFacts?.version)) {
+      baselineVersion = currentFacts.version
+    }
   }
 
+  if (!isActive()) return null
+  const attempt = { facts, baselineVersion }
+  writeFactAttempt(projectId, facts, baselineVersion)
+
+  try {
+    const saved = await saveFactVersion(supabase, projectId, facts)
+    if (!isActive()) return null
+    clearFactAttempt(projectId)
+    return saved
+  } catch {
+    if (!isActive()) return null
+    try {
+      const currentFacts = await getCurrentFacts(supabase, projectId)
+      if (!isActive()) return null
+      if (isNewerMatchingVersion(currentFacts, attempt)) {
+        clearFactAttempt(projectId)
+        return currentFacts
+      }
+    } catch {
+      // Keep the attempt for the next reconciliation.
+    }
+    throw new Error('fact attempt unresolved')
+  }
+}
+
+function MetadataInput({ id, label, value, error, onChange }) {
+  const errorId = `${id}-error`
   return (
-    <fieldset className="studio-array-field" aria-describedby={error ? `${fieldId}-error` : undefined}>
-      <legend>{field.label}</legend>
-      <div className="studio-array-rows">
-        {values.map((value, index) => (
-          <div className="studio-array-row" key={`${field.name}-${index}`}>
-            <label className="studio-visually-hidden" htmlFor={`${fieldId}-${index}`}>
-              {field.label} {index + 1}
-            </label>
-            <input
-              id={`${fieldId}-${index}`}
-              value={value}
-              onChange={(event) => updateRow(index, event.target.value)}
-            />
-            {values.length > 1 ? (
-              <button
-                className="studio-remove-button"
-                type="button"
-                aria-label={`移除${field.label} ${index + 1}`}
-                onClick={() => removeRow(index)}
-              >
-                移除
-              </button>
-            ) : null}
-          </div>
-        ))}
-      </div>
-      <button
-        className="studio-add-row-button"
-        type="button"
-        onClick={() => onChange([...values, ''])}
-      >
-        {field.addLabel}
-      </button>
-      {error ? <p className="studio-field-error" id={`${fieldId}-error`}>{error}</p> : null}
-    </fieldset>
+    <div className="studio-field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        value={value}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {error ? <p className="studio-field-error" id={errorId}>{error.message}</p> : null}
+    </div>
   )
 }
 
-export default function StudioProjectEditorPage({ mode = 'create' }) {
-  const { projectId } = useParams()
+function StudioProjectEditor({ mode, projectId }) {
+  const navigate = useNavigate()
   const isEdit = mode === 'edit'
-  const [metadata, setMetadata] = useState(emptyMetadata)
-  const [facts, setFacts] = useState(emptyFacts)
+  const [createProjectId] = useState(() => isEdit ? null : getCreateProjectId())
+  const [metadata, setMetadata] = useState(() => ({ ...emptyMetadata }))
+  const [facts, setFacts] = useState(() => {
+    if (isEdit) return emptyFactsForEditing()
+    const pendingAttempt = readFactAttempt(createProjectId)
+    return pendingAttempt ? factsForEditing(pendingAttempt.facts) : emptyFactsForEditing()
+  })
   const [loadState, setLoadState] = useState(isEdit ? 'loading' : 'ready')
+  const [loadedProjectId, setLoadedProjectId] = useState(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [fieldErrors, setFieldErrors] = useState({})
   const [saveState, setSaveState] = useState('idle')
   const [saveMessage, setSaveMessage] = useState('')
   const [currentVersion, setCurrentVersion] = useState(null)
-  const [persistedProjectId, setPersistedProjectId] = useState(null)
+  const formRef = useRef(null)
+  const isMountedRef = useRef(true)
+  const saveGenerationRef = useRef(0)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      saveGenerationRef.current += 1
+    }
+  }, [])
 
   useEffect(() => {
     if (!isEdit) return undefined
@@ -171,10 +350,10 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
       .then(([project, currentFacts]) => {
         if (!isCurrent) return
         if (!project) {
+          setLoadedProjectId(projectId)
           setLoadState('missing')
           return
         }
-
         setMetadata({
           internalName: project.internal_name || '',
           publicName: project.public_name || '',
@@ -184,11 +363,13 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
         })
         setFacts(factsForEditing(currentFacts?.facts))
         setCurrentVersion(currentFacts?.version ?? null)
-        setPersistedProjectId(project.id)
+        setLoadedProjectId(projectId)
         setLoadState('ready')
       })
       .catch(() => {
-        if (isCurrent) setLoadState('error')
+        if (!isCurrent) return
+        setLoadedProjectId(projectId)
+        setLoadState('error')
       })
 
     return () => {
@@ -207,56 +388,64 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
   async function handleSubmit(event) {
     event.preventDefault()
     if (saveState === 'saving') return
+    const saveGeneration = saveGenerationRef.current + 1
+    saveGenerationRef.current = saveGeneration
+    const isActive = () => isMountedRef.current
+      && saveGenerationRef.current === saveGeneration
 
     setSaveMessage('')
+    const preparedFacts = factsForValidation(facts)
     const projectResult = projectInputSchema.safeParse(metadata)
-    const factsResult = projectFactsSchema.safeParse(factsForValidation(facts))
-    const errors = messagesFromIssues(projectResult, factsResult)
+    const factsResult = projectFactsSchema.safeParse(preparedFacts.facts)
+    const errors = errorsFromIssues([projectResult, factsResult], preparedFacts.indexMaps)
     setFieldErrors(errors)
 
     if (!projectResult.success || !factsResult.success) {
       setSaveState('validation-error')
+      queueMicrotask(() => formRef.current?.querySelector('[aria-invalid="true"]')?.focus())
       return
     }
 
     setSaveState('saving')
-    let targetProjectId = persistedProjectId || projectId
+    const targetProjectId = isEdit ? projectId : createProjectId
 
     try {
-      if (isEdit || targetProjectId) {
-        await updateProject(supabase, targetProjectId, projectResult.data)
+      if (isEdit) {
+        await updateProject(supabase, projectId, projectResult.data)
       } else {
-        const created = await createProject(supabase, projectResult.data)
-        targetProjectId = created.id
+        await createProject(supabase, projectResult.data, { projectId: createProjectId })
       }
-      setPersistedProjectId(targetProjectId)
+      if (!isActive()) return
     } catch {
+      if (!isActive()) return
       setSaveMessage('無法儲存案場資料，請再試一次。')
       setSaveState('metadata-error')
       return
     }
 
     try {
-      const saved = await saveFactVersion(supabase, targetProjectId, factsResult.data)
+      const saved = await saveFactsRecoverably(
+        targetProjectId,
+        factsResult.data,
+        currentVersion,
+        isActive,
+      )
+      if (!isActive() || !saved) return
       setCurrentVersion(saved.version)
       setSaveMessage(`已儲存事實卡版本 ${saved.version}`)
       setSaveState('success')
+      if (!isEdit) {
+        clearCreateProjectId()
+        navigate(`/studio/projects/${createProjectId}`, { replace: true })
+      }
     } catch {
-      setSaveMessage('案場資料已儲存，但事實卡版本儲存失敗，請再試一次。')
+      if (!isActive()) return
+      setSaveMessage('案場資料已儲存，但事實卡版本狀態尚待確認；請再試一次以安全地核對後續動作。')
       setSaveState('facts-error')
     }
   }
 
-  if (loadState === 'loading') {
-    return (
-      <section className="studio-project-editor">
-        <h1>編輯案場</h1>
-        <div className="studio-state-card" role="status">正在載入案場…</div>
-      </section>
-    )
-  }
-
-  if (loadState === 'missing') {
+  if (isEdit && loadState === 'missing' && loadedProjectId === projectId) {
     return (
       <section className="studio-project-editor">
         <h1>編輯案場</h1>
@@ -268,7 +457,7 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
     )
   }
 
-  if (loadState === 'error') {
+  if (isEdit && loadState === 'error' && loadedProjectId === projectId) {
     return (
       <section className="studio-project-editor">
         <h1>編輯案場</h1>
@@ -278,6 +467,7 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
             type="button"
             onClick={() => {
               setLoadState('loading')
+              setLoadedProjectId(null)
               setLoadAttempt((attempt) => attempt + 1)
             }}
           >
@@ -287,6 +477,20 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
       </section>
     )
   }
+
+  if (isEdit && (loadState !== 'ready' || loadedProjectId !== projectId)) {
+    return (
+      <section className="studio-project-editor">
+        <h1>編輯案場</h1>
+        <div className="studio-state-card" role="status">正在載入案場…</div>
+      </section>
+    )
+  }
+
+  const validationFailed = saveState === 'validation-error'
+  const audienceError = fieldErrors.audience
+  const clientNeedError = fieldErrors.clientNeed
+  const publicCtaError = fieldErrors.publicCta
 
   return (
     <section className="studio-project-editor" aria-labelledby="studio-editor-title">
@@ -299,64 +503,75 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
         {currentVersion ? <span className="studio-version-badge">目前版本 {currentVersion}</span> : null}
       </header>
 
-      <form className="studio-editor-form" noValidate onSubmit={handleSubmit}>
+      <form ref={formRef} className="studio-editor-form" noValidate onSubmit={handleSubmit}>
+        {validationFailed ? (
+          <div className="studio-validation-summary" role="alert">
+            請修正表單中的欄位，再重新儲存。
+          </div>
+        ) : null}
+
         <div className="studio-editor-columns">
           <fieldset className="studio-form-card">
             <legend>案場資料</legend>
-            <div className="studio-field">
-              <label htmlFor="studio-internal-name">內部名稱</label>
-              <input id="studio-internal-name" value={metadata.internalName} onChange={(event) => updateMetadata('internalName', event.target.value)} />
-              {fieldErrors.internalName ? <p className="studio-field-error">{fieldErrors.internalName}</p> : null}
-            </div>
-            <div className="studio-field">
-              <label htmlFor="studio-public-name">公開名稱</label>
-              <input id="studio-public-name" value={metadata.publicName} onChange={(event) => updateMetadata('publicName', event.target.value)} />
-              {fieldErrors.publicName ? <p className="studio-field-error">{fieldErrors.publicName}</p> : null}
-            </div>
-            <div className="studio-field">
-              <label htmlFor="studio-region">地區</label>
-              <input id="studio-region" value={metadata.region} onChange={(event) => updateMetadata('region', event.target.value)} />
-              {fieldErrors.region ? <p className="studio-field-error">{fieldErrors.region}</p> : null}
-            </div>
+            <MetadataInput id="studio-internal-name" label="內部名稱" value={metadata.internalName} error={fieldErrors.internalName} onChange={(value) => updateMetadata('internalName', value)} />
+            <MetadataInput id="studio-public-name" label="公開名稱" value={metadata.publicName} error={fieldErrors.publicName} onChange={(value) => updateMetadata('publicName', value)} />
+            <MetadataInput id="studio-region" label="地區" value={metadata.region} error={fieldErrors.region} onChange={(value) => updateMetadata('region', value)} />
             <div className="studio-field">
               <label htmlFor="studio-audience">受眾</label>
-              <select id="studio-audience" value={metadata.audience} onChange={(event) => updateMetadata('audience', event.target.value)}>
+              <select
+                id="studio-audience"
+                value={metadata.audience}
+                aria-invalid={audienceError ? true : undefined}
+                aria-describedby={audienceError ? 'studio-audience-error' : undefined}
+                onChange={(event) => updateMetadata('audience', event.target.value)}
+              >
                 <option value="">請選擇受眾</option>
                 <option value="builder">建商</option>
                 <option value="corporate">公司開發空間</option>
                 <option value="luxury_home">個人透天豪宅</option>
               </select>
-              {fieldErrors.audience ? <p className="studio-field-error">{fieldErrors.audience}</p> : null}
+              {audienceError ? <p className="studio-field-error" id="studio-audience-error">{audienceError.message}</p> : null}
             </div>
-            <div className="studio-field">
-              <label htmlFor="studio-site-type">場域類型</label>
-              <input id="studio-site-type" value={metadata.siteType} onChange={(event) => updateMetadata('siteType', event.target.value)} />
-              {fieldErrors.siteType ? <p className="studio-field-error">{fieldErrors.siteType}</p> : null}
-            </div>
+            <MetadataInput id="studio-site-type" label="場域類型" value={metadata.siteType} error={fieldErrors.siteType} onChange={(value) => updateMetadata('siteType', value)} />
           </fieldset>
 
           <fieldset className="studio-form-card">
             <legend>核心敘述</legend>
             <div className="studio-field">
               <label htmlFor="studio-client-need">客戶需求</label>
-              <textarea id="studio-client-need" rows="5" value={facts.clientNeed} onChange={(event) => updateFacts('clientNeed', event.target.value)} />
-              {fieldErrors.clientNeed ? <p className="studio-field-error">{fieldErrors.clientNeed}</p> : null}
+              <textarea
+                id="studio-client-need"
+                rows="5"
+                value={facts.clientNeed}
+                aria-invalid={clientNeedError ? true : undefined}
+                aria-describedby={clientNeedError ? 'studio-client-need-error' : undefined}
+                onChange={(event) => updateFacts('clientNeed', event.target.value)}
+              />
+              {clientNeedError ? <p className="studio-field-error" id="studio-client-need-error">{clientNeedError.message}</p> : null}
             </div>
             <div className="studio-field">
               <label htmlFor="studio-public-cta">公開行動呼籲</label>
-              <textarea id="studio-public-cta" rows="3" value={facts.publicCta} onChange={(event) => updateFacts('publicCta', event.target.value)} />
-              {fieldErrors.publicCta ? <p className="studio-field-error">{fieldErrors.publicCta}</p> : null}
+              <textarea
+                id="studio-public-cta"
+                rows="3"
+                value={facts.publicCta}
+                aria-invalid={publicCtaError ? true : undefined}
+                aria-describedby={publicCtaError ? 'studio-public-cta-error' : undefined}
+                onChange={(event) => updateFacts('publicCta', event.target.value)}
+              />
+              {publicCtaError ? <p className="studio-field-error" id="studio-public-cta-error">{publicCtaError.message}</p> : null}
             </div>
           </fieldset>
         </div>
 
         <div className="studio-facts-grid">
           {arrayFields.map((field) => (
-            <StudioArrayEditor
+            <FactArrayField
               key={field.name}
               field={field}
-              values={facts[field.name]}
+              rows={facts[field.name]}
               error={fieldErrors[field.name]}
+              createRow={createFactRow}
               onChange={(value) => updateFacts(field.name, value)}
             />
           ))}
@@ -380,4 +595,10 @@ export default function StudioProjectEditorPage({ mode = 'create' }) {
       </form>
     </section>
   )
+}
+
+export default function StudioProjectEditorPage({ mode = 'create' }) {
+  const { projectId } = useParams()
+  const identity = `${mode}:${projectId || ''}`
+  return <StudioProjectEditor key={identity} mode={mode} projectId={projectId} />
 }

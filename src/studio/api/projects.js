@@ -1,8 +1,12 @@
+import { z } from 'zod'
 import { projectFactsSchema, projectInputSchema } from '../schemas/project'
 
 const projectFields = 'id, internal_name, public_name, region, audience, site_type, status, created_at, updated_at'
 const projectListFields = `${projectFields}, studio_assets(count)`
 const factFields = 'id, project_id, version, facts, is_current, created_by, created_at'
+const createProjectOptionsSchema = z.object({
+  projectId: z.uuid().optional(),
+})
 
 function toProjectRow(input) {
   return {
@@ -42,11 +46,17 @@ export async function getProject(client, projectId) {
   return data
 }
 
-export async function createProject(client, input) {
+export async function createProject(client, input, options = {}) {
   const parsedInput = projectInputSchema.parse(input)
-  const { data, error } = await client
-    .from('studio_projects')
-    .insert(toProjectRow(parsedInput))
+  const { projectId } = createProjectOptionsSchema.parse(options)
+  const query = projectId
+    ? client
+        .from('studio_projects')
+        .upsert({ id: projectId, ...toProjectRow(parsedInput) }, { onConflict: 'id' })
+    : client
+        .from('studio_projects')
+        .insert(toProjectRow(parsedInput))
+  const { data, error } = await query
     .select(projectFields)
     .single()
 

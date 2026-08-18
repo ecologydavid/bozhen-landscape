@@ -58,6 +58,15 @@ function createInsertMock(result = { data: null, error: null }) {
   return { client, insert, select, single }
 }
 
+function createUpsertMock(result = { data: null, error: null }) {
+  const single = vi.fn().mockResolvedValue(result)
+  const select = vi.fn(() => ({ single }))
+  const upsert = vi.fn(() => ({ select }))
+  const client = { from: vi.fn(() => ({ upsert })) }
+
+  return { client, upsert, select, single }
+}
+
 function createUpdateMock(result = { data: null, error: null }) {
   const single = vi.fn().mockResolvedValue(result)
   const select = vi.fn(() => ({ single }))
@@ -126,6 +135,36 @@ test('creates a project from validated camelCase input using exact database fiel
   })
   expect(select).toHaveBeenCalledWith(projectFields)
   expect(single).toHaveBeenCalledOnce()
+})
+
+test('idempotently upserts a create flow with a separately validated client UUID', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const row = { id: projectId }
+  const { client, upsert, select, single } = createUpsertMock({ data: row, error: null })
+
+  await expect(createProject(client, projectInput, { projectId })).resolves.toBe(row)
+  expect(upsert).toHaveBeenCalledWith(
+    {
+      id: projectId,
+      internal_name: '二林企業廠區',
+      public_name: '中部企業廠區景觀',
+      region: '彰化',
+      audience: 'builder',
+      site_type: '企業廠區',
+    },
+    { onConflict: 'id' },
+  )
+  expect(select).toHaveBeenCalledWith(projectFields)
+  expect(single).toHaveBeenCalledOnce()
+})
+
+test('rejects an invalid create flow id before querying Supabase', async () => {
+  const { client, upsert } = createUpsertMock()
+
+  await expect(createProject(client, projectInput, { projectId: 'caller-id' }))
+    .rejects.toThrow(/projectId/)
+  expect(client.from).not.toHaveBeenCalled()
+  expect(upsert).not.toHaveBeenCalled()
 })
 
 test('updates a project from validated camelCase input using exact database fields', async () => {

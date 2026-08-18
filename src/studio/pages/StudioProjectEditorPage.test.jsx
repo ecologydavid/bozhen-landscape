@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { StrictMode } from 'react'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
 import StudioProjectEditorPage from './StudioProjectEditorPage'
 
@@ -48,6 +49,60 @@ const factRow = {
   },
 }
 
+const createProjectId = '11111111-1111-4111-8111-111111111111'
+const createProjectIdKey = 'studio:create-project-id'
+
+const createFacts = {
+  clientNeed: '改善入口動線與企業門面。',
+  services: ['景觀規劃'],
+  constraints: [],
+  approach: ['分區施工'],
+  verifiedMaterials: [],
+  results: ['完成入口景觀整理'],
+  publicCta: '歡迎洽詢景觀規劃',
+  forbiddenDetails: [],
+}
+
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, reject, resolve }
+}
+
+function RouteControls() {
+  const navigate = useNavigate()
+
+  return (
+    <nav aria-label="測試路由">
+      <button type="button" onClick={() => navigate('/studio/projects/a')}>前往案場 A</button>
+      <button type="button" onClick={() => navigate('/studio/projects/b')}>前往案場 B</button>
+      <button type="button" onClick={() => navigate('/studio/projects/new')}>前往新增案場</button>
+    </nav>
+  )
+}
+
+function LocationProbe() {
+  const { pathname } = useLocation()
+  return <output aria-label="目前路徑">{pathname}</output>
+}
+
+function renderEditorRoutes(initialEntry) {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <RouteControls />
+      <LocationProbe />
+      <Routes>
+        <Route path="/studio/projects/new" element={<StudioProjectEditorPage mode="create" />} />
+        <Route path="/studio/projects/:projectId" element={<StudioProjectEditorPage mode="edit" />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 function renderEdit() {
   return render(
     <MemoryRouter initialEntries={['/studio/projects/p1']}>
@@ -73,6 +128,8 @@ async function fillCreateForm(user) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  window.sessionStorage.clear()
+  window.sessionStorage.setItem(createProjectIdKey, createProjectId)
 })
 
 test('does not save an incomplete fact card', async () => {
@@ -106,16 +163,17 @@ test('creates metadata before saving facts with the returned project id', async 
       audience: 'builder',
       siteType: '企業廠區',
     },
+    { projectId: createProjectId },
   )
   expect(saveFactVersion).not.toHaveBeenCalled()
   expect(saveButton).toBeDisabled()
 
-  resolveCreate({ ...projectRow, id: 'created-project' })
+  resolveCreate({ ...projectRow, id: createProjectId })
 
   expect(await screen.findByRole('status')).toHaveTextContent('已儲存事實卡版本 2')
   expect(saveFactVersion).toHaveBeenCalledWith(
     expect.anything(),
-    'created-project',
+    createProjectId,
     expect.objectContaining({
       services: ['景觀規劃'],
       approach: ['分區施工'],
@@ -216,7 +274,7 @@ test('preserves typed values after metadata save fails and allows retry', async 
   const user = userEvent.setup()
   createProject
     .mockRejectedValueOnce(new Error('database details'))
-    .mockResolvedValueOnce({ ...projectRow, id: 'created-project' })
+    .mockResolvedValueOnce({ ...projectRow, id: createProjectId })
   saveFactVersion.mockResolvedValue({ id: 'f1', version: 1 })
   render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
   await fillCreateForm(user)
@@ -235,7 +293,8 @@ test('preserves typed values after metadata save fails and allows retry', async 
 
 test('reports a partial save honestly and retries facts without losing values', async () => {
   const user = userEvent.setup()
-  createProject.mockResolvedValue({ ...projectRow, id: 'created-project' })
+  createProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  getCurrentFacts.mockResolvedValue(null)
   saveFactVersion
     .mockRejectedValueOnce(new Error('rpc detail'))
     .mockResolvedValueOnce({ id: 'f1', version: 1 })
@@ -244,7 +303,7 @@ test('reports a partial save honestly and retries facts without losing values', 
 
   await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    '案場資料已儲存，但事實卡版本儲存失敗，請再試一次。',
+    '案場資料已儲存，但事實卡版本狀態尚待確認',
   )
   expect(screen.getByLabelText('公開名稱')).toHaveValue('中部企業廠區景觀')
 
@@ -252,7 +311,7 @@ test('reports a partial save honestly and retries facts without losing values', 
   expect(await screen.findByText('已儲存事實卡版本 1')).toBeInTheDocument()
   expect(saveFactVersion).toHaveBeenLastCalledWith(
     expect.anything(),
-    'created-project',
+    createProjectId,
     expect.objectContaining({ services: ['景觀規劃'] }),
   )
 })
@@ -271,6 +330,7 @@ test('adds, edits, and removes array rows without changing their siblings', asyn
   const services = within(screen.getByRole('group', { name: '已確認服務' }))
   expect(services.getByLabelText('已確認服務 1')).toHaveValue('景觀規劃')
   expect(services.getByLabelText('已確認服務 2')).toHaveValue('水景施作')
+  expect(services.getByLabelText('已確認服務 2')).toHaveFocus()
   expect(services.queryByDisplayValue('植栽配置')).not.toBeInTheDocument()
 })
 
@@ -313,4 +373,220 @@ test('prevents duplicate saves while a save is pending', async () => {
 
   expect(createProject).toHaveBeenCalledTimes(1)
   await waitFor(() => expect(saveFactVersion).not.toHaveBeenCalled())
+})
+
+test('shows precise accessible validation for an invalid service item', async () => {
+  const user = userEvent.setup()
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+  const service = screen.getByLabelText('已確認服務 1')
+  await user.clear(service)
+  await user.type(service, '景')
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(screen.getByRole('alert')).toHaveTextContent('請修正表單中的欄位')
+  expect(screen.getByText('已確認服務每項至少需要 2 個字')).toBeInTheDocument()
+  expect(screen.queryByText('至少填寫一項已確認服務')).not.toBeInTheDocument()
+  expect(service).toHaveAttribute('aria-invalid', 'true')
+  expect(service).toHaveAttribute('aria-describedby')
+  expect(document.getElementById(service.getAttribute('aria-describedby'))).toHaveTextContent(
+    '已確認服務每項至少需要 2 個字',
+  )
+  expect(service).toHaveFocus()
+})
+
+test('describes and focuses a metadata maximum violation', async () => {
+  const user = userEvent.setup()
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+  const internalName = screen.getByLabelText('內部名稱')
+  fireEvent.change(internalName, { target: { value: '景'.repeat(121) } })
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  const message = screen.getByText('內部名稱不可超過 120 個字')
+  expect(internalName).toHaveAttribute('aria-invalid', 'true')
+  expect(internalName).toHaveAttribute('aria-describedby', message.id)
+  expect(internalName).toHaveFocus()
+})
+
+test('hides project A while project B is loading and ignores the late A load', async () => {
+  const user = userEvent.setup()
+  const projectB = deferred()
+  const factsB = deferred()
+  getProject.mockImplementation((_, id) => (
+    id === 'a'
+      ? Promise.resolve({ ...projectRow, id: 'a', internal_name: '案場 A 內部' })
+      : projectB.promise
+  ))
+  getCurrentFacts.mockImplementation((_, id) => (
+    id === 'a' ? Promise.resolve({ ...factRow, project_id: 'a' }) : factsB.promise
+  ))
+  renderEditorRoutes('/studio/projects/a')
+  expect(await screen.findByDisplayValue('案場 A 內部')).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: '前往案場 B' }))
+
+  expect(screen.getByText('正在載入案場…')).toBeInTheDocument()
+  expect(screen.queryByDisplayValue('案場 A 內部')).not.toBeInTheDocument()
+  await act(async () => {
+    projectB.resolve({ ...projectRow, id: 'b', internal_name: '案場 B 內部' })
+    factsB.resolve({ ...factRow, project_id: 'b' })
+  })
+  expect(await screen.findByDisplayValue('案場 B 內部')).toBeInTheDocument()
+})
+
+test('resets edit state when navigating from edit to create', async () => {
+  const user = userEvent.setup()
+  getProject.mockResolvedValue({ ...projectRow, id: 'a', internal_name: '案場 A 內部' })
+  getCurrentFacts.mockResolvedValue({ ...factRow, project_id: 'a' })
+  renderEditorRoutes('/studio/projects/a')
+  expect(await screen.findByDisplayValue('案場 A 內部')).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: '前往新增案場' }))
+
+  expect(screen.getByRole('heading', { name: '新增案場' })).toBeInTheDocument()
+  expect(screen.getByLabelText('內部名稱')).toHaveValue('')
+  expect(screen.getByLabelText('已確認服務 1')).toHaveValue('')
+})
+
+test('resets create state and waits for B when navigating from create to edit', async () => {
+  const user = userEvent.setup()
+  const projectB = deferred()
+  const factsB = deferred()
+  getProject.mockReturnValue(projectB.promise)
+  getCurrentFacts.mockReturnValue(factsB.promise)
+  renderEditorRoutes('/studio/projects/new')
+  await user.type(screen.getByLabelText('內部名稱'), '尚未儲存的新案場')
+
+  await user.click(screen.getByRole('button', { name: '前往案場 B' }))
+
+  expect(screen.getByText('正在載入案場…')).toBeInTheDocument()
+  expect(screen.queryByDisplayValue('尚未儲存的新案場')).not.toBeInTheDocument()
+  await act(async () => {
+    projectB.resolve({ ...projectRow, id: 'b', internal_name: '案場 B 內部' })
+    factsB.resolve({ ...factRow, project_id: 'b' })
+  })
+  expect(await screen.findByDisplayValue('案場 B 內部')).toBeInTheDocument()
+})
+
+test('does not continue an A save after navigating to B', async () => {
+  const user = userEvent.setup()
+  const updateA = deferred()
+  getProject.mockImplementation((_, id) => Promise.resolve({
+    ...projectRow,
+    id,
+    internal_name: `案場 ${id.toUpperCase()} 內部`,
+  }))
+  getCurrentFacts.mockImplementation((_, id) => Promise.resolve({ ...factRow, project_id: id }))
+  updateProject.mockReturnValue(updateA.promise)
+  renderEditorRoutes('/studio/projects/a')
+  await screen.findByDisplayValue('案場 A 內部')
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  await user.click(screen.getByRole('button', { name: '前往案場 B' }))
+  expect(await screen.findByDisplayValue('案場 B 內部')).toBeInTheDocument()
+  await act(async () => updateA.resolve({ ...projectRow, id: 'a' }))
+
+  expect(saveFactVersion).not.toHaveBeenCalled()
+  expect(screen.queryByText(/已儲存事實卡版本/)).not.toBeInTheDocument()
+})
+
+test('reuses the same create UUID after a lost response and refresh', async () => {
+  const user = userEvent.setup()
+  createProject
+    .mockRejectedValueOnce(new Error('lost response'))
+    .mockResolvedValueOnce({ ...projectRow, id: createProjectId })
+  saveFactVersion.mockResolvedValue({ ...factRow, project_id: createProjectId, version: 1 })
+  const firstRender = render(
+    <MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>,
+  )
+  await fillCreateForm(user)
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('無法儲存案場資料')
+  firstRender.unmount()
+
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  await screen.findByText('已儲存事實卡版本 1')
+
+  expect(createProject).toHaveBeenCalledTimes(2)
+  expect(createProject.mock.calls[0][2]).toEqual({ projectId: createProjectId })
+  expect(createProject.mock.calls[1][2]).toEqual({ projectId: createProjectId })
+  expect(window.sessionStorage.getItem(createProjectIdKey)).toBeNull()
+})
+
+test('reconciles a committed fact RPC response loss without creating another version', async () => {
+  const user = userEvent.setup()
+  createProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  saveFactVersion.mockRejectedValue(new Error('transport lost'))
+  getCurrentFacts.mockResolvedValue({
+    ...factRow,
+    project_id: createProjectId,
+    version: 1,
+    facts: createFacts,
+  })
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(await screen.findByText('已儲存事實卡版本 1')).toBeInTheDocument()
+  expect(saveFactVersion).toHaveBeenCalledOnce()
+  expect(window.sessionStorage.getItem(`studio:fact-attempt:${createProjectId}`)).toBeNull()
+})
+
+test('retries one noncommitted fact RPC after reconciling the pending attempt', async () => {
+  const user = userEvent.setup()
+  createProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  saveFactVersion
+    .mockRejectedValueOnce(new Error('not committed'))
+    .mockResolvedValueOnce({ ...factRow, project_id: createProjectId, version: 1 })
+  getCurrentFacts.mockResolvedValue(null)
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('事實卡版本狀態尚待確認')
+  expect(saveFactVersion).toHaveBeenCalledOnce()
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+  expect(await screen.findByText('已儲存事實卡版本 1')).toBeInTheDocument()
+  expect(saveFactVersion).toHaveBeenCalledTimes(2)
+})
+
+test('navigates to the canonical edit URL after a complete create', async () => {
+  const user = userEvent.setup()
+  createProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  saveFactVersion.mockResolvedValue({ ...factRow, project_id: createProjectId, version: 1 })
+  getProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  getCurrentFacts.mockResolvedValue({ ...factRow, project_id: createProjectId, version: 1 })
+  renderEditorRoutes('/studio/projects/new')
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(await screen.findByLabelText('目前路徑')).toHaveTextContent(
+    `/studio/projects/${createProjectId}`,
+  )
+  expect(await screen.findByText('目前版本 1')).toBeInTheDocument()
+})
+
+test('completes a create save after Strict Mode replays effects', async () => {
+  const user = userEvent.setup()
+  createProject.mockResolvedValue({ ...projectRow, id: createProjectId })
+  saveFactVersion.mockResolvedValue({ ...factRow, project_id: createProjectId, version: 1 })
+  render(
+    <StrictMode>
+      <MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>
+    </StrictMode>,
+  )
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  expect(await screen.findByText('已儲存事實卡版本 1')).toBeInTheDocument()
+  expect(saveFactVersion).toHaveBeenCalledOnce()
 })
