@@ -74,6 +74,12 @@
     transform: translateY(100%);
   }
 
+  .mobile-contact-bar:not(.is-visible) {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(100%);
+  }
+
   .site-shell {
     min-width: 0;
     overflow: clip;

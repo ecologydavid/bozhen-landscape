@@ -10,6 +10,12 @@ test('hides only Hero inline contact links at mobile widths', () => {
   )
 })
 
+test('keeps mobile quick contacts hidden until their visibility controller enables them', () => {
+  expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.mobile-contact-bar:not\(\.is-visible\) \{\s*opacity: 0;\s*pointer-events: none;\s*transform: translateY\(100%\);/,
+  )
+})
+
 test('stretches the mobile Hero media row through the 768px handoff', () => {
   expect(stylesheet).toMatch(
     /@media \(max-width: 768px\) \{[\s\S]*?\.hero__layout \{[\s\S]*?grid-template-columns: 1fr;[\s\S]*?grid-template-rows: minmax\(420px, 118vw\) auto;[\s\S]*?align-items: stretch;/,
