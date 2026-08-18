@@ -36,25 +36,25 @@
 .scene-environment__layer--stone {
   background:
     radial-gradient(circle at 78% 25%, rgba(117, 133, 125, 0.24), transparent 30%),
-    linear-gradient(#e2ded3, #aaa79e);
+    linear-gradient(145deg, #e2ded3, #aaa79e);
 }
 
 .scene-environment__layer--moss {
   background:
     radial-gradient(circle at 30% 20%, rgba(201, 196, 185, 0.28), transparent 25%),
-    linear-gradient(#7d897e, #365a45 62%, #293f32);
+    linear-gradient(145deg, #7d897e, #365a45 62%, #293f32);
 }
 
 .scene-environment__layer--ink {
   background:
     radial-gradient(circle at 84% 16%, rgba(239, 169, 74, 0.09), transparent 25%),
-    linear-gradient(#365a45, #263a2f 45%, #18221c);
+    linear-gradient(145deg, #365a45, #263a2f 45%, #18221c);
 }
 
 .scene-environment__layer--amber {
   background:
     radial-gradient(circle at 74% 24%, rgba(239, 169, 74, 0.38), transparent 26%),
-    linear-gradient(#18221c, #5d4c38 58%, #b7843f);
+    linear-gradient(145deg, #18221c, #5d4c38 58%, #b7843f);
 }
 
 .scene-environment__grain {
