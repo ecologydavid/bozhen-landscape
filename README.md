@@ -24,7 +24,7 @@ npm run preview
 ### 前置需求
 
 - Node.js 版本必須符合 `package.json` 的 engines：`^22.13.0 || >=24.0.0`。先執行 `node --version` 確認版本；若 npm 顯示 `EBADENGINE`，請升級或切換 Node.js 後再安裝套件。
-- 本機 Supabase 需要 Docker Desktop，或與 Supabase CLI 相容的 Docker／Podman runtime。這台開發機目前尚未安裝可用的 Docker runtime，因此無法在此環境完成資料庫重設與 DB 測試；其他開發者仍可依下列通用流程啟動。
+- 本機 Supabase 需要 Docker Desktop，或與 Supabase CLI 相容的 Docker／Podman runtime。這台開發機目前尚未安裝可用的 Docker runtime，因此無法在此環境完成資料庫重設與 DB 測試；而且目前 checkout 尚缺 Supabase config、migrations、RPC 與 tests，今天即使有 container runtime 也無法啟動。下列流程只適用於這些檔案提交之後。
 - 瀏覽器環境變數只能放本機 Supabase 提供的 publishable／anon browser-safe key。不得把正式環境金鑰、`service_role` key、`sb_secret_` key 或其他 secret 寫入任何 `VITE_` 變數。
 
 ### 啟動本機環境
@@ -62,7 +62,7 @@ UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登�
 
 啟動應用程式後，開啟開發伺服器網址並加上 `#/studio`（應用程式使用 `HashRouter`），再以剛建立的 Email 與密碼登入。公開網站仍維持原有的一般路由與瀏覽流程。
 
-目前 MVP 僅支援建立／編輯專案與不可變事實，以及上傳、分類私有的真實專案照片；AI 圖片生成、發布與排程尚未提供，會在後續計畫處理。
+目標 MVP 將支援建立／編輯專案與不可變事實，以及上傳、分類私有的真實專案照片；今天已提交的工作只有 UI／client 基礎，這些能力要等 Task 2／5B 落地後才可使用。AI 圖片生成、發布與排程尚未提供，會在後續計畫處理。
 
 ### 驗證與停止
 
