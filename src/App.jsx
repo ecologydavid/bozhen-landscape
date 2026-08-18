@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import SiteHeader from './components/layout/SiteHeader'
 import SiteFooter from './components/layout/SiteFooter'
 import MobileQuoteBar from './components/layout/MobileQuoteBar'
@@ -9,8 +10,19 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 
+const StudioRoot = lazy(() => import('./studio/StudioRoot'))
+
 export default function App() {
+  const location = useLocation()
   const { brand, contact } = siteContent
+
+  if (location.pathname.startsWith('/studio')) {
+    return (
+      <Suspense fallback={<p>正在載入內容工作室…</p>}>
+        <StudioRoot />
+      </Suspense>
+    )
+  }
 
   return (
     <div className="site-shell">

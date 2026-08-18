@@ -3,6 +3,10 @@ import { HashRouter, MemoryRouter } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
 import App from './App'
 
+vi.mock('./studio/StudioRoot', () => ({
+  default: () => <h1>內容工作室測試替身</h1>,
+}))
+
 beforeEach(() => {
   Object.defineProperty(window, 'scrollTo', {
     configurable: true,
@@ -84,4 +88,17 @@ test('resets the scroll position when opening a route without a section', async 
     }),
   )
   delete window.scrollTo
+})
+
+test('keeps the public navigation out of Studio routes', async () => {
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  expect(
+    await screen.findByRole('heading', { name: '內容工作室測試替身' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: '主要導覽' })).not.toBeInTheDocument()
 })
