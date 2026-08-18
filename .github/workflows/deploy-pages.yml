@@ -37,14 +37,14 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Build site
+        run: npm run build
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Run rendered responsive tests
         run: npm run test:e2e
-
-      - name: Build site
-        run: npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
