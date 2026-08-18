@@ -15,6 +15,12 @@ npm run preview
 
 ## 曜聖｜內容工作室本機設定
 
+### 目前實作狀態
+
+> **目前 HEAD 尚未具備可執行的本機 Supabase／DB 工作流程，也不代表已可供正式環境使用。** 瀏覽器端與 Studio UI 基礎已實作，但本機 Supabase config、foundation migrations、RLS／Storage policies、不可變事實的 content-idempotent RPC 與 pgTAP 測試尚未提交；Task 2、5B、9B 仍在等待可用的 container runtime。
+
+下方 Supabase 啟動、重設、DB 測試與管理員註冊步驟，是上述檔案提交後的**目標工作流程**。在目前 HEAD，`npm run supabase:start`、`npm run supabase:reset`、`npm run test:db` 以及 `studio_admins` 管理員 INSERT 都不預期成功，也不得拿來當作功能或 DB gate 已完成的證據。
+
 ### 前置需求
 
 - Node.js 版本必須符合 `package.json` 的 engines：`^22.13.0 || >=24.0.0`。先執行 `node --version` 確認版本；若 npm 顯示 `EBADENGINE`，請升級或切換 Node.js 後再安裝套件。
@@ -23,7 +29,7 @@ npm run preview
 
 ### 啟動本機環境
 
-在專案根目錄依序執行：
+待 Supabase config、migrations、policies、RPC 與 DB tests 提交後，在專案根目錄依序執行以下目標流程：
 
 ```powershell
 npm install
@@ -38,6 +44,8 @@ npm run dev
 `.env.local` 已由根目錄 `.gitignore` 排除，不應提交。正式環境的 URL 與金鑰也不得提交到儲存庫。
 
 ### 建立第一位管理員
+
+這也是 migrations 提交後的目標流程；目前 HEAD 尚未建立 `public.studio_admins`，請勿執行此 INSERT 或視為已完成設定。
 
 1. 開啟 `npm run supabase:start` 輸出所列的本機 Studio URL，進入 Auth 使用者管理頁面，以預定的管理員 Email 與密碼建立使用者。使用 hosted Supabase 時，則在該專案的 Auth dashboard 建立使用者。
 2. 從同一個 Auth dashboard 複製該使用者的 UUID。
@@ -58,17 +66,24 @@ UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登�
 
 ### 驗證與停止
 
-Docker runtime、正確 Node.js 版本及 `.env.local` 都就緒後，依序執行完整 gate：
+目前 HEAD 可執行、且不依賴本機資料庫的 gate：
 
 ```powershell
-npm run supabase:reset
-npm run test:db
 npm test -- --run
 npm run lint
 npm run build
 ```
 
-預期結果是本機資料庫可重設、DB 測試通過、Vitest 無失敗、ESLint 無錯誤，且 Vite 成功產生 `dist/`；任一命令非零結束即代表 gate 未通過。這台開發機目前因缺少 Docker runtime，尚未執行或宣稱 DB gate 通過。
+預期結果是 Vitest 無失敗、ESLint 無錯誤，且 Vite 成功產生 `dist/`。
+
+下列 DB gate 目前受阻；只有在 Supabase config、migrations、policies、RPC 與 pgTAP files 已提交，且 Docker runtime、正確 Node.js 版本及 `.env.local` 都就緒後，才執行：
+
+```powershell
+npm run supabase:reset
+npm run test:db
+```
+
+屆時完整 gate 的預期結果才包含本機資料庫可重設與 DB 測試通過。上述任一命令非零結束即代表 gate 未通過；這台開發機目前因缺少 Docker runtime，且目前 HEAD 尚缺 DB 實作檔案，因此尚未執行或宣稱 DB gate 通過。
 
 常見問題：
 
