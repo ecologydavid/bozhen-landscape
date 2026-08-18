@@ -1,8 +1,23 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HashRouter, MemoryRouter } from 'react-router-dom'
+import { HashRouter, MemoryRouter, useNavigate } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
 import App from './App'
+
+function HistoryNavigation() {
+  const navigate = useNavigate()
+
+  return (
+    <div>
+      <button type="button" onClick={() => navigate('/#contact')}>
+        Go contact
+      </button>
+      <button type="button" onClick={() => navigate(-1)}>
+        Go back
+      </button>
+    </div>
+  )
+}
 
 beforeEach(() => {
   Object.defineProperty(window, 'scrollTo', {
@@ -167,4 +182,29 @@ test('uses instant hash scrolling when reduced motion is preferred', async () =>
   expect(document.getElementById('services')).not.toHaveFocus()
   delete HTMLElement.prototype.scrollIntoView
   delete window.matchMedia
+})
+
+test('focuses main after POP returns to the initial route key', async () => {
+  const user = userEvent.setup()
+  const scrollIntoView = vi.fn()
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: scrollIntoView,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/projects']}>
+      <HistoryNavigation />
+      <App />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('main')).not.toHaveFocus()
+  await user.click(screen.getByRole('button', { name: 'Go contact' }))
+  await waitFor(() => expect(document.getElementById('contact')).toHaveFocus())
+
+  await user.click(screen.getByRole('button', { name: 'Go back' }))
+  await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
+  expect(screen.getByRole('main')).toHaveClass('projects-page')
+  delete HTMLElement.prototype.scrollIntoView
 })

@@ -15,3 +15,9 @@ test('sizes the fixed drawer from its mobile insets', () => {
     /\.site-nav \{[\s\S]*?inset: 12px 12px 12px max\(52px, 14vw\);[\s\S]*?height: auto;[\s\S]*?max-height: calc\(100dvh - 24px\);/,
   )
 })
+
+test('keeps the scrolled mobile header blur within its rounded surface', () => {
+  expect(stylesheet).toMatch(
+    /\.site-header\.is-scrolled::before \{\s*border-radius: inherit;\s*background: rgba\(251, 250, 245, 0\.94\);/,
+  )
+})

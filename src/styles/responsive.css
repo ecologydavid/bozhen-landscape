@@ -97,6 +97,11 @@
     color: var(--ink);
   }
 
+  .site-header.is-scrolled::before {
+    border-radius: inherit;
+    background: rgba(251, 250, 245, 0.94);
+  }
+
   .site-header__inner {
     width: calc(100% - 28px);
     min-width: 0;

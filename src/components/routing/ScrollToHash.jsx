@@ -3,12 +3,15 @@ import { useLocation } from 'react-router-dom'
 
 export default function ScrollToHash() {
   const { hash, pathname, key } = useLocation()
-  const initialLocationKeyRef = useRef(key)
+  const isInitialRenderRef = useRef(true)
 
   useEffect(() => {
+    const isInitialRender = isInitialRenderRef.current
+    isInitialRenderRef.current = false
+
     if (!hash) {
       window.scrollTo({ behavior: 'instant', left: 0, top: 0 })
-      if (initialLocationKeyRef.current !== key) {
+      if (!isInitialRender) {
         const main = document.querySelector('main')
         if (main) {
           main.setAttribute('tabindex', '-1')
@@ -27,7 +30,7 @@ export default function ScrollToHash() {
         behavior: prefersReducedMotion ? 'auto' : 'smooth',
         block: 'start',
       })
-      if (initialLocationKeyRef.current !== key) {
+      if (!isInitialRender) {
         target.setAttribute('tabindex', '-1')
         target.focus({ preventScroll: true })
       }
