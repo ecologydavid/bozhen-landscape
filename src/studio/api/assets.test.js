@@ -6,7 +6,9 @@ import {
   recordAssetRecovery,
 } from '../lib/assetRecovery'
 import {
+  AssetPermissionConflictError,
   createAssetPreviewUrl,
+  getAsset,
   listAssets,
   updateAssetPermission,
   uploadAsset,
@@ -369,26 +371,35 @@ test('rejects an invalid generated asset id before opening the Storage bucket', 
 
 test('lists project assets with approved explicit fields in newest-first order', async () => {
   const rows = [{ id: assetId }]
-  const order = vi.fn().mockResolvedValue({ data: rows, error: null })
-  const eq = vi.fn(() => ({ order }))
+  const range = vi.fn().mockResolvedValue({ data: rows, error: null })
+  const orderById = vi.fn(() => ({ range }))
+  const orderByCreatedAt = vi.fn(() => ({ order: orderById }))
+  const eq = vi.fn(() => ({ order: orderByCreatedAt }))
   const select = vi.fn(() => ({ eq }))
   const client = { from: vi.fn(() => ({ select })) }
 
-  await expect(listAssets(client, uppercaseProjectId)).resolves.toBe(rows)
+  await expect(listAssets(client, uppercaseProjectId, { limit: 12, offset: 24 }))
+    .resolves.toBe(rows)
 
   expect(client.from).toHaveBeenCalledWith('studio_assets')
   expect(select).toHaveBeenCalledWith(assetFields)
   expect(select).not.toHaveBeenCalledWith('*')
   expect(eq).toHaveBeenCalledWith('project_id', uppercaseProjectId.toLowerCase())
-  expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+  expect(orderByCreatedAt).toHaveBeenCalledWith('created_at', { ascending: false })
+  expect(orderById).toHaveBeenCalledWith('id', { ascending: false })
+  expect(range).toHaveBeenCalledWith(24, 35)
 })
 
 test('normalizes a null asset list to an empty array', async () => {
-  const order = vi.fn().mockResolvedValue({ data: null, error: null })
+  const range = vi.fn().mockResolvedValue({ data: null, error: null })
   const client = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
-        eq: vi.fn(() => ({ order })),
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            order: vi.fn(() => ({ range })),
+          })),
+        })),
       })),
     })),
   }
@@ -398,11 +409,15 @@ test('normalizes a null asset list to an empty array', async () => {
 
 test('throws the list error unchanged', async () => {
   const listError = new Error('database details must not be wrapped here')
-  const order = vi.fn().mockResolvedValue({ data: null, error: listError })
+  const range = vi.fn().mockResolvedValue({ data: null, error: listError })
   const client = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
-        eq: vi.fn(() => ({ order })),
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            order: vi.fn(() => ({ range })),
+          })),
+        })),
       })),
     })),
   }
@@ -416,6 +431,19 @@ test('rejects an invalid list project id before querying the database', async ()
   await expect(listAssets(client, '../other-project')).rejects.toThrow(
     'Invalid project id: expected UUID',
   )
+  expect(client.from).not.toHaveBeenCalled()
+})
+
+test.each([
+  ['zero limit', { limit: 0, offset: 0 }],
+  ['excessive limit', { limit: 101, offset: 0 }],
+  ['fractional limit', { limit: 2.5, offset: 0 }],
+  ['negative offset', { limit: 24, offset: -1 }],
+  ['fractional offset', { limit: 24, offset: 1.5 }],
+])('rejects invalid list pagination (%s) before querying', async (_name, options) => {
+  const client = { from: vi.fn() }
+
+  await expect(listAssets(client, projectId, options)).rejects.toThrow()
   expect(client.from).not.toHaveBeenCalled()
 })
 
@@ -464,29 +492,37 @@ test('throws a signed URL error unchanged', async () => {
   )).rejects.toBe(signedUrlError)
 })
 
-test('updates an asset permission with the validated canonical identifier', async () => {
+test('updates an asset permission with exact compare-and-swap filters', async () => {
   const row = {
     id: uppercaseAssetId.toLowerCase(),
     permission_status: 'needs_redaction',
     updated_at: '2026-08-18T12:00:00.000Z',
   }
-  const single = vi.fn().mockResolvedValue({ data: row, error: null })
-  const select = vi.fn(() => ({ single }))
-  const eq = vi.fn(() => ({ select }))
-  const update = vi.fn(() => ({ eq }))
+  const maybeSingle = vi.fn().mockResolvedValue({ data: row, error: null })
+  const select = vi.fn(() => ({ maybeSingle }))
+  const eqPermission = vi.fn(() => ({ select }))
+  const eqUpdatedAt = vi.fn(() => ({ eq: eqPermission }))
+  const eqId = vi.fn(() => ({ eq: eqUpdatedAt }))
+  const update = vi.fn(() => ({ eq: eqId }))
   const client = { from: vi.fn(() => ({ update })) }
 
   await expect(updateAssetPermission(
     client,
     uppercaseAssetId,
     'needs_redaction',
+    {
+      expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+      expectedPermissionStatus: 'unconfirmed',
+    },
   )).resolves.toBe(row)
 
   expect(client.from).toHaveBeenCalledWith('studio_assets')
   expect(update).toHaveBeenCalledWith({ permission_status: 'needs_redaction' })
-  expect(eq).toHaveBeenCalledWith('id', uppercaseAssetId.toLowerCase())
+  expect(eqId).toHaveBeenCalledWith('id', uppercaseAssetId.toLowerCase())
+  expect(eqUpdatedAt).toHaveBeenCalledWith('updated_at', '2026-08-18T10:00:00.000Z')
+  expect(eqPermission).toHaveBeenCalledWith('permission_status', 'unconfirmed')
   expect(select).toHaveBeenCalledWith('id, permission_status, updated_at')
-  expect(single).toHaveBeenCalledOnce()
+  expect(maybeSingle).toHaveBeenCalledOnce()
 })
 
 test.each([
@@ -495,24 +531,103 @@ test.each([
 ])('rejects %s before a permission update query', async (_name, id, status) => {
   const client = { from: vi.fn() }
 
-  await expect(updateAssetPermission(client, id, status)).rejects.toThrow()
+  await expect(updateAssetPermission(client, id, status, {
+    expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+    expectedPermissionStatus: 'unconfirmed',
+  })).rejects.toThrow()
+  expect(client.from).not.toHaveBeenCalled()
+})
+
+test.each([
+  ['missing expected updated_at', { expectedPermissionStatus: 'unconfirmed' }],
+  ['invalid expected updated_at', {
+    expectedUpdatedAt: '',
+    expectedPermissionStatus: 'unconfirmed',
+  }],
+  ['missing expected permission', {
+    expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+  }],
+  ['invalid expected permission', {
+    expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+    expectedPermissionStatus: 'unknown',
+  }],
+])('rejects %s before a permission update query', async (_name, options) => {
+  const client = { from: vi.fn() }
+
+  await expect(updateAssetPermission(client, assetId, 'publishable', options))
+    .rejects.toThrow()
   expect(client.from).not.toHaveBeenCalled()
 })
 
 test('throws the permission update error unchanged', async () => {
   const updateError = new Error('update internals')
-  const single = vi.fn().mockResolvedValue({ data: null, error: updateError })
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: updateError })
   const client = {
     from: vi.fn(() => ({
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
-          select: vi.fn(() => ({ single })),
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              select: vi.fn(() => ({ maybeSingle })),
+            })),
+          })),
         })),
       })),
     })),
   }
 
-  await expect(updateAssetPermission(client, assetId, 'forbidden')).rejects.toBe(updateError)
+  await expect(updateAssetPermission(client, assetId, 'forbidden', {
+    expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+    expectedPermissionStatus: 'unconfirmed',
+  })).rejects.toBe(updateError)
+})
+
+test('throws a typed conflict when the permission compare-and-swap changes no row', async () => {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+  const client = {
+    from: vi.fn(() => ({
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              select: vi.fn(() => ({ maybeSingle })),
+            })),
+          })),
+        })),
+      })),
+    })),
+  }
+
+  await expect(updateAssetPermission(client, assetId, 'publishable', {
+    expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+    expectedPermissionStatus: 'unconfirmed',
+  })).rejects.toBeInstanceOf(AssetPermissionConflictError)
+})
+
+test('fetches the current asset row by canonical id with approved explicit fields', async () => {
+  const row = { id: assetId, permission_status: 'forbidden' }
+  const maybeSingle = vi.fn().mockResolvedValue({ data: row, error: null })
+  const eq = vi.fn(() => ({ maybeSingle }))
+  const select = vi.fn(() => ({ eq }))
+  const client = { from: vi.fn(() => ({ select })) }
+
+  await expect(getAsset(client, uppercaseAssetId)).resolves.toBe(row)
+  expect(client.from).toHaveBeenCalledWith('studio_assets')
+  expect(select).toHaveBeenCalledWith(assetFields)
+  expect(eq).toHaveBeenCalledWith('id', uppercaseAssetId.toLowerCase())
+  expect(maybeSingle).toHaveBeenCalledOnce()
+})
+
+test('throws the current asset fetch error unchanged', async () => {
+  const fetchError = new Error('fetch internals')
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: fetchError })
+  const client = {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
+    })),
+  }
+
+  await expect(getAsset(client, assetId)).rejects.toBe(fetchError)
 })
 
 test('removes the uploaded object before rethrowing the same insert error', async () => {

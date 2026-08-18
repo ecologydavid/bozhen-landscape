@@ -511,7 +511,8 @@ body.studio-active {
 }
 
 .studio-asset-library-state button,
-.studio-asset-preview-error button {
+.studio-asset-preview-error button,
+.studio-asset-load-more {
   min-height: 44px;
   padding: 9px 14px;
   border: 1px solid rgba(49, 87, 67, 0.38);
@@ -522,16 +523,32 @@ body.studio-active {
 }
 
 .studio-asset-library-state button:hover,
-.studio-asset-preview-error button:hover {
+.studio-asset-preview-error button:hover,
+.studio-asset-load-more:hover:not(:disabled) {
   border-color: var(--forest-700);
   background: rgba(49, 87, 67, 0.07);
 }
 
 .studio-asset-library-state button:focus-visible,
 .studio-asset-preview-error button:focus-visible,
+.studio-asset-load-more:focus-visible,
 .studio-asset-permission select:focus-visible {
   outline: 3px solid var(--gold-400);
   outline-offset: 2px;
+}
+
+.studio-asset-preview-status {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.studio-asset-load-more {
+  justify-self: center;
+}
+
+.studio-asset-load-more:disabled {
+  cursor: wait;
+  opacity: 0.62;
 }
 
 .studio-asset-grid {

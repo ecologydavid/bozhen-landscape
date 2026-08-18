@@ -9,6 +9,14 @@ import { assetFileSchema, assetPermissionSchema } from '../schemas/asset'
 
 const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
 const allowedStorageExtensions = new Set(['jpg', 'png', 'webp', 'heic', 'heif'])
+const assetPageSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(24),
+  offset: z.number().int().min(0).default(0),
+})
+const permissionUpdateOptionsSchema = z.object({
+  expectedUpdatedAt: z.string().min(1),
+  expectedPermissionStatus: assetPermissionSchema,
+})
 const extensionByMimeType = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -54,16 +62,41 @@ function parseStoragePath(storagePath) {
   }
 }
 
-export async function listAssets(client, projectId) {
+export class AssetPermissionConflictError extends Error {
+  constructor() {
+    super('Asset permission was updated concurrently')
+    this.name = 'AssetPermissionConflictError'
+    this.code = 'ASSET_PERMISSION_CONFLICT'
+  }
+}
+
+export async function listAssets(client, projectId, options = {}) {
   const parsedProjectId = parseProjectId(projectId)
+  const { limit, offset } = assetPageSchema.parse(options)
+  // Task 2 schema work must back this pagination with
+  // (project_id, created_at DESC, id DESC); the migration remains Docker-blocked.
   const { data, error } = await client
     .from('studio_assets')
     .select(assetFields)
     .eq('project_id', parsedProjectId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   if (error) throw error
   return data ?? []
+}
+
+export async function getAsset(client, assetId) {
+  const parsedAssetId = parseAssetId(assetId)
+  const { data, error } = await client
+    .from('studio_assets')
+    .select(assetFields)
+    .eq('id', parsedAssetId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
 }
 
 export async function createAssetPreviewUrl(client, storagePath) {
@@ -76,17 +109,29 @@ export async function createAssetPreviewUrl(client, storagePath) {
   return data.signedUrl
 }
 
-export async function updateAssetPermission(client, assetId, permissionStatus) {
+export async function updateAssetPermission(
+  client,
+  assetId,
+  permissionStatus,
+  options,
+) {
   const parsedAssetId = parseAssetId(assetId)
   const status = assetPermissionSchema.parse(permissionStatus)
+  const {
+    expectedUpdatedAt,
+    expectedPermissionStatus,
+  } = permissionUpdateOptionsSchema.parse(options)
   const { data, error } = await client
     .from('studio_assets')
     .update({ permission_status: status })
     .eq('id', parsedAssetId)
+    .eq('updated_at', expectedUpdatedAt)
+    .eq('permission_status', expectedPermissionStatus)
     .select('id, permission_status, updated_at')
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new AssetPermissionConflictError()
   return data
 }
 

@@ -1,17 +1,22 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import AssetLibrary from './AssetLibrary'
 
 vi.mock('../api/assets', () => ({
+  AssetPermissionConflictError: class AssetPermissionConflictError extends Error {},
   createAssetPreviewUrl: vi.fn(),
+  getAsset: vi.fn(),
   listAssets: vi.fn(),
   updateAssetPermission: vi.fn(),
 }))
 vi.mock('../lib/supabase', () => ({ supabase: { source: 'default-test' } }))
 
 import {
+  AssetPermissionConflictError,
   createAssetPreviewUrl,
+  getAsset,
   listAssets,
   updateAssetPermission,
 } from '../api/assets'
@@ -19,6 +24,19 @@ import {
 const projectId = '11111111-1111-4111-8111-111111111111'
 const firstAssetId = '22222222-2222-4222-8222-222222222222'
 const secondAssetId = '33333333-3333-4333-8333-333333333333'
+const thirdAssetId = '44444444-4444-4444-8444-444444444444'
+const defaultClient = { source: 'test' }
+let serverPermission
+
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, reject, resolve }
+}
 
 function assetRow(overrides = {}) {
   const id = overrides.id || firstAssetId
@@ -42,7 +60,7 @@ function assetRow(overrides = {}) {
 
 function renderLibrary(props = {}) {
   return render(
-    <AssetLibrary client={{ source: 'test' }} projectId={projectId} {...props} />,
+    <AssetLibrary client={defaultClient} projectId={projectId} {...props} />,
   )
 }
 
@@ -50,9 +68,18 @@ beforeEach(() => {
   vi.resetAllMocks()
   listAssets.mockResolvedValue([assetRow()])
   createAssetPreviewUrl.mockResolvedValue('https://signed.example/preview')
-  updateAssetPermission.mockImplementation(async (_client, id, permissionStatus) => ({
+  serverPermission = 'unconfirmed'
+  updateAssetPermission.mockImplementation(async (_client, id, permissionStatus) => {
+    serverPermission = permissionStatus
+    return {
+      id,
+      permission_status: permissionStatus,
+      updated_at: '2026-08-18T11:00:00.000Z',
+    }
+  })
+  getAsset.mockImplementation(async (_client, id) => assetRow({
     id,
-    permission_status: permissionStatus,
+    permission_status: serverPermission,
     updated_at: '2026-08-18T11:00:00.000Z',
   }))
 })
@@ -83,9 +110,13 @@ test('changes permission to needs_redaction through the asset API', async () => 
   await user.selectOptions(selector, 'needs_redaction')
 
   expect(updateAssetPermission).toHaveBeenCalledWith(
-    { source: 'test' },
+    defaultClient,
     firstAssetId,
     'needs_redaction',
+    {
+      expectedUpdatedAt: '2026-08-18T10:00:00.000Z',
+      expectedPermissionStatus: 'unconfirmed',
+    },
   )
   await waitFor(() => expect(selector).toHaveValue('needs_redaction'))
   expect(screen.getByText('需模糊', { selector: 'strong' })).toBeInTheDocument()
@@ -153,6 +184,29 @@ test('isolates preview failures per card and can request a fresh signed URL', as
   expect(createAssetPreviewUrl).toHaveBeenCalledTimes(2)
 })
 
+test('recovers from a real image load failure by signing a fresh lazy preview', async () => {
+  const user = userEvent.setup()
+  createAssetPreviewUrl
+    .mockResolvedValueOnce('https://signed.example/first')
+    .mockResolvedValueOnce('https://signed.example/second')
+  renderLibrary()
+
+  const firstImage = await screen.findByRole('img', { name: '庭園入口.jpg 預覽' })
+  expect(firstImage).toHaveAttribute('src', 'https://signed.example/first')
+  expect(firstImage).toHaveAttribute('loading', 'lazy')
+  expect(firstImage).toHaveAttribute('decoding', 'async')
+
+  fireEvent.error(firstImage)
+  expect(await screen.findByText('無法載入預覽。')).toBeInTheDocument()
+  expect(screen.queryByRole('img', { name: '庭園入口.jpg 預覽' }))
+    .not.toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: '重新載入 庭園入口.jpg 預覽' }))
+  expect(await screen.findByRole('img', { name: '庭園入口.jpg 預覽' }))
+    .toHaveAttribute('src', 'https://signed.example/second')
+  expect(createAssetPreviewUrl).toHaveBeenCalledTimes(2)
+})
+
 test('keeps permission unchanged and shows a safe per-card alert when update fails', async () => {
   const user = userEvent.setup()
   updateAssetPermission.mockRejectedValueOnce(new Error('sensitive details'))
@@ -204,4 +258,169 @@ test('suppresses stale list results after the project changes', async () => {
 
   expect(screen.queryByRole('article', { name: '舊案場.jpg' })).not.toBeInTheDocument()
   expect(screen.getByRole('article', { name: '新案場.jpg' })).toBeInTheDocument()
+})
+
+test('loads bounded pages, appends without duplicates, and stops after a short page', async () => {
+  const user = userEvent.setup()
+  const second = assetRow({ id: secondAssetId, original_name: '水池.jpg' })
+  const third = assetRow({ id: thirdAssetId, original_name: '步道.jpg' })
+  listAssets.mockReset()
+    .mockResolvedValueOnce([assetRow(), second])
+    .mockResolvedValueOnce([second, third])
+    .mockResolvedValueOnce([])
+  renderLibrary({ pageSize: 2 })
+
+  expect(await screen.findByRole('article', { name: '庭園入口.jpg' })).toBeInTheDocument()
+  expect(listAssets).toHaveBeenNthCalledWith(1, defaultClient, projectId, {
+    limit: 2,
+    offset: 0,
+  })
+
+  await user.click(screen.getByRole('button', { name: '載入更多' }))
+  expect(await screen.findByRole('article', { name: '步道.jpg' })).toBeInTheDocument()
+  expect(screen.getAllByRole('article')).toHaveLength(3)
+  expect(listAssets).toHaveBeenNthCalledWith(2, defaultClient, projectId, {
+    limit: 2,
+    offset: 2,
+  })
+
+  await user.click(screen.getByRole('button', { name: '載入更多' }))
+  await waitFor(() => expect(screen.queryByRole('button', { name: '載入更多' }))
+    .not.toBeInTheDocument())
+  expect(listAssets).toHaveBeenNthCalledWith(3, defaultClient, projectId, {
+    limit: 2,
+    offset: 4,
+  })
+})
+
+test('bounds private preview signing concurrency to four and uses one aggregate status', async () => {
+  const jobs = []
+  let active = 0
+  let maximum = 0
+  const rows = Array.from({ length: 6 }, (_, index) => {
+    const id = `asset-${index + 1}`
+    return assetRow({ id, original_name: `素材 ${index + 1}.jpg` })
+  })
+  listAssets.mockResolvedValue(rows)
+  createAssetPreviewUrl.mockImplementation(() => {
+    const job = deferred()
+    jobs.push(job)
+    active += 1
+    maximum = Math.max(maximum, active)
+    return job.promise.finally(() => { active -= 1 })
+  })
+  const view = renderLibrary({ pageSize: 6 })
+
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(4))
+  expect(maximum).toBe(4)
+  expect(screen.getAllByRole('status')).toHaveLength(1)
+  for (const card of screen.getAllByRole('article')) {
+    expect(within(card).queryByRole('status')).not.toBeInTheDocument()
+  }
+
+  jobs[0].resolve('https://signed.example/one')
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(5))
+  expect(maximum).toBe(4)
+  jobs.slice(1).forEach((job, index) => job.resolve(`https://signed.example/${index + 2}`))
+  await waitFor(() => expect(createAssetPreviewUrl).toHaveBeenCalledTimes(6))
+  jobs[5].resolve('https://signed.example/six')
+  await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+  view.unmount()
+})
+
+test('keeps a pending permission mutation authoritative across a same-project refresh', async () => {
+  const user = userEvent.setup()
+  const update = deferred()
+  updateAssetPermission.mockReturnValue(update.promise)
+  getAsset.mockResolvedValue(assetRow({
+    permission_status: 'needs_redaction',
+    updated_at: '2026-08-18T11:00:00.000Z',
+  }))
+  listAssets.mockResolvedValue([assetRow()])
+  const view = renderLibrary({ refreshToken: 0 })
+  const selector = await screen.findByRole('combobox', { name: '庭園入口.jpg 使用權限' })
+
+  await user.selectOptions(selector, 'needs_redaction')
+  expect(selector).toBeDisabled()
+  view.rerender(
+    <AssetLibrary client={defaultClient} projectId={projectId} refreshToken={1} />,
+  )
+  await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(2))
+  fireEvent.change(selector, { target: { value: 'publishable' } })
+  expect(updateAssetPermission).toHaveBeenCalledOnce()
+
+  update.resolve({
+    id: firstAssetId,
+    permission_status: 'needs_redaction',
+    updated_at: '2026-08-18T11:00:00.000Z',
+  })
+  await waitFor(() => expect(selector).toHaveValue('needs_redaction'))
+  expect(selector).not.toBeDisabled()
+  expect(updateAssetPermission).toHaveBeenCalledOnce()
+})
+
+test('does not let a late stale refresh overwrite a completed permission mutation', async () => {
+  const user = userEvent.setup()
+  const staleRefresh = deferred()
+  listAssets.mockReset()
+    .mockResolvedValueOnce([assetRow()])
+    .mockReturnValueOnce(staleRefresh.promise)
+  const view = renderLibrary({ refreshToken: 0 })
+  const selector = await screen.findByRole('combobox', { name: '庭園入口.jpg 使用權限' })
+
+  view.rerender(
+    <AssetLibrary client={defaultClient} projectId={projectId} refreshToken={1} />,
+  )
+  await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(2))
+  await user.selectOptions(selector, 'needs_redaction')
+  await waitFor(() => expect(selector).toHaveValue('needs_redaction'))
+
+  staleRefresh.resolve([assetRow()])
+  await act(async () => { await staleRefresh.promise })
+  expect(selector).toHaveValue('needs_redaction')
+})
+
+test('refetches a permission conflict and bases the next forbidden transition on server state', async () => {
+  const user = userEvent.setup()
+  const confirm = vi.fn(() => false)
+  updateAssetPermission.mockRejectedValueOnce(new AssetPermissionConflictError())
+  getAsset.mockResolvedValueOnce(assetRow({
+    permission_status: 'forbidden',
+    updated_at: '2026-08-18T12:00:00.000Z',
+  }))
+  renderLibrary({ confirm })
+  const selector = await screen.findByRole('combobox', { name: '庭園入口.jpg 使用權限' })
+
+  await user.selectOptions(selector, 'publishable')
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    '權限已被其他操作更新，請確認最新狀態後再試。',
+  )
+  expect(selector).toHaveValue('forbidden')
+
+  await user.selectOptions(selector, 'publishable')
+  expect(confirm).toHaveBeenCalledOnce()
+  expect(updateAssetPermission).toHaveBeenCalledOnce()
+  expect(selector).toHaveValue('forbidden')
+})
+
+test('suppresses StrictMode list completion after unmount', async () => {
+  const pendingLists = []
+  listAssets.mockImplementation(() => {
+    const pending = deferred()
+    pendingLists.push(pending)
+    return pending.promise
+  })
+  const view = render(
+    <StrictMode>
+      <AssetLibrary client={defaultClient} projectId={projectId} />
+    </StrictMode>,
+  )
+  await waitFor(() => expect(listAssets).toHaveBeenCalledTimes(2))
+
+  view.unmount()
+  await act(async () => {
+    pendingLists.forEach((pending) => pending.resolve([assetRow()]))
+    await Promise.all(pendingLists.map((pending) => pending.promise))
+  })
+  expect(createAssetPreviewUrl).not.toHaveBeenCalled()
 })
