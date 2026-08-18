@@ -73,6 +73,14 @@
   background: transparent;
 }
 
+.scene-section[data-scene] {
+  background: transparent;
+}
+
+.scene-section.contact-panel {
+  background: var(--graphite-900);
+}
+
 @media (min-width: 1025px) {
   .scene-section:not(.hero):not(.contact-panel) {
     min-height: 108svh;

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 
+const intersectionThresholds = Array.from(
+  { length: 101 },
+  (_, index) => index / 100,
+)
+
 export function useActiveScene(sceneIds) {
   const [activeScene, setActiveScene] = useState(sceneIds[0])
   const sceneKey = sceneIds.join('|')
@@ -7,24 +12,29 @@ export function useActiveScene(sceneIds) {
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return undefined
 
-    const nodes = [...document.querySelectorAll('[data-scene]')]
-    const ratios = new Map(nodes.map((node) => [node, 0]))
+    const supportedScenes = new Set(sceneKey ? sceneKey.split('|') : [])
+    const nodes = [...document.querySelectorAll('[data-scene]')].filter((node) =>
+      supportedScenes.has(node.dataset.scene),
+    )
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) =>
-          ratios.set(
-            entry.target,
-            entry.isIntersecting ? entry.intersectionRatio : 0,
-          ),
-        )
+        const candidate = entries
+          .filter(
+            (entry) =>
+              entry.isIntersecting &&
+              entry.intersectionRatio > 0 &&
+              supportedScenes.has(entry.target.dataset.scene),
+          )
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
 
-        const candidate = [...ratios.entries()].sort(([, a], [, b]) => b - a)[0]
-
-        if (candidate?.[1] > 0 && candidate[0].dataset.scene) {
-          setActiveScene(candidate[0].dataset.scene)
+        if (candidate?.target.dataset.scene) {
+          setActiveScene(candidate.target.dataset.scene)
         }
       },
-      { rootMargin: '-18% 0px -38% 0px', threshold: [0.2, 0.4, 0.6, 0.8] },
+      {
+        rootMargin: '-18% 0px -38% 0px',
+        threshold: intersectionThresholds,
+      },
     )
 
     nodes.forEach((node) => observer.observe(node))
