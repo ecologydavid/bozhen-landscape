@@ -15,7 +15,10 @@ export default function MobileQuoteBar({ contact }) {
 
 function MobileQuoteBarContent({ contact, isHome }) {
   const [isHeroVisible, setIsHeroVisible] = useState(() => isHome)
-  const isVisible = !isHome || !isHeroVisible
+  const [isNavOpen, setIsNavOpen] = useState(() =>
+    document.body.classList.contains('nav-open'),
+  )
+  const isVisible = !isNavOpen && (!isHome || !isHeroVisible)
 
   useEffect(() => {
     if (!isHome) return undefined
@@ -30,6 +33,20 @@ function MobileQuoteBarContent({ contact, isHome }) {
 
     return () => observer.disconnect()
   }, [isHome])
+
+  useEffect(() => {
+    if (typeof window.MutationObserver === 'undefined') return undefined
+
+    const observer = new window.MutationObserver(() => {
+      setIsNavOpen(document.body.classList.contains('nav-open'))
+    })
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <nav

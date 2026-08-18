@@ -7,6 +7,8 @@ import { siteContent } from '../../data/siteContent'
 
 let observerInstances
 let originalIntersectionObserver
+let mutationObserverInstances
+let originalMutationObserver
 
 class ObserverMock {
   constructor(callback) {
@@ -18,6 +20,15 @@ class ObserverMock {
 
   observe(node) {
     this.observed.push(node)
+  }
+}
+
+class MutationObserverMock {
+  constructor(callback) {
+    this.callback = callback
+    this.disconnect = vi.fn()
+    this.observe = vi.fn()
+    mutationObserverInstances.push(this)
   }
 }
 
@@ -40,12 +51,17 @@ function renderBar(pathname, strict = false) {
 
 beforeEach(() => {
   originalIntersectionObserver = window.IntersectionObserver
+  originalMutationObserver = window.MutationObserver
   window.IntersectionObserver = ObserverMock
+  window.MutationObserver = MutationObserverMock
   observerInstances = []
+  mutationObserverInstances = []
 })
 
 afterEach(() => {
   window.IntersectionObserver = originalIntersectionObserver
+  window.MutationObserver = originalMutationObserver
+  document.body.classList.remove('nav-open')
   document.getElementById('home')?.remove()
 })
 
@@ -86,6 +102,22 @@ test('shows quick contacts immediately on non-home routes', () => {
   expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toBeInTheDocument()
 })
 
+test('hides quick contacts accessibly while the navigation menu is open', () => {
+  const { container } = renderBar('/projects')
+  document.body.classList.add('nav-open')
+
+  act(() => mutationObserverInstances[0].callback())
+
+  const navigation = container.querySelector('.mobile-contact-bar')
+  expect(navigation).not.toHaveClass('is-visible')
+  expect(navigation).toHaveAttribute('aria-hidden', 'true')
+  expect(navigation).toHaveAttribute('inert')
+
+  document.body.classList.remove('nav-open')
+  act(() => mutationObserverInstances[0].callback())
+  expect(screen.getByRole('navigation', { name: '快速聯絡' })).toHaveClass('is-visible')
+})
+
 test('disconnects every Hero observer created by StrictMode', () => {
   addHero()
 
@@ -96,4 +128,8 @@ test('disconnects every Hero observer created by StrictMode', () => {
   expect(observerInstances.every((observer) => observer.disconnect.mock.calls.length)).toBe(
     true,
   )
+  expect(mutationObserverInstances.length).toBeGreaterThanOrEqual(2)
+  expect(
+    mutationObserverInstances.every((observer) => observer.disconnect.mock.calls.length),
+  ).toBe(true)
 })
