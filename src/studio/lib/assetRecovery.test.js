@@ -13,7 +13,7 @@ const assetId = '22222222-2222-4222-8222-222222222222'
 const secondAssetId = '33333333-3333-4333-8333-333333333333'
 const storagePath = `raw/${projectId}/${assetId}.jpg`
 const secondStoragePath = `raw/${projectId}/${secondAssetId}.png`
-const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, permission_status, created_by, created_at'
+const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
 
 function assetPayload(overrides = {}) {
   return {

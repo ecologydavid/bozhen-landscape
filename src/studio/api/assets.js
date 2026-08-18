@@ -5,9 +5,10 @@ import {
   recordAssetRecovery,
   triggerAssetRecovery,
 } from '../lib/assetRecovery'
-import { assetFileSchema } from '../schemas/asset'
+import { assetFileSchema, assetPermissionSchema } from '../schemas/asset'
 
-const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, permission_status, created_by, created_at'
+const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
+const allowedStorageExtensions = new Set(['jpg', 'png', 'webp', 'heic', 'heif'])
 const extensionByMimeType = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -30,6 +31,63 @@ function parseAssetId(assetId) {
   }
 
   return assetId.toLowerCase()
+}
+
+function parseStoragePath(storagePath) {
+  if (typeof storagePath !== 'string') {
+    throw new TypeError('Invalid asset storage path')
+  }
+
+  const match = /^raw\/([0-9a-f-]+)\/([0-9a-f-]+)\.([a-z0-9]+)$/.exec(storagePath)
+  if (!match || !allowedStorageExtensions.has(match[3])) {
+    throw new TypeError('Invalid asset storage path')
+  }
+
+  try {
+    const projectId = parseProjectId(match[1])
+    const assetId = parseAssetId(match[2])
+    const canonicalPath = `raw/${projectId}/${assetId}.${match[3]}`
+    if (storagePath !== canonicalPath) throw new TypeError('Invalid asset storage path')
+    return canonicalPath
+  } catch {
+    throw new TypeError('Invalid asset storage path')
+  }
+}
+
+export async function listAssets(client, projectId) {
+  const parsedProjectId = parseProjectId(projectId)
+  const { data, error } = await client
+    .from('studio_assets')
+    .select(assetFields)
+    .eq('project_id', parsedProjectId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createAssetPreviewUrl(client, storagePath) {
+  const parsedStoragePath = parseStoragePath(storagePath)
+  const { data, error } = await client.storage
+    .from('studio-assets')
+    .createSignedUrl(parsedStoragePath, 900)
+
+  if (error) throw error
+  return data.signedUrl
+}
+
+export async function updateAssetPermission(client, assetId, permissionStatus) {
+  const parsedAssetId = parseAssetId(assetId)
+  const status = assetPermissionSchema.parse(permissionStatus)
+  const { data, error } = await client
+    .from('studio_assets')
+    .update({ permission_status: status })
+    .eq('id', parsedAssetId)
+    .select('id, permission_status, updated_at')
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 function reportCleanupFailure(reportCleanupError, cleanupError, context) {

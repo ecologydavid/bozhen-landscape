@@ -9,6 +9,7 @@ import {
   updateProject,
 } from '../api/projects'
 import FactArrayField from '../components/FactArrayField'
+import ProjectAssetManager from '../components/ProjectAssetManager'
 import {
   clearCreateProjectId,
   clearFactAttempt,
@@ -538,6 +539,7 @@ function StudioProjectEditor({ mode, projectId }) {
           </button>
         </div>
       </form>
+      {isEdit ? <ProjectAssetManager client={supabase} projectId={projectId} /> : null}
     </section>
   )
 }

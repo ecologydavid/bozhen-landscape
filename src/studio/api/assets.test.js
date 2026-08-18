@@ -5,13 +5,18 @@ import {
   reconcileAssetRecovery,
   recordAssetRecovery,
 } from '../lib/assetRecovery'
-import { uploadAsset } from './assets'
+import {
+  createAssetPreviewUrl,
+  listAssets,
+  updateAssetPermission,
+  uploadAsset,
+} from './assets'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
 const assetId = '22222222-2222-4222-8222-222222222222'
 const uppercaseProjectId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
 const uppercaseAssetId = 'BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB'
-const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, permission_status, created_by, created_at'
+const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
 
 function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
   const file = new File(['image'], name, { type })
@@ -360,6 +365,154 @@ test('rejects an invalid generated asset id before opening the Storage bucket', 
   })).rejects.toThrow('Invalid asset id: expected UUID')
   expect(mock.storage.from).not.toHaveBeenCalled()
   expect(mock.client.from).not.toHaveBeenCalled()
+})
+
+test('lists project assets with approved explicit fields in newest-first order', async () => {
+  const rows = [{ id: assetId }]
+  const order = vi.fn().mockResolvedValue({ data: rows, error: null })
+  const eq = vi.fn(() => ({ order }))
+  const select = vi.fn(() => ({ eq }))
+  const client = { from: vi.fn(() => ({ select })) }
+
+  await expect(listAssets(client, uppercaseProjectId)).resolves.toBe(rows)
+
+  expect(client.from).toHaveBeenCalledWith('studio_assets')
+  expect(select).toHaveBeenCalledWith(assetFields)
+  expect(select).not.toHaveBeenCalledWith('*')
+  expect(eq).toHaveBeenCalledWith('project_id', uppercaseProjectId.toLowerCase())
+  expect(order).toHaveBeenCalledWith('created_at', { ascending: false })
+})
+
+test('normalizes a null asset list to an empty array', async () => {
+  const order = vi.fn().mockResolvedValue({ data: null, error: null })
+  const client = {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({ order })),
+      })),
+    })),
+  }
+
+  await expect(listAssets(client, projectId)).resolves.toEqual([])
+})
+
+test('throws the list error unchanged', async () => {
+  const listError = new Error('database details must not be wrapped here')
+  const order = vi.fn().mockResolvedValue({ data: null, error: listError })
+  const client = {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({ order })),
+      })),
+    })),
+  }
+
+  await expect(listAssets(client, projectId)).rejects.toBe(listError)
+})
+
+test('rejects an invalid list project id before querying the database', async () => {
+  const client = { from: vi.fn() }
+
+  await expect(listAssets(client, '../other-project')).rejects.toThrow(
+    'Invalid project id: expected UUID',
+  )
+  expect(client.from).not.toHaveBeenCalled()
+})
+
+test('creates a private 900-second signed preview URL for an approved raw asset path', async () => {
+  const storagePath = `raw/${projectId}/${assetId}.jpg`
+  const getPublicUrl = vi.fn()
+  const createSignedUrl = vi.fn().mockResolvedValue({
+    data: { signedUrl: 'https://signed.example/preview' },
+    error: null,
+  })
+  const bucket = { createSignedUrl, getPublicUrl }
+  const client = { storage: { from: vi.fn(() => bucket) } }
+
+  await expect(createAssetPreviewUrl(client, storagePath)).resolves.toBe(
+    'https://signed.example/preview',
+  )
+  expect(client.storage.from).toHaveBeenCalledWith('studio-assets')
+  expect(createSignedUrl).toHaveBeenCalledWith(storagePath, 900)
+  expect(getPublicUrl).not.toHaveBeenCalled()
+})
+
+test.each([
+  ['traversal', `raw/${projectId}/../${assetId}.jpg`],
+  ['wrong prefix', `public/${projectId}/${assetId}.jpg`],
+  ['extra segment', `raw/${projectId}/nested/${assetId}.jpg`],
+  ['unsupported extension', `raw/${projectId}/${assetId}.svg`],
+  ['non-UUID project', `raw/not-a-project/${assetId}.jpg`],
+  ['non-UUID asset', `raw/${projectId}/not-an-asset.jpg`],
+])('rejects an invalid private preview path (%s) before Storage', async (_name, storagePath) => {
+  const client = { storage: { from: vi.fn() } }
+
+  await expect(createAssetPreviewUrl(client, storagePath)).rejects.toThrow(
+    'Invalid asset storage path',
+  )
+  expect(client.storage.from).not.toHaveBeenCalled()
+})
+
+test('throws a signed URL error unchanged', async () => {
+  const signedUrlError = new Error('storage internals')
+  const createSignedUrl = vi.fn().mockResolvedValue({ data: null, error: signedUrlError })
+  const client = { storage: { from: vi.fn(() => ({ createSignedUrl })) } }
+
+  await expect(createAssetPreviewUrl(
+    client,
+    `raw/${projectId}/${assetId}.webp`,
+  )).rejects.toBe(signedUrlError)
+})
+
+test('updates an asset permission with the validated canonical identifier', async () => {
+  const row = {
+    id: uppercaseAssetId.toLowerCase(),
+    permission_status: 'needs_redaction',
+    updated_at: '2026-08-18T12:00:00.000Z',
+  }
+  const single = vi.fn().mockResolvedValue({ data: row, error: null })
+  const select = vi.fn(() => ({ single }))
+  const eq = vi.fn(() => ({ select }))
+  const update = vi.fn(() => ({ eq }))
+  const client = { from: vi.fn(() => ({ update })) }
+
+  await expect(updateAssetPermission(
+    client,
+    uppercaseAssetId,
+    'needs_redaction',
+  )).resolves.toBe(row)
+
+  expect(client.from).toHaveBeenCalledWith('studio_assets')
+  expect(update).toHaveBeenCalledWith({ permission_status: 'needs_redaction' })
+  expect(eq).toHaveBeenCalledWith('id', uppercaseAssetId.toLowerCase())
+  expect(select).toHaveBeenCalledWith('id, permission_status, updated_at')
+  expect(single).toHaveBeenCalledOnce()
+})
+
+test.each([
+  ['invalid asset id', '../asset', 'publishable'],
+  ['invalid permission', assetId, 'public'],
+])('rejects %s before a permission update query', async (_name, id, status) => {
+  const client = { from: vi.fn() }
+
+  await expect(updateAssetPermission(client, id, status)).rejects.toThrow()
+  expect(client.from).not.toHaveBeenCalled()
+})
+
+test('throws the permission update error unchanged', async () => {
+  const updateError = new Error('update internals')
+  const single = vi.fn().mockResolvedValue({ data: null, error: updateError })
+  const client = {
+    from: vi.fn(() => ({
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({ single })),
+        })),
+      })),
+    })),
+  }
+
+  await expect(updateAssetPermission(client, assetId, 'forbidden')).rejects.toBe(updateError)
 })
 
 test('removes the uploaded object before rethrowing the same insert error', async () => {

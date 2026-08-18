@@ -14,6 +14,13 @@ vi.mock('../api/projects', () => ({
   updateProject: vi.fn(),
 }))
 vi.mock('../lib/supabase', () => ({ supabase: { source: 'test' } }))
+vi.mock('../components/ProjectAssetManager', () => ({
+  default: ({ client, projectId }) => (
+    <section aria-label="案場素材管理">
+      {client.source} {projectId}
+    </section>
+  ),
+}))
 
 import {
   ProjectIdCollisionError,
@@ -132,6 +139,23 @@ beforeEach(() => {
   vi.resetAllMocks()
   window.sessionStorage.clear()
   window.sessionStorage.setItem(createProjectIdKey, createProjectId)
+})
+
+test('embeds asset management only for a loaded persisted edit project', async () => {
+  getProject.mockResolvedValue(projectRow)
+  getCurrentFacts.mockResolvedValue(factRow)
+
+  renderEdit()
+
+  expect(await screen.findByRole('region', { name: '案場素材管理' }))
+    .toHaveTextContent('test p1')
+})
+
+test('does not expose asset controls while creating a nonpersisted project', () => {
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+
+  expect(screen.queryByRole('region', { name: '案場素材管理' }))
+    .not.toBeInTheDocument()
 })
 
 test('does not save an incomplete fact card', async () => {
