@@ -15,6 +15,7 @@ const projectDefinitions = [
     category: '住宅庭園',
     location: '彰化',
     featured: true,
+    focalPoint: '50% 52%',
     images: [
       'changhua-residence-03.webp',
       'changhua-residence-04.webp',
@@ -34,6 +35,7 @@ const projectDefinitions = [
     category: '養護工程',
     location: '彰化田中',
     featured: true,
+    focalPoint: '48% 54%',
     images: [
       'tianzhong-courtyard-04.webp',
       'tianzhong-courtyard-02.webp',
@@ -52,6 +54,7 @@ const projectDefinitions = [
     category: '假山水景',
     location: '台中南屯',
     featured: true,
+    focalPoint: '50% 48%',
     images: [
       'nantun-residence-01.webp',
       'nantun-residence-02.webp',
@@ -71,6 +74,7 @@ const projectDefinitions = [
     category: '商業綠化',
     location: '桃園',
     featured: false,
+    focalPoint: '50% 46%',
     images: ['taoyuan-greenwall-01.webp', 'taoyuan-greenwall-02.webp'],
     summary: '以立體綠化增加校園空間的自然感，在有限平面中創造更完整的綠意視野。',
     clientNeed: '在不占用主要活動面積的前提下，提高校園空間的綠覆感與識別度。',
@@ -84,6 +88,7 @@ const projectDefinitions = [
     category: '養護工程',
     location: '台中',
     featured: false,
+    focalPoint: '54% 50%',
     images: [
       'taichung-maintenance-01.webp',
       'taichung-maintenance-02.webp',
@@ -103,6 +108,7 @@ const projectDefinitions = [
     category: '商業綠化',
     location: '南投埔里',
     featured: false,
+    focalPoint: '50% 55%',
     images: [
       'puli-winery-01.webp',
       'puli-winery-02.webp',
@@ -120,6 +126,7 @@ const projectDefinitions = [
 
 export const projects = projectDefinitions.map((project) => ({
   ...project,
+  focalPoint: project.focalPoint,
   heroImage: media(project.images[0]),
   gallery: project.images.map(media),
   materials: project.services,

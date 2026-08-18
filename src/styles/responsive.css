@@ -249,8 +249,8 @@
   .hero__media {
     grid-column: 1;
     grid-row: 1;
-    min-height: 0;
-    border-radius: 18px 18px 72px 18px;
+    min-height: 420px;
+    border-radius: var(--radius-image);
   }
 
   .hero__copy {
@@ -261,6 +261,7 @@
     padding: 30px 24px 34px;
     color: var(--paper-bright);
     pointer-events: none;
+    transform: none;
   }
 
   .hero__shade {
@@ -333,7 +334,8 @@
 
   .featured-projects__grid > div:first-child .project-card__media,
   .featured-projects__grid > div:not(:first-child) .project-card__media {
-    height: min(66vw, 520px);
+    height: auto;
+    aspect-ratio: 4 / 5;
   }
 
   .brand-story__grid {
@@ -436,7 +438,8 @@
   }
 
   .projects-index__grid .project-card:nth-child(odd) .project-card__media,
-  .projects-index__grid .project-card:nth-child(even) .project-card__media {
+  .projects-index__grid .project-card:nth-child(even) .project-card__media,
+  .related-projects .project-card__media {
     height: auto;
     aspect-ratio: 4 / 5;
   }
