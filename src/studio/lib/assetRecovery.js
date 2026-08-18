@@ -1,9 +1,15 @@
 const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, permission_status, created_by, created_at'
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const storagePathPattern = /^raw\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|heic|heif)$/i
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const extensionByMimeType = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+}
 const recoveryKinds = new Set(['cleanup', 'reconcile_insert'])
 
-export const assetRecoveryStorageKey = 'studio:asset-recovery:v1'
+export const assetRecoveryStorageKey = 'studio:asset-recovery:v1:'
 
 function localStorageOrNull() {
   try {
@@ -13,66 +19,122 @@ function localStorageOrNull() {
   }
 }
 
+function normalizeAsset(asset, identifiers) {
+  const extension = extensionByMimeType[asset?.mime_type]
+  const expectedPath = extension
+    ? `raw/${identifiers.projectId}/${identifiers.assetId}.${extension}`
+    : ''
+
+  if (
+    asset?.id !== identifiers.assetId
+    || asset?.project_id !== identifiers.projectId
+    || asset?.storage_path !== identifiers.storagePath
+    || asset.storage_path !== expectedPath
+    || typeof asset?.original_name !== 'string'
+    || asset.original_name.length < 1
+    || asset.original_name.length > 1024
+    || !extension
+    || !Number.isInteger(asset?.size_bytes)
+    || asset.size_bytes < 0
+    || asset.size_bytes > 25 * 1024 * 1024
+    || asset?.permission_status !== 'unconfirmed'
+  ) {
+    return null
+  }
+
+  // original_name is the sole user-originated value retained because the exact
+  // database row cannot be replayed idempotently without it. No file data,
+  // credentials, or raw service errors are stored.
+  return {
+    id: asset.id,
+    project_id: asset.project_id,
+    storage_path: asset.storage_path,
+    original_name: asset.original_name,
+    mime_type: asset.mime_type,
+    size_bytes: asset.size_bytes,
+    permission_status: 'unconfirmed',
+  }
+}
+
 function normalizeItem(item) {
-  const pathMatch = typeof item?.storagePath === 'string'
-    ? item.storagePath.match(storagePathPattern)
-    : null
+  const assetId = typeof item?.assetId === 'string' ? item.assetId.toLowerCase() : ''
+  const projectId = typeof item?.projectId === 'string' ? item.projectId.toLowerCase() : ''
+  const storagePath = typeof item?.storagePath === 'string' ? item.storagePath : ''
   const createdAt = typeof item?.createdAt === 'string' ? item.createdAt : ''
+  const identifiers = { assetId, projectId, storagePath }
+  const pathMatchesIdentifiers = Object.values(extensionByMimeType).some(
+    (extension) => storagePath === `raw/${projectId}/${assetId}.${extension}`,
+  )
 
   if (
     !recoveryKinds.has(item?.kind)
-    || !uuidPattern.test(item?.assetId || '')
-    || !uuidPattern.test(item?.projectId || '')
-    || !pathMatch
-    || pathMatch[1].toLowerCase() !== item.projectId.toLowerCase()
-    || pathMatch[2].toLowerCase() !== item.assetId.toLowerCase()
+    || !uuidPattern.test(assetId)
+    || !uuidPattern.test(projectId)
+    || !pathMatchesIdentifiers
     || Number.isNaN(Date.parse(createdAt))
   ) {
     return null
   }
 
-  return {
+  const normalized = {
     kind: item.kind,
-    assetId: item.assetId,
-    projectId: item.projectId,
-    storagePath: item.storagePath,
+    assetId,
+    projectId,
+    storagePath,
     createdAt,
   }
+
+  if (item.kind === 'reconcile_insert') {
+    const asset = normalizeAsset(item.asset, identifiers)
+    if (!asset) return null
+    normalized.asset = asset
+  }
+
+  return normalized
 }
 
-function clearStoredItems(storage) {
+function itemStorageKey(item) {
+  return `${assetRecoveryStorageKey}${item.projectId}:${item.assetId}`
+}
+
+function removeStoredKey(storage, key) {
   try {
-    storage?.removeItem(assetRecoveryStorageKey)
+    storage?.removeItem(key)
   } catch {
-    // Recovery state is best-effort when browser storage is unavailable.
+    // Corrupt recovery state remains isolated when browser storage is blocked.
   }
 }
 
-function writeItems(items, storage) {
+function readEntries(storage) {
   try {
-    if (!storage) return false
-    if (items.length === 0) storage.removeItem(assetRecoveryStorageKey)
-    else storage.setItem(assetRecoveryStorageKey, JSON.stringify(items))
-    return true
+    if (!storage) return []
+    const keys = []
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index)
+      if (key?.startsWith(assetRecoveryStorageKey)) keys.push(key)
+    }
+
+    return keys.flatMap((key) => {
+      try {
+        const raw = storage.getItem(key)
+        const item = normalizeItem(JSON.parse(raw))
+        if (!item || itemStorageKey(item) !== key) {
+          removeStoredKey(storage, key)
+          return []
+        }
+        return [{ key, raw, item }]
+      } catch {
+        removeStoredKey(storage, key)
+        return []
+      }
+    })
   } catch {
-    return false
+    return []
   }
 }
 
 export function readAssetRecoveryItems(storage = localStorageOrNull()) {
-  try {
-    const rawItems = storage?.getItem(assetRecoveryStorageKey)
-    if (!rawItems) return []
-    const parsedItems = JSON.parse(rawItems)
-    if (!Array.isArray(parsedItems)) throw new TypeError('Invalid asset recovery state')
-
-    const items = parsedItems.map(normalizeItem).filter(Boolean)
-    if (items.length !== parsedItems.length) writeItems(items, storage)
-    return items
-  } catch {
-    clearStoredItems(storage)
-    return []
-  }
+  return readEntries(storage).map(({ item }) => item)
 }
 
 export function recordAssetRecovery(
@@ -83,33 +145,55 @@ export function recordAssetRecovery(
   const normalizedItem = normalizeItem({ ...item, createdAt: now() })
   if (!normalizedItem) return false
 
-  const existingItems = readAssetRecoveryItems(storage)
-  const matchingIndex = existingItems.findIndex((existingItem) => (
-    existingItem.assetId === normalizedItem.assetId
-    && existingItem.storagePath === normalizedItem.storagePath
-  ))
-  const nextItems = [...existingItems]
-
-  if (matchingIndex === -1) nextItems.push(normalizedItem)
-  else nextItems[matchingIndex] = normalizedItem
-
-  return writeItems(nextItems, storage)
+  try {
+    if (!storage) return false
+    storage.setItem(itemStorageKey(normalizedItem), JSON.stringify(normalizedItem))
+    return true
+  } catch {
+    return false
+  }
 }
 
-async function assetExists(client, assetId) {
+export function assetRowsMatch(storedRow, expectedRow) {
+  return [
+    'id',
+    'project_id',
+    'storage_path',
+    'original_name',
+    'mime_type',
+    'size_bytes',
+    'permission_status',
+  ].every((field) => storedRow?.[field] === expectedRow[field])
+}
+
+async function fetchAsset(client, assetId) {
   try {
     const result = await client
       .from('studio_assets')
       .select(assetFields)
       .eq('id', assetId)
       .maybeSingle()
-
-    if (result.error) return { status: 'unknown' }
-    return result.data
-      ? { status: 'committed' }
-      : { status: 'absent' }
+    return result?.error ? null : result?.data
   } catch {
-    return { status: 'unknown' }
+    return null
+  }
+}
+
+async function retryStoredInsert(client, item) {
+  try {
+    const result = await client
+      .from('studio_assets')
+      .insert(item.asset)
+      .select(assetFields)
+      .single()
+
+    if (!result?.error) return assetRowsMatch(result?.data, item.asset)
+    if (result.error.code !== '23505') return false
+
+    const storedRow = await fetchAsset(client, item.assetId)
+    return assetRowsMatch(storedRow, item.asset)
+  } catch {
+    return false
   }
 }
 
@@ -124,34 +208,33 @@ async function removeStoredObject(client, storagePath) {
   }
 }
 
+function removeEntryIfUnchanged(storage, entry) {
+  try {
+    if (storage?.getItem(entry.key) !== entry.raw) return false
+    storage.removeItem(entry.key)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function reconcileAssetRecovery(
   client,
   storage = localStorageOrNull(),
 ) {
-  const items = readAssetRecoveryItems(storage)
-  const remainingItems = []
+  const entries = readEntries(storage)
   let resolved = 0
 
-  for (const item of items) {
-    if (item.kind === 'reconcile_insert') {
-      const databaseState = await assetExists(client, item.assetId)
-      if (databaseState.status === 'committed') {
-        resolved += 1
-        continue
-      }
-      if (databaseState.status === 'unknown') {
-        remainingItems.push(item)
-        continue
-      }
-    }
+  for (const entry of entries) {
+    const repaired = entry.item.kind === 'reconcile_insert'
+      ? await retryStoredInsert(client, entry.item)
+      : await removeStoredObject(client, entry.item.storagePath)
 
-    if (await removeStoredObject(client, item.storagePath)) {
-      resolved += 1
-    } else {
-      remainingItems.push({ ...item, kind: 'cleanup' })
-    }
+    if (repaired && removeEntryIfUnchanged(storage, entry)) resolved += 1
   }
 
-  writeItems(remainingItems, storage)
-  return { resolved, remaining: remainingItems.length }
+  return {
+    resolved,
+    remaining: readEntries(storage).length,
+  }
 }

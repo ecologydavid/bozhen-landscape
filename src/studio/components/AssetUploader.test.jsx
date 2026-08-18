@@ -162,7 +162,7 @@ test('keeps uploads successful and continues when onUploaded throws synchronousl
   expect(screen.getByRole('alert')).not.toHaveTextContent('render integration failed')
 })
 
-test('awaits an async onUploaded rejection without changing success or stopping the batch', async () => {
+test('handles an async onUploaded rejection without delaying the upload batch', async () => {
   const callbackAttempt = deferred()
   const upload = vi.fn()
     .mockResolvedValueOnce({ id: 'asset-1' })
@@ -184,20 +184,78 @@ test('awaits an async onUploaded rejection without changing success or stopping 
     createFile('second.jpg'),
   ])
 
-  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(1))
-  expect(upload).toHaveBeenCalledTimes(1)
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(2))
   expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳成功')
 
   await act(async () => callbackAttempt.reject(new Error('async integration failed')))
 
-  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
-  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(
+    '素材已上傳，但畫面更新失敗，請重新整理。',
+  ))
   expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳成功')
   expect(screen.getByText('second.jpg').closest('li')).toHaveTextContent('上傳成功')
   expect(screen.getByRole('alert')).toHaveTextContent(
     '素材已上傳，但畫面更新失敗，請重新整理。',
   )
   expect(screen.getByRole('alert')).not.toHaveTextContent('async integration failed')
+})
+
+test('a never-settling onUploaded observer cannot block later uploads or input reset', async () => {
+  const neverSettles = new Promise(() => {})
+  const upload = vi.fn()
+    .mockResolvedValueOnce({ id: 'asset-1' })
+    .mockResolvedValueOnce({ id: 'asset-2' })
+  const onUploaded = vi.fn()
+    .mockReturnValueOnce(neverSettles)
+    .mockResolvedValueOnce(undefined)
+  const user = userEvent.setup()
+
+  render(
+    <AssetUploader
+      projectId={projectId}
+      upload={upload}
+      onUploaded={onUploaded}
+    />,
+  )
+  await user.upload(screen.getByLabelText('選擇圖片'), [
+    createFile('first.jpg'),
+    createFile('second.jpg'),
+  ])
+
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(2))
+  expect(screen.getAllByText('上傳成功')).toHaveLength(2)
+  expect(screen.getByLabelText('選擇圖片')).toBeEnabled()
+  expect(screen.getByLabelText('選擇圖片').value).toBe('')
+})
+
+test('runs recovery on mount and online, then removes the listener on unmount', async () => {
+  const recover = vi.fn().mockRejectedValue(new Error('raw recovery failure'))
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const { unmount } = render(
+    <StrictMode>
+      <AssetUploader
+        projectId={projectId}
+        upload={vi.fn()}
+        recover={recover}
+      />
+    </StrictMode>,
+  )
+
+  await waitFor(() => expect(recover).toHaveBeenCalledTimes(1))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+  fireEvent(window, new Event('online'))
+  await waitFor(() => expect(recover).toHaveBeenCalledTimes(2))
+
+  unmount()
+  fireEvent(window, new Event('online'))
+  await act(async () => Promise.resolve())
+
+  expect(recover).toHaveBeenCalledTimes(2)
+  expect(consoleError).not.toHaveBeenCalled()
+  consoleError.mockRestore()
 })
 
 test('prevents an overlapping batch while uploads are in flight', async () => {

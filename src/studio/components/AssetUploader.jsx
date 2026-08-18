@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { uploadAsset } from '../api/assets'
+import { reconcileAssetRecovery } from '../lib/assetRecovery'
 import { supabase } from '../lib/supabase'
 import { acceptedImageTypes, assetFileSchema } from '../schemas/asset'
 
@@ -15,6 +16,7 @@ export default function AssetUploader({
   projectId,
   onUploaded,
   upload = uploadAsset,
+  recover = reconcileAssetRecovery,
 }) {
   const inputId = useId()
   const inputRef = useRef(null)
@@ -22,6 +24,7 @@ export default function AssetUploader({
   const activeGenerationRef = useRef(null)
   const processingRef = useRef(false)
   const batchRef = useRef(0)
+  const mountRecoveryStartedRef = useRef(false)
   const [items, setItems] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -38,6 +41,24 @@ export default function AssetUploader({
       }
     }
   }, [])
+
+  useEffect(() => {
+    function runRecovery() {
+      try {
+        Promise.resolve(recover(client)).catch(() => {})
+      } catch {
+        // Recovery remains opportunistic and never blocks uploader controls.
+      }
+    }
+
+    if (!mountRecoveryStartedRef.current) {
+      mountRecoveryStartedRef.current = true
+      runRecovery()
+    }
+    window.addEventListener('online', runRecovery)
+
+    return () => window.removeEventListener('online', runRecovery)
+  }, [client, recover])
 
   function isActiveGeneration(generation) {
     return activeGenerationRef.current === generation
@@ -74,7 +95,6 @@ export default function AssetUploader({
     setIsProcessing(true)
 
     const safeErrors = []
-    let callbackFailed = false
 
     try {
       for (const item of nextItems) {
@@ -102,24 +122,33 @@ export default function AssetUploader({
         if (!isActiveGeneration(generation)) return
         updateItem(item.id, 'success', generation)
 
-        try {
-          await onUploaded?.(row)
-        } catch {
-          if (!isActiveGeneration(generation)) return
-          callbackFailed = true
+        if (onUploaded) {
+          Promise.resolve()
+            .then(() => {
+              if (!isActiveGeneration(generation)) return undefined
+              return onUploaded(row)
+            })
+            .catch(() => {
+              if (!isActiveGeneration(generation)) return
+              const callbackMessage = '素材已上傳，但畫面更新失敗，請重新整理。'
+              setErrorMessage((currentMessage) => (
+                currentMessage.includes(callbackMessage)
+                  ? currentMessage
+                  : [currentMessage, callbackMessage].filter(Boolean).join(' ')
+              ))
+            })
         }
       }
 
-      if (isActiveGeneration(generation) && (safeErrors.length > 0 || callbackFailed)) {
+      if (isActiveGeneration(generation) && safeErrors.length > 0) {
         const uploadMessage = safeErrors.length > 0
           ? (files.length === 1
             ? safeErrors[0]
             : '部分圖片上傳失敗，請再試一次。')
           : ''
-        const callbackMessage = callbackFailed
-          ? '素材已上傳，但畫面更新失敗，請重新整理。'
-          : ''
-        setErrorMessage([uploadMessage, callbackMessage].filter(Boolean).join(' '))
+        setErrorMessage((currentMessage) => (
+          [uploadMessage, currentMessage].filter(Boolean).join(' ')
+        ))
       }
     } finally {
       if (isActiveGeneration(generation)) {

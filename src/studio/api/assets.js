@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  assetRowsMatch,
   reconcileAssetRecovery,
   recordAssetRecovery,
 } from '../lib/assetRecovery'
@@ -48,12 +49,23 @@ function isAmbiguousDatabaseResult(result) {
     || result?.error?.statusCode === '0'
 }
 
-function safelyRecordRecovery(recordRecovery, item) {
-  try {
-    recordRecovery(item)
-  } catch {
-    // The original operation error remains authoritative if storage is blocked.
+export class AssetRecoveryPersistenceError extends Error {
+  constructor(cause) {
+    super('Unable to persist asset recovery state', { cause })
+    this.name = 'AssetRecoveryPersistenceError'
+    this.code = 'ASSET_RECOVERY_PERSISTENCE_FAILED'
   }
+}
+
+function persistRecovery(recordRecovery, item, originalError) {
+  let acknowledged = false
+  try {
+    acknowledged = recordRecovery(item) === true
+  } catch {
+    // A typed error below keeps the user-facing boundary stable.
+  }
+
+  if (!acknowledged) throw new AssetRecoveryPersistenceError(originalError)
 }
 
 async function removeUploadedObject(
@@ -73,29 +85,39 @@ async function removeUploadedObject(
   if (!cleanupError) return true
 
   reportCleanupFailure(reportCleanupError, cleanupError, context.reportContext)
-  safelyRecordRecovery(recordRecovery, {
+  persistRecovery(recordRecovery, {
     kind: 'cleanup',
     assetId: context.assetId,
     projectId: context.projectId,
     storagePath: context.storagePath,
-  })
+  }, context.originalError)
   return false
 }
 
-async function reconcileAmbiguousInsert(client, assetId) {
+async function fetchMatchingAsset(client, asset) {
   try {
     const result = await client
       .from('studio_assets')
       .select(assetFields)
-      .eq('id', assetId)
+      .eq('id', asset.id)
       .maybeSingle()
 
-    if (result?.error) return { status: 'unknown' }
-    return result?.data
-      ? { status: 'committed', row: result.data }
-      : { status: 'absent' }
+    if (result?.error || !assetRowsMatch(result?.data, asset)) return null
+    return result.data
   } catch {
-    return { status: 'unknown' }
+    return null
+  }
+}
+
+async function insertAssetRow(client, asset) {
+  try {
+    return await client
+      .from('studio_assets')
+      .insert(asset)
+      .select(assetFields)
+      .single()
+  } catch (error) {
+    return { data: null, error }
   }
 }
 
@@ -136,6 +158,7 @@ export async function uploadAsset(
         assetId,
         projectId: parsedProjectId,
         storagePath,
+        originalError: uploadError,
         reportContext: { uploadError, storagePath },
       }, { recordRecovery, reportCleanupError })
     }
@@ -150,52 +173,50 @@ export async function uploadAsset(
         assetId,
         projectId: parsedProjectId,
         storagePath,
+        originalError: uploadError,
         reportContext: { uploadError, storagePath },
       }, { recordRecovery, reportCleanupError })
     }
     throw uploadError
   }
 
-  let insertResult
-
-  try {
-    insertResult = await client
-      .from('studio_assets')
-      .insert({
-        id: assetId,
-        project_id: parsedProjectId,
-        storage_path: storagePath,
-        original_name: parsedFile.name,
-        mime_type: parsedFile.type,
-        size_bytes: parsedFile.size,
-        permission_status: 'unconfirmed',
-      })
-      .select(assetFields)
-      .single()
-  } catch (error) {
-    insertResult = { data: null, error }
+  const asset = {
+    id: assetId,
+    project_id: parsedProjectId,
+    storage_path: storagePath,
+    original_name: parsedFile.name,
+    mime_type: parsedFile.type,
+    size_bytes: parsedFile.size,
+    permission_status: 'unconfirmed',
   }
+  const insertResult = await insertAssetRow(client, asset)
 
   const insertError = insertResult?.error
   if (insertError) {
     if (isAmbiguousDatabaseResult(insertResult)) {
-      const reconciliation = await reconcileAmbiguousInsert(client, assetId)
-      if (reconciliation.status === 'committed') return reconciliation.row
-      if (reconciliation.status === 'unknown') {
-        safelyRecordRecovery(recordRecovery, {
-          kind: 'reconcile_insert',
-          assetId,
-          projectId: parsedProjectId,
-          storagePath,
-        })
-        throw insertError
+      const retryResult = await insertAssetRow(client, asset)
+      if (!retryResult?.error) return retryResult?.data
+
+      if (retryResult.error.code === '23505') {
+        const committedRow = await fetchMatchingAsset(client, asset)
+        if (committedRow) return committedRow
       }
+
+      persistRecovery(recordRecovery, {
+        kind: 'reconcile_insert',
+        assetId,
+        projectId: parsedProjectId,
+        storagePath,
+        asset,
+      }, insertError)
+      throw insertError
     }
 
     await removeUploadedObject(bucket, {
       assetId,
       projectId: parsedProjectId,
       storagePath,
+      originalError: insertError,
       reportContext: { insertError, storagePath },
     }, { recordRecovery, reportCleanupError })
     throw insertError

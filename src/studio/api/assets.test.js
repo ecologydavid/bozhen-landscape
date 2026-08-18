@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { StorageApiError, StorageUnknownError } from '@supabase/storage-js'
+import { recordAssetRecovery } from '../lib/assetRecovery'
 import { uploadAsset } from './assets'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
@@ -10,6 +11,37 @@ function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
   const file = new File(['image'], name, { type })
   Object.defineProperty(file, 'size', { value: size })
   return file
+}
+
+function deferred() {
+  let resolve
+  const promise = new Promise((resolvePromise) => {
+    resolve = resolvePromise
+  })
+  return { promise, resolve }
+}
+
+function expectedAssetPayload(file = createFile()) {
+  return {
+    id: assetId,
+    project_id: projectId,
+    storage_path: `raw/${projectId}/${assetId}.jpg`,
+    original_name: file.name,
+    mime_type: file.type,
+    size_bytes: file.size,
+    permission_status: 'unconfirmed',
+  }
+}
+
+function createFailingRecoveryRecorder(error) {
+  const storage = {
+    length: 0,
+    key: () => null,
+    getItem: () => null,
+    setItem: () => { throw error },
+    removeItem: vi.fn(),
+  }
+  return (item) => recordAssetRecovery(item, storage)
 }
 
 function createClient({ uploadResult, insertResult, removeResult, reconcileResult } = {}) {
@@ -56,7 +88,7 @@ function upload(client, file, id = projectId, options = {}) {
   return uploadAsset(client, id, file, {
     randomUUID: () => assetId,
     reportCleanupError: vi.fn(),
-    recordRecovery: vi.fn(),
+    recordRecovery: vi.fn().mockReturnValue(true),
     recoverPending: vi.fn().mockResolvedValue({ resolved: 0, remaining: 0 }),
     ...options,
   })
@@ -171,7 +203,7 @@ test('records unresolved cleanup after an unknown Storage outcome', async () => 
     'cleanup response unavailable',
     new TypeError('fetch failed'),
   )
-  const recordRecovery = vi.fn()
+  const recordRecovery = vi.fn().mockReturnValue(true)
   const mock = createClient({
     uploadResult: { data: null, error: uploadError },
     removeResult: { data: null, error: cleanupError },
@@ -222,74 +254,155 @@ test('removes the uploaded object before rethrowing the same insert error', asyn
   expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
 })
 
-test('returns a committed row after reconciling a status-0 insert response', async () => {
+test('waits for the first insert outcome and retries the same payload without deleting', async () => {
+  const firstAttempt = deferred()
   const insertError = { message: 'TypeError: fetch failed', code: '' }
-  const committedRow = { id: assetId, storage_path: `raw/${projectId}/${assetId}.jpg` }
-  const mock = createClient({
-    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
-    reconcileResult: { data: committedRow, error: null, status: 200 },
-  })
+  const committedRow = expectedAssetPayload()
+  const mock = createClient()
+  mock.single
+    .mockReset()
+    .mockReturnValueOnce(firstAttempt.promise)
+    .mockResolvedValueOnce({ data: committedRow, error: null, status: 201 })
 
-  await expect(upload(mock.client, createFile())).resolves.toBe(committedRow)
+  const result = upload(mock.client, createFile())
+
+  await vi.waitFor(() => expect(mock.single).toHaveBeenCalledOnce())
+  expect(mock.remove).not.toHaveBeenCalled()
+
+  firstAttempt.resolve({ data: null, error: insertError, status: 0, statusText: '' })
+
+  await expect(result).resolves.toBe(committedRow)
+  expect(mock.single).toHaveBeenCalledTimes(2)
+  expect(mock.insert).toHaveBeenNthCalledWith(1, expectedAssetPayload())
+  expect(mock.insert).toHaveBeenNthCalledWith(2, expectedAssetPayload())
+  expect(mock.maybeSingle).not.toHaveBeenCalled()
+  expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('resolves a retry conflict by fetching and verifying the committed row', async () => {
+  const firstAttempt = deferred()
+  const insertError = { message: 'TypeError: fetch failed', code: '', status: 0 }
+  const conflictError = { message: 'duplicate key', code: '23505' }
+  const committedRow = expectedAssetPayload()
+  const mock = createClient({ reconcileResult: {
+    data: committedRow,
+    error: null,
+    status: 200,
+  } })
+  mock.single
+    .mockReset()
+    .mockReturnValueOnce(firstAttempt.promise)
+    .mockResolvedValueOnce({ data: null, error: conflictError, status: 409 })
+
+  const result = upload(mock.client, createFile())
+  await vi.waitFor(() => expect(mock.single).toHaveBeenCalledOnce())
+  expect(mock.remove).not.toHaveBeenCalled()
+
+  firstAttempt.resolve({ data: null, error: insertError })
+
+  await expect(result).resolves.toBe(committedRow)
+  expect(mock.single).toHaveBeenCalledTimes(2)
   expect(mock.reconcileSelect).toHaveBeenCalledWith(assetFields)
   expect(mock.eq).toHaveBeenCalledWith('id', assetId)
   expect(mock.maybeSingle).toHaveBeenCalledOnce()
-  expect(mock.single.mock.invocationCallOrder[0]).toBeLessThan(
+  expect(mock.single.mock.invocationCallOrder[1]).toBeLessThan(
     mock.maybeSingle.mock.invocationCallOrder[0],
   )
   expect(mock.remove).not.toHaveBeenCalled()
 })
 
-test('also reconciles a transport status carried by the insert error', async () => {
+test('retains ambiguous recovery when retry conflict resolves to a mismatched row', async () => {
   const insertError = { message: 'TypeError: fetch failed', code: '', status: 0 }
-  const committedRow = { id: assetId, storage_path: `raw/${projectId}/${assetId}.jpg` }
-  const mock = createClient({
-    insertResult: { data: null, error: insertError },
-    reconcileResult: { data: committedRow, error: null, status: 200 },
-  })
-
-  await expect(upload(mock.client, createFile())).resolves.toBe(committedRow)
-  expect(mock.maybeSingle).toHaveBeenCalledOnce()
-  expect(mock.remove).not.toHaveBeenCalled()
-})
-
-test('removes Storage only after reconciliation confirms a status-0 insert is absent', async () => {
-  const insertError = { message: 'TypeError: fetch failed', code: '' }
-  const mock = createClient({
-    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
-    reconcileResult: { data: null, error: null, status: 200 },
-  })
-
-  await expect(upload(mock.client, createFile())).rejects.toBe(insertError)
-  expect(mock.maybeSingle).toHaveBeenCalledOnce()
-  expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
-  expect(mock.maybeSingle.mock.invocationCallOrder[0]).toBeLessThan(
-    mock.remove.mock.invocationCallOrder[0],
-  )
-})
-
-test('records reconciliation when the commit check fails and preserves the insert error', async () => {
-  const insertError = { message: 'TypeError: fetch failed', code: '' }
-  const reconcileError = { message: 'TypeError: fetch failed again', code: '' }
-  const recordRecovery = vi.fn()
-  const mock = createClient({
-    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
-    reconcileResult: { data: null, error: reconcileError, status: 0, statusText: '' },
-  })
+  const conflictError = { message: 'duplicate key', code: '23505' }
+  const recordRecovery = vi.fn().mockReturnValue(true)
+  const mock = createClient({ reconcileResult: {
+    data: { ...expectedAssetPayload(), project_id: '33333333-3333-4333-8333-333333333333' },
+    error: null,
+    status: 200,
+  } })
+  mock.single
+    .mockReset()
+    .mockResolvedValueOnce({ data: null, error: insertError })
+    .mockResolvedValueOnce({ data: null, error: conflictError, status: 409 })
 
   await expect(upload(mock.client, createFile(), projectId, { recordRecovery }))
     .rejects.toBe(insertError)
-  expect(mock.maybeSingle).toHaveBeenCalledOnce()
-  expect(mock.remove).not.toHaveBeenCalled()
-  expect(recordRecovery).toHaveBeenCalledWith({
+  expect(recordRecovery).toHaveBeenCalledWith(expect.objectContaining({
     kind: 'reconcile_insert',
     assetId,
     projectId,
     storagePath: `raw/${projectId}/${assetId}.jpg`,
+    asset: expectedAssetPayload(),
+  }))
+  expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('retains reconciliation when the idempotent retry remains ambiguous', async () => {
+  const insertError = { message: 'TypeError: first fetch failed', code: '' }
+  const retryError = { message: 'TypeError: retry fetch failed', code: '' }
+  const recordRecovery = vi.fn().mockReturnValue(true)
+  const mock = createClient()
+  mock.single
+    .mockReset()
+    .mockResolvedValueOnce({ data: null, error: insertError, status: 0, statusText: '' })
+    .mockResolvedValueOnce({ data: null, error: retryError, status: 0, statusText: '' })
+
+  await expect(upload(mock.client, createFile(), projectId, { recordRecovery }))
+    .rejects.toBe(insertError)
+  expect(mock.single).toHaveBeenCalledTimes(2)
+  expect(mock.maybeSingle).not.toHaveBeenCalled()
+  expect(mock.remove).not.toHaveBeenCalled()
+  expect(recordRecovery).toHaveBeenCalledWith(expect.objectContaining({
+    kind: 'reconcile_insert',
+    asset: expectedAssetPayload(),
+  }))
+})
+
+test('throws a typed persistence error when local storage is unavailable for DB recovery', async () => {
+  const insertError = { message: 'TypeError: first fetch failed', code: '' }
+  const retryError = { message: 'TypeError: retry fetch failed', code: '' }
+  const mock = createClient()
+  mock.single
+    .mockReset()
+    .mockResolvedValueOnce({ data: null, error: insertError, status: 0, statusText: '' })
+    .mockResolvedValueOnce({ data: null, error: retryError, status: 0, statusText: '' })
+
+  await expect(upload(mock.client, createFile(), projectId, {
+    recordRecovery: createFailingRecoveryRecorder(new Error('storage blocked')),
+  })).rejects.toMatchObject({
+    name: 'AssetRecoveryPersistenceError',
+    code: 'ASSET_RECOVERY_PERSISTENCE_FAILED',
+    message: 'Unable to persist asset recovery state',
+    cause: insertError,
   })
-  expect(mock.maybeSingle.mock.invocationCallOrder[0]).toBeLessThan(
-    recordRecovery.mock.invocationCallOrder[0],
+  expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('throws a typed persistence error when quota blocks unknown Storage cleanup recovery', async () => {
+  const uploadError = new StorageUnknownError(
+    'network response unavailable',
+    new TypeError('fetch failed'),
   )
+  const cleanupError = new StorageUnknownError(
+    'cleanup response unavailable',
+    new TypeError('fetch failed'),
+  )
+  const mock = createClient({
+    uploadResult: { data: null, error: uploadError },
+    removeResult: { data: null, error: cleanupError },
+  })
+
+  await expect(upload(mock.client, createFile(), projectId, {
+    recordRecovery: createFailingRecoveryRecorder(
+      new DOMException('quota exceeded', 'QuotaExceededError'),
+    ),
+  })).rejects.toMatchObject({
+    name: 'AssetRecoveryPersistenceError',
+    code: 'ASSET_RECOVERY_PERSISTENCE_FAILED',
+    message: 'Unable to persist asset recovery state',
+    cause: uploadError,
+  })
+  expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
 })
 
 test('cleans up and preserves a rejected insert request error', async () => {
