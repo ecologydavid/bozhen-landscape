@@ -1,16 +1,21 @@
 :root {
-  --ink-950: #171a17;
-  --paper: #f4f3ec;
-  --paper-bright: #fbfaf5;
-  --moss-800: #315743;
-  --leaf-500: #8ea38f;
-  --sun-500: #e8a448;
+  --ink-950: #18221c;
+  --paper: #f3f1e9;
+  --paper-bright: #faf9f5;
+  --moss-800: #365a45;
+  --leaf-500: #75857d;
+  --sun-500: #efa94a;
+  --stone-400: #c9c4b9;
   --fog-300: #d8d9d2;
-  --font-display: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --font-display: 'Noto Serif TC', 'Songti TC', serif;
   --font-body: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-utility: 'Manrope Variable', 'Noto Sans TC', sans-serif;
   --font-editorial: 'Cormorant Garamond', Georgia, serif;
   --container: min(1480px, calc(100% - 64px));
-  --canvas-radius: 26px;
+  --radius-control: 7px;
+  --radius-panel: 9px;
+  --radius-image: 10px;
+  --canvas-radius: 10px;
   --forest-950: var(--ink-950);
   --forest-900: #233c30;
   --forest-850: #294a39;
@@ -33,10 +38,13 @@
   --danger: #9f493f;
   --font-serif: var(--font-display);
   --font-sans: var(--font-body);
+  --shadow-rest: 0 10px 24px rgba(25, 35, 29, 0.08);
+  --shadow-hover: 0 24px 54px rgba(25, 35, 29, 0.16);
   --shadow-soft: 0 22px 60px rgba(7, 28, 20, 0.13);
   --shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.24);
+  --scene-transition: 720ms;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --header-height: 88px;
+  --header-height: 72px;
 }
 
 *,
@@ -74,6 +82,12 @@ textarea {
 img,
 svg {
   display: block;
+}
+
+.leaf-icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: 0 0 auto;
 }
 
 img {
