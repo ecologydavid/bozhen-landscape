@@ -130,37 +130,39 @@ test('does not observe or activate unsupported scene markers', () => {
   expect(screen.getByText('plant')).toBeInTheDocument()
 })
 
-test('refines cached observer ratios from viewport geometry on scroll', () => {
+test('refines cached ratios against the observer root bounds on scroll', () => {
   document.body.innerHTML =
     '<section data-scene="plant"></section><section data-scene="stone"></section>'
 
   render(<Probe />)
 
   const [plant, stone] = document.querySelectorAll('[data-scene]')
+  const rootTop = window.innerHeight * 0.18
+  const rootBottom = window.innerHeight * 0.62
   vi.spyOn(plant, 'getBoundingClientRect').mockReturnValue({
     top: 0,
-    right: 400,
-    bottom: 400,
+    right: window.innerWidth,
+    bottom: 600,
     left: 0,
-    width: 400,
-    height: 400,
+    width: window.innerWidth,
+    height: 600,
   })
   vi.spyOn(stone, 'getBoundingClientRect').mockReturnValue({
-    top: -200,
-    right: 400,
-    bottom: 200,
-    left: 0,
-    width: 400,
-    height: 400,
+    top: rootTop + 20,
+    right: window.innerWidth * 0.9,
+    bottom: rootBottom - 20,
+    left: window.innerWidth * -0.1,
+    width: window.innerWidth,
+    height: rootBottom - rootTop - 40,
   })
 
   act(() =>
     observerCallback([
-      { target: plant, isIntersecting: true, intersectionRatio: 0.24 },
-      { target: stone, isIntersecting: true, intersectionRatio: 0.72 },
+      { target: plant, isIntersecting: true, intersectionRatio: 0.72 },
+      { target: stone, isIntersecting: true, intersectionRatio: 0.24 },
     ]),
   )
-  expect(screen.getByText('stone')).toBeInTheDocument()
+  expect(screen.getByText('plant')).toBeInTheDocument()
 
   act(() => {
     window.dispatchEvent(new Event('scroll'))
@@ -169,7 +171,7 @@ test('refines cached observer ratios from viewport geometry on scroll', () => {
   expect(requestAnimationFrameMock).toHaveBeenCalledTimes(1)
 
   act(() => frameCallback())
-  expect(screen.getByText('plant')).toBeInTheDocument()
+  expect(screen.getByText('stone')).toBeInTheDocument()
 })
 
 test('keeps observer ratios when jsdom geometry has no area', () => {
