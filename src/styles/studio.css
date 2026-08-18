@@ -369,6 +369,97 @@ body.studio-active {
   background: var(--ivory-50);
 }
 
+.studio-asset-uploader {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--ivory-50);
+}
+
+.studio-asset-uploader-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.studio-asset-uploader-heading h2 {
+  font-size: 1.2rem;
+}
+
+.studio-asset-uploader-heading p,
+.studio-upload-status {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.studio-upload-button {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 15px;
+  border: 1px solid rgba(49, 87, 67, 0.38);
+  border-radius: 10px;
+  color: var(--forest-900);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.studio-upload-button:hover {
+  border-color: var(--forest-700);
+  background: rgba(49, 87, 67, 0.07);
+}
+
+.studio-asset-uploader:has(input:focus-visible) .studio-upload-button {
+  outline: 3px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+.studio-upload-list {
+  display: grid;
+  gap: 8px;
+}
+
+.studio-upload-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--ivory-100);
+}
+
+.studio-upload-list span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-900);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-upload-list strong {
+  flex: 0 0 auto;
+  color: var(--forest-800);
+  font-size: 0.78rem;
+}
+
+.studio-upload-list li[data-status='failure'] strong,
+.studio-upload-error {
+  color: var(--danger);
+}
+
+.studio-upload-error {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .studio-form-card > legend,
 .studio-array-field > legend {
   padding-inline: 7px;
@@ -615,6 +706,19 @@ body.studio-active {
   .studio-form-card,
   .studio-array-field {
     padding: 16px;
+  }
+
+  .studio-asset-uploader {
+    padding: 16px;
+  }
+
+  .studio-asset-uploader-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .studio-upload-button {
+    align-self: flex-start;
   }
 
   .studio-form-actions {
