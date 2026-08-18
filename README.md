@@ -13,6 +13,76 @@ npm run build
 npm run preview
 ```
 
+## 曜聖｜內容工作室本機設定
+
+### 前置需求
+
+- Node.js 版本必須符合 `package.json` 的 engines：`^22.13.0 || >=24.0.0`。先執行 `node --version` 確認版本；若 npm 顯示 `EBADENGINE`，請升級或切換 Node.js 後再安裝套件。
+- 本機 Supabase 需要 Docker Desktop，或與 Supabase CLI 相容的 Docker／Podman runtime。這台開發機目前尚未安裝可用的 Docker runtime，因此無法在此環境完成資料庫重設與 DB 測試；其他開發者仍可依下列通用流程啟動。
+- 瀏覽器環境變數只能放本機 Supabase 提供的 publishable／anon browser-safe key。不得把正式環境金鑰、`service_role` key、`sb_secret_` key 或其他 secret 寫入任何 `VITE_` 變數。
+
+### 啟動本機環境
+
+在專案根目錄依序執行：
+
+```powershell
+npm install
+Copy-Item .env.example .env.local
+npm run supabase:start
+npm run supabase:reset
+npm run dev
+```
+
+`npm run supabase:start` 啟動完成後，會列出本機 Supabase API URL、Studio URL 與 browser-safe key。把 API URL 填入 `.env.local` 的 `VITE_SUPABASE_URL`，再把 publishable key（若 CLI 顯示舊版名稱則為 anon key）填入 `VITE_SUPABASE_PUBLISHABLE_KEY`。切勿把 `service_role` 或以 `sb_secret_` 開頭的金鑰放進 `VITE_` 變數；Vite 會把這些值送到瀏覽器。
+
+`.env.local` 已由根目錄 `.gitignore` 排除，不應提交。正式環境的 URL 與金鑰也不得提交到儲存庫。
+
+### 建立第一位管理員
+
+1. 開啟 `npm run supabase:start` 輸出所列的本機 Studio URL，進入 Auth 使用者管理頁面，以預定的管理員 Email 與密碼建立使用者。使用 hosted Supabase 時，則在該專案的 Auth dashboard 建立使用者。
+2. 從同一個 Auth dashboard 複製該使用者的 UUID。
+3. 在該 Supabase 專案的 SQL Editor 執行以下 SQL，將使用者登記為 Studio 管理員：
+
+```sql
+insert into public.studio_admins(user_id)
+values ('<Auth user UUID copied from the dashboard>');
+```
+
+UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登記在 `public.studio_admins` 的使用者可以使用 Studio；正式環境 secrets 永遠不可提交到版本控制。
+
+### 進入 Studio
+
+啟動應用程式後，開啟開發伺服器網址並加上 `#/studio`（應用程式使用 `HashRouter`），再以剛建立的 Email 與密碼登入。公開網站仍維持原有的一般路由與瀏覽流程。
+
+目前 MVP 僅支援建立／編輯專案與不可變事實，以及上傳、分類私有的真實專案照片；AI 圖片生成、發布與排程尚未提供，會在後續計畫處理。
+
+### 驗證與停止
+
+Docker runtime、正確 Node.js 版本及 `.env.local` 都就緒後，依序執行完整 gate：
+
+```powershell
+npm run supabase:reset
+npm run test:db
+npm test -- --run
+npm run lint
+npm run build
+```
+
+預期結果是本機資料庫可重設、DB 測試通過、Vitest 無失敗、ESLint 無錯誤，且 Vite 成功產生 `dist/`；任一命令非零結束即代表 gate 未通過。這台開發機目前因缺少 Docker runtime，尚未執行或宣稱 DB gate 通過。
+
+常見問題：
+
+- `npm run supabase:start` 失敗或顯示找不到 `docker`：安裝並啟動 Docker Desktop 或相容 runtime，確認 daemon 正在執行，再重試。
+- npm 顯示 `EBADENGINE`：`node --version` 若不符合 `^22.13.0 || >=24.0.0`，請先升級或切換 Node.js，再重新執行 `npm install`。
+- 顯示 publishable key 無效：重新從目前本機 stack 的啟動輸出複製 API URL 與 publishable／anon key，確認沒有誤用 hosted 專案的值、`service_role` 或 `sb_secret_` key，然後重啟 `npm run dev`。
+- 登入後收到 forbidden／無權限：確認 Auth 使用者 UUID 已正確寫入同一個 Supabase 專案的 `public.studio_admins`；未登記的使用者不可使用 Studio。
+
+開發結束後可停止本機 Supabase：
+
+```powershell
+npm run supabase:stop
+```
+
 ## 內容維護
 
 - 服務項目：`src/data/services.js`
