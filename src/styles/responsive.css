@@ -354,10 +354,6 @@
     min-height: 630px;
   }
 
-  .brand-story__seal {
-    right: 24px;
-  }
-
   .client-types__list {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -502,13 +498,6 @@
     max-height: 590px;
   }
 
-  .brand-story__seal {
-    right: 16px;
-    bottom: 20px;
-    width: 92px;
-    height: 92px;
-  }
-
   .client-types__list {
     grid-template-columns: 1fr;
   }
@@ -530,17 +519,16 @@
     gap: 2px 14px;
   }
 
-  .contact-panel__actions small {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .contact-panel__details {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .contact-panel__address {
-    grid-column: 1 / -1;
+    grid-column: auto;
+  }
+
+  .contact-panel__address dd {
+    overflow-wrap: anywhere;
   }
 
   .site-footer {

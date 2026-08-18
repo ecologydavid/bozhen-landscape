@@ -143,6 +143,15 @@
   letter-spacing: 0.12em;
 }
 
+.site-footer__english-name {
+  display: block;
+  margin: -8px 0 14px;
+  color: rgba(250, 249, 245, 0.52);
+  font-family: var(--font-utility);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
 .site-footer__brand p {
   max-width: 280px;
   color: rgba(244, 240, 230, 0.58);

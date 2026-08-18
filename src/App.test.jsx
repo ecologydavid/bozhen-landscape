@@ -28,13 +28,29 @@ beforeEach(() => {
 })
 
 test('renders the official brand and primary direct contact action', () => {
-  render(
+  const { container } = render(
     <MemoryRouter>
       <App />
     </MemoryRouter>,
   )
 
   expect(screen.getAllByText('曜聖景觀有限公司').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('YAO SEI LIMITED COMPANY')).toHaveLength(2)
+  expect(container.querySelector('.site-footer__english-name')).toHaveTextContent(
+    'YAO SEI LIMITED COMPANY',
+  )
+  expect(screen.getByText('統一編號 00111874')).toBeInTheDocument()
+  expect(
+    screen.getAllByRole('link', { name: /a74964163285@gmail.com/ }).length,
+  ).toBeGreaterThan(0)
+  expect(
+    screen.getAllByRole('link', {
+      name: 'Email a74964163285@gmail.com',
+    }),
+  ).toHaveLength(2)
+  expect(container.querySelectorAll('.contact-panel__actions .leaf-icon')).toHaveLength(3)
+  expect(container.querySelector('.brand-story__sun')).toBeInTheDocument()
+  expect(container.querySelector('.brand-story__seal')).not.toBeInTheDocument()
   expect(screen.getAllByRole('link', { name: /LINE 聯絡/ }).length).toBeGreaterThan(0)
   expect(screen.queryByText('取得專屬報價')).not.toBeInTheDocument()
 })

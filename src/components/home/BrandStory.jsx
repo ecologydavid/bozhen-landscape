@@ -13,10 +13,7 @@ export default function BrandStory() {
             loading="lazy"
             decoding="async"
           />
-          <span className="brand-story__seal" aria-hidden="true">
-            <b>曜</b>
-            <small>景觀工藝</small>
-          </span>
+          <span className="brand-story__sun" aria-hidden="true" />
         </Reveal>
 
         <Reveal className="brand-story__content">

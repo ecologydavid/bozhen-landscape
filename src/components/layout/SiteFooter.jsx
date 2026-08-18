@@ -7,6 +7,7 @@ export default function SiteFooter({ brand, contact }) {
       <div className="site-footer__inner">
         <div className="site-footer__brand">
           <strong>{brand.name}</strong>
+          <small className="site-footer__english-name">{brand.englishName}</small>
           <p>讓自然成為生活裡，長久而安定的風景。</p>
         </div>
 
@@ -28,7 +29,7 @@ export default function SiteFooter({ brand, contact }) {
           <span className="site-footer__label">直接聯絡</span>
           <a href={contact.phoneHref}>{contact.mobile}</a>
           <a href={contact.lineHref} target="_blank" rel="noreferrer">LINE</a>
-          <a href={contact.emailHref}>Email</a>
+          <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>{contact.email}</a>
         </div>
       </div>
       <div className="site-footer__bottom">

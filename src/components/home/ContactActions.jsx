@@ -1,11 +1,6 @@
 import BrandImage from '../ui/BrandImage'
+import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
-
-const ArrowIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M5 12h13M13 6l6 6-6 6" />
-  </svg>
-)
 
 export default function ContactActions({ brand, contact }) {
   return (
@@ -35,17 +30,17 @@ export default function ContactActions({ brand, contact }) {
             <a href={contact.lineHref} target="_blank" rel="noreferrer">
               <span>LINE 聯絡</span>
               <small>ID {contact.lineId}</small>
-              <ArrowIcon />
+              <LeafIcon name="sprout" />
             </a>
             <a href={contact.phoneHref}>
               <span>撥打 {contact.mobile}</span>
               <small>行動電話</small>
-              <ArrowIcon />
+              <LeafIcon name="leaf" />
             </a>
-            <a href={contact.emailHref}>
+            <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>
               <span>Email 聯絡</span>
               <small>{contact.email}</small>
-              <ArrowIcon />
+              <LeafIcon name="arrowLeaf" />
             </a>
           </div>
 
