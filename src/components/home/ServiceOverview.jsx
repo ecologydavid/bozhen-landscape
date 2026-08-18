@@ -1,4 +1,6 @@
 import { services } from '../../data/services'
+import BrandImage from '../ui/BrandImage'
+import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
 
 export default function ServiceOverview() {
@@ -21,9 +23,20 @@ export default function ServiceOverview() {
         <div className="service-list">
           {services.map((service) => (
             <Reveal as="article" className="service-item" key={service.id}>
-              <span>{service.number}</span>
-              <h3>{service.title}</h3>
-              <p>{service.summary}</p>
+              <BrandImage
+                className="service-item__image"
+                src={service.image}
+                alt={service.imageAlt}
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="service-item__veil" aria-hidden="true" />
+              <div className="service-item__content">
+                <span className="service-item__number">{service.number}</span>
+                <LeafIcon name={service.icon} />
+                <h3>{service.title}</h3>
+                <p>{service.summary}</p>
+              </div>
             </Reveal>
           ))}
         </div>

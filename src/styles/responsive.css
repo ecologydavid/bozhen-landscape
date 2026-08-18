@@ -23,18 +23,6 @@
     gap: 72px;
   }
 
-  .process-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .process-list li:nth-child(3) {
-    border-right: 0;
-  }
-
-  .process-list li:nth-child(n + 4) {
-    border-top: 1px solid var(--line);
-  }
-
   .client-types .container {
     grid-template-columns: 1fr;
     gap: 40px;
@@ -311,20 +299,27 @@
     display: none;
   }
 
-  .service-list {
-    grid-template-columns: repeat(2, 1fr);
+  .service-list,
+  .process-list {
+    grid-template-columns: 1fr;
   }
 
-  .service-item:nth-child(2) {
-    border-right: 0;
+  .process-list::before {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    left: 12px;
+    width: 1px;
+    height: auto;
   }
 
-  .service-item:nth-child(n + 3) {
-    border-top: 1px solid var(--line);
+  .process-list li {
+    min-height: 180px;
+    padding: 42px 18px 32px 58px;
   }
 
-  .service-item:nth-child(3) {
-    padding-left: 0;
+  .process-list__marker {
+    top: 32px;
   }
 
   .section-heading--projects {
@@ -361,22 +356,6 @@
 
   .brand-story__seal {
     right: 24px;
-  }
-
-  .process-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .process-list li:nth-child(2n) {
-    border-right: 0;
-  }
-
-  .process-list li:nth-child(3) {
-    border-right: 1px solid var(--line);
-  }
-
-  .process-list li:nth-child(n + 3) {
-    border-top: 1px solid var(--line);
   }
 
   .client-types__list {
@@ -513,35 +492,6 @@
 
   .button {
     width: 100%;
-  }
-
-  .service-list,
-  .process-list {
-    grid-template-columns: 1fr;
-  }
-
-  .service-item,
-  .service-item:not(:first-child),
-  .process-list li,
-  .process-list li:not(:first-child) {
-    min-height: 0;
-    padding: 28px 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .service-item:nth-child(n + 3),
-  .process-list li:nth-child(n + 3) {
-    border-top: 0;
-  }
-
-  .service-item > span,
-  .process-list h3 {
-    margin: 0 0 12px;
-  }
-
-  .process-list li:nth-child(3) {
-    border-right: 0;
   }
 
   .brand-story__media,

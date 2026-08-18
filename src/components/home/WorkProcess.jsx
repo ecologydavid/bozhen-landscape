@@ -1,4 +1,5 @@
 import { processSteps } from '../../data/processSteps'
+import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
 
 export default function WorkProcess() {
@@ -19,6 +20,9 @@ export default function WorkProcess() {
         <ol className="process-list">
           {processSteps.map(([number, title, description]) => (
             <Reveal as="li" key={number}>
+              <span className="process-list__marker" aria-hidden="true">
+                <LeafIcon name="leaf" />
+              </span>
               <span>{number}</span>
               <h3>{title}</h3>
               <p>{description}</p>
