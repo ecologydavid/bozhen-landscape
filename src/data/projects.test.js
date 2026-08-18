@@ -11,6 +11,14 @@ test('project slugs are unique and required content is present', () => {
   const slugs = projects.map((project) => project.slug)
   expect(new Set(slugs).size).toBe(slugs.length)
   expect(projects).toHaveLength(6)
+  expect(projects.map(({ slug, focalPoint }) => ({ slug, focalPoint }))).toEqual([
+    { slug: 'changhua-private-residence', focalPoint: '50% 52%' },
+    { slug: 'tianzhong-private-courtyard', focalPoint: '48% 54%' },
+    { slug: 'nantun-rock-water-garden', focalPoint: '50% 48%' },
+    { slug: 'taoyuan-school-green-wall', focalPoint: '50% 46%' },
+    { slug: 'taichung-garden-maintenance', focalPoint: '54% 50%' },
+    { slug: 'puli-winery-landscape', focalPoint: '50% 55%' },
+  ])
 
   for (const project of projects) {
     expect(project).toEqual(
@@ -31,6 +39,13 @@ test('project slugs are unique and required content is present', () => {
     )
     expect(project.heroImage).toMatch(/\.webp$/)
     expect(project.focalPoint).toMatch(/^\d+% \d+%$/)
+    const [horizontal, vertical] = project.focalPoint
+      .split(' ')
+      .map((coordinate) => Number.parseInt(coordinate, 10))
+    expect(horizontal).toBeGreaterThanOrEqual(0)
+    expect(horizontal).toBeLessThanOrEqual(100)
+    expect(vertical).toBeGreaterThanOrEqual(0)
+    expect(vertical).toBeLessThanOrEqual(100)
     expect(project.gallery.length).toBeGreaterThanOrEqual(2)
     expect(project.gallery.every((image) => image.endsWith('.webp'))).toBe(true)
     expect(project.services.length).toBeGreaterThan(0)

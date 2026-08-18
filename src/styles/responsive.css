@@ -244,12 +244,15 @@
     grid-template-columns: 1fr;
     grid-template-rows: minmax(420px, 118vw) auto;
     gap: 0;
+    align-items: stretch;
   }
 
   .hero__media {
     grid-column: 1;
     grid-row: 1;
     min-height: 420px;
+    align-self: stretch;
+    height: 100%;
     border-radius: var(--radius-image);
   }
 

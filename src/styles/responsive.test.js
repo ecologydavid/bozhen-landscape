@@ -10,6 +10,15 @@ test('hides only Hero inline contact links at mobile widths', () => {
   )
 })
 
+test('stretches the mobile Hero media row through the 768px handoff', () => {
+  expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.hero__layout \{[\s\S]*?grid-template-columns: 1fr;[\s\S]*?grid-template-rows: minmax\(420px, 118vw\) auto;[\s\S]*?align-items: stretch;/,
+  )
+  expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.hero__media \{[\s\S]*?min-height: 420px;[\s\S]*?align-self: stretch;[\s\S]*?height: 100%;/,
+  )
+})
+
 test('sizes the fixed drawer from its mobile insets', () => {
   expect(stylesheet).toMatch(
     /\.site-nav \{[\s\S]*?inset: 12px 12px 12px max\(52px, 14vw\);[\s\S]*?height: auto;[\s\S]*?max-height: calc\(100dvh - 24px\);/,
