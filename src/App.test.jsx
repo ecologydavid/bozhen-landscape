@@ -60,6 +60,9 @@ test('scrolls to a requested homepage section after route navigation', async () 
   )
 
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+  const contact = document.getElementById('contact')
+  expect(contact).toHaveAttribute('tabindex', '-1')
+  expect(contact).toHaveFocus()
   delete HTMLElement.prototype.scrollIntoView
 })
 

@@ -11,7 +11,11 @@ export default function ScrollToHash() {
     }
 
     const target = document.getElementById(decodeURIComponent(hash.slice(1)))
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      target.setAttribute('tabindex', '-1')
+      target.focus({ preventScroll: true })
+    }
   }, [hash, pathname])
 
   return null

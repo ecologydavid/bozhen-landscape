@@ -1,16 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-
-const navigation = [
-  { label: '服務項目', to: '/#services' },
-  { label: '案例作品', to: '/projects' },
-  { label: '關於曜聖', to: '/#about' },
-]
+import { navigation } from '../../data/navigation'
+import LeafIcon from '../ui/LeafIcon'
 
 export default function SiteHeader({ brand, contact }) {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const toggleRef = useRef(null)
+  const firstLinkRef = useRef(null)
+  const returnFocusRef = useRef(false)
+
+  const closeMenu = ({ returnFocus = false } = {}) => {
+    returnFocusRef.current = returnFocus
+    setMenuOpen(false)
+  }
+
+  const toggleMenu = () => {
+    if (menuOpen) closeMenu({ returnFocus: true })
+    else setMenuOpen(true)
+  }
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24)
@@ -23,11 +32,12 @@ export default function SiteHeader({ brand, contact }) {
     if (!menuOpen) return undefined
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key === 'Escape') closeMenu({ returnFocus: true })
     }
 
     document.body.classList.add('nav-open')
     window.addEventListener('keydown', handleKeyDown)
+    firstLinkRef.current?.focus()
 
     return () => {
       document.body.classList.remove('nav-open')
@@ -35,7 +45,13 @@ export default function SiteHeader({ brand, contact }) {
     }
   }, [menuOpen])
 
-  const closeMenu = () => setMenuOpen(false)
+  useEffect(() => {
+    if (!menuOpen && returnFocusRef.current) {
+      toggleRef.current?.focus()
+      returnFocusRef.current = false
+    }
+  }, [menuOpen])
+
   const surfaceClass = location.pathname.startsWith('/projects')
     ? 'site-header--on-dark'
     : 'site-header--on-light'
@@ -59,12 +75,13 @@ export default function SiteHeader({ brand, contact }) {
         </Link>
 
         <button
+          ref={toggleRef}
           className="nav-toggle"
           type="button"
           aria-expanded={menuOpen}
           aria-controls="primary-navigation"
           aria-label={menuOpen ? '關閉選單' : '開啟選單'}
-          onClick={() => setMenuOpen((open) => !open)}
+          onClick={toggleMenu}
         >
           <span />
           <span />
@@ -75,7 +92,7 @@ export default function SiteHeader({ brand, contact }) {
           type="button"
           aria-label="關閉主要導覽"
           tabIndex={menuOpen ? 0 : -1}
-          onClick={closeMenu}
+          onClick={() => closeMenu({ returnFocus: true })}
         />
 
         <nav
@@ -83,21 +100,51 @@ export default function SiteHeader({ brand, contact }) {
           className={`site-nav${menuOpen ? ' is-open' : ''}`}
           aria-label="主要導覽"
         >
-          {navigation.map((item) => (
-            <Link key={item.to} to={item.to} onClick={closeMenu}>
-              {item.label}
-            </Link>
-          ))}
-          <a
-            className="site-nav__contact"
-            href={contact.lineHref}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="LINE 聯絡曜聖景觀"
-            onClick={closeMenu}
-          >
-            LINE 聯絡
-          </a>
+          <div className="site-nav__meta" aria-hidden="true">
+            <span>MENU / 網站導覽</span>
+            <span>YAO SEI</span>
+          </div>
+          <div className="site-nav__index">
+            {navigation.map((item, index) => (
+              <Link
+                key={item.to}
+                ref={index === 0 ? firstLinkRef : undefined}
+                className="site-nav__item"
+                to={item.to}
+                aria-label={item.label}
+                onClick={closeMenu}
+              >
+                <span className="site-nav__number">{item.number}</span>
+                <span className="site-nav__wording">
+                  <strong>{item.label}</strong>
+                  <small>{item.english}</small>
+                </span>
+                <LeafIcon name="arrowLeaf" className="site-nav__arrow" />
+              </Link>
+            ))}
+          </div>
+          <div className="site-nav__contacts">
+            <a
+              className="site-nav__contact site-nav__contact--line"
+              href={contact.lineHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="LINE 聯絡"
+              onClick={closeMenu}
+            >
+              <LeafIcon name="sprout" />
+              <span>LINE 聯絡</span>
+            </a>
+            <a
+              className="site-nav__contact site-nav__contact--phone"
+              href={contact.phoneHref}
+              aria-label={`撥打 ${contact.mobile}`}
+              onClick={closeMenu}
+            >
+              <LeafIcon name="leaf" />
+              <span>{contact.mobile}</span>
+            </a>
+          </div>
         </nav>
       </div>
     </header>
