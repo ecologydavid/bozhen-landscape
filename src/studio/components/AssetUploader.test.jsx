@@ -131,6 +131,75 @@ test('keeps successful rows, continues after failure, and calls onUploaded only 
   expect(onUploaded).toHaveBeenNthCalledWith(2, { id: 'asset-3' })
 })
 
+test('keeps uploads successful and continues when onUploaded throws synchronously', async () => {
+  const upload = vi.fn()
+    .mockResolvedValueOnce({ id: 'asset-1' })
+    .mockResolvedValueOnce({ id: 'asset-2' })
+  const onUploaded = vi.fn()
+    .mockImplementationOnce(() => { throw new Error('render integration failed') })
+    .mockReturnValueOnce(undefined)
+  const user = userEvent.setup()
+
+  render(
+    <AssetUploader
+      projectId={projectId}
+      upload={upload}
+      onUploaded={onUploaded}
+    />,
+  )
+  await user.upload(screen.getByLabelText('選擇圖片'), [
+    createFile('first.jpg'),
+    createFile('second.jpg'),
+  ])
+
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
+  expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳成功')
+  expect(screen.getByText('second.jpg').closest('li')).toHaveTextContent('上傳成功')
+  expect(onUploaded).toHaveBeenCalledTimes(2)
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    '素材已上傳，但畫面更新失敗，請重新整理。',
+  )
+  expect(screen.getByRole('alert')).not.toHaveTextContent('render integration failed')
+})
+
+test('awaits an async onUploaded rejection without changing success or stopping the batch', async () => {
+  const callbackAttempt = deferred()
+  const upload = vi.fn()
+    .mockResolvedValueOnce({ id: 'asset-1' })
+    .mockResolvedValueOnce({ id: 'asset-2' })
+  const onUploaded = vi.fn()
+    .mockReturnValueOnce(callbackAttempt.promise)
+    .mockResolvedValueOnce(undefined)
+  const user = userEvent.setup()
+
+  render(
+    <AssetUploader
+      projectId={projectId}
+      upload={upload}
+      onUploaded={onUploaded}
+    />,
+  )
+  await user.upload(screen.getByLabelText('選擇圖片'), [
+    createFile('first.jpg'),
+    createFile('second.jpg'),
+  ])
+
+  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(1))
+  expect(upload).toHaveBeenCalledTimes(1)
+  expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳成功')
+
+  await act(async () => callbackAttempt.reject(new Error('async integration failed')))
+
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(2))
+  expect(screen.getByText('first.jpg').closest('li')).toHaveTextContent('上傳成功')
+  expect(screen.getByText('second.jpg').closest('li')).toHaveTextContent('上傳成功')
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    '素材已上傳，但畫面更新失敗，請重新整理。',
+  )
+  expect(screen.getByRole('alert')).not.toHaveTextContent('async integration failed')
+})
+
 test('prevents an overlapping batch while uploads are in flight', async () => {
   const pending = deferred()
   const upload = vi.fn().mockReturnValue(pending.promise)

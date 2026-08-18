@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest'
+import { StorageApiError, StorageUnknownError } from '@supabase/storage-js'
 import { uploadAsset } from './assets'
 
 const projectId = '11111111-1111-4111-8111-111111111111'
@@ -11,24 +12,52 @@ function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
   return file
 }
 
-function createClient({ uploadResult, insertResult, removeResult } = {}) {
+function createClient({ uploadResult, insertResult, removeResult, reconcileResult } = {}) {
   const upload = vi.fn().mockResolvedValue(uploadResult ?? { data: { path: 'uploaded' }, error: null })
   const remove = vi.fn().mockResolvedValue(removeResult ?? { data: null, error: null })
   const getPublicUrl = vi.fn()
   const bucket = { upload, remove, getPublicUrl }
   const storage = { from: vi.fn(() => bucket) }
-  const single = vi.fn().mockResolvedValue(insertResult ?? { data: { id: assetId }, error: null })
+  const single = vi.fn().mockResolvedValue(insertResult ?? {
+    data: { id: assetId },
+    error: null,
+    status: 201,
+  })
   const select = vi.fn(() => ({ single }))
   const insert = vi.fn(() => ({ select }))
-  const client = { storage, from: vi.fn(() => ({ insert })) }
+  const maybeSingle = vi.fn().mockResolvedValue(reconcileResult ?? {
+    data: null,
+    error: null,
+    status: 200,
+  })
+  const eq = vi.fn(() => ({ maybeSingle }))
+  const reconcileSelect = vi.fn(() => ({ eq }))
+  const client = {
+    storage,
+    from: vi.fn(() => ({ insert, select: reconcileSelect })),
+  }
 
-  return { client, upload, remove, getPublicUrl, storage, insert, select, single }
+  return {
+    client,
+    upload,
+    remove,
+    getPublicUrl,
+    storage,
+    insert,
+    select,
+    single,
+    reconcileSelect,
+    eq,
+    maybeSingle,
+  }
 }
 
 function upload(client, file, id = projectId, options = {}) {
   return uploadAsset(client, id, file, {
     randomUUID: () => assetId,
     reportCleanupError: vi.fn(),
+    recordRecovery: vi.fn(),
+    recoverPending: vi.fn().mockResolvedValue({ resolved: 0, remaining: 0 }),
     ...options,
   })
 }
@@ -109,13 +138,79 @@ test('rejects a path-traversal project id with a clear internal error', async ()
     .rejects.toThrow('Invalid project id: expected UUID')
 })
 
-test('throws an upload error unchanged and does not insert or remove', async () => {
-  const uploadError = new Error('private storage unavailable')
+test('throws a definitive Storage API error unchanged and does not insert or remove', async () => {
+  const uploadError = new StorageApiError('access denied', 403, 'AccessDenied')
   const mock = createClient({ uploadResult: { data: null, error: uploadError } })
 
   await expect(upload(mock.client, createFile())).rejects.toBe(uploadError)
   expect(mock.client.from).not.toHaveBeenCalled()
   expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('reconciles an unknown Storage upload outcome by removing before rejection', async () => {
+  const uploadError = new StorageUnknownError(
+    'network response unavailable',
+    new TypeError('fetch failed'),
+  )
+  const mock = createClient({ uploadResult: { data: null, error: uploadError } })
+
+  await expect(upload(mock.client, createFile())).rejects.toBe(uploadError)
+  expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
+  expect(mock.upload.mock.invocationCallOrder[0]).toBeLessThan(
+    mock.remove.mock.invocationCallOrder[0],
+  )
+  expect(mock.client.from).not.toHaveBeenCalled()
+})
+
+test('records unresolved cleanup after an unknown Storage outcome', async () => {
+  const uploadError = new StorageUnknownError(
+    'network response unavailable',
+    new TypeError('fetch failed'),
+  )
+  const cleanupError = new StorageUnknownError(
+    'cleanup response unavailable',
+    new TypeError('fetch failed'),
+  )
+  const recordRecovery = vi.fn()
+  const mock = createClient({
+    uploadResult: { data: null, error: uploadError },
+    removeResult: { data: null, error: cleanupError },
+  })
+
+  await expect(upload(mock.client, createFile(), projectId, { recordRecovery }))
+    .rejects.toBe(uploadError)
+  expect(recordRecovery).toHaveBeenCalledWith({
+    kind: 'cleanup',
+    assetId,
+    projectId,
+    storagePath: `raw/${projectId}/${assetId}.jpg`,
+  })
+  expect(mock.client.from).not.toHaveBeenCalled()
+})
+
+test('runs pending recovery after validation and isolates recovery failure from upload', async () => {
+  const recoverPending = vi.fn().mockRejectedValue(new Error('recovery unavailable'))
+  const mock = createClient()
+
+  await expect(upload(mock.client, createFile(), projectId, { recoverPending }))
+    .resolves.toEqual({ id: assetId })
+  expect(recoverPending).toHaveBeenCalledWith(mock.client)
+  expect(recoverPending.mock.invocationCallOrder[0]).toBeLessThan(
+    mock.upload.mock.invocationCallOrder[0],
+  )
+})
+
+test('invalid input never starts opportunistic recovery', async () => {
+  const recoverPending = vi.fn()
+  const mock = createClient()
+
+  await expect(upload(
+    mock.client,
+    createFile('clip.mp4', 'video/mp4'),
+    projectId,
+    { recoverPending },
+  )).rejects.toThrow()
+  expect(recoverPending).not.toHaveBeenCalled()
 })
 
 test('removes the uploaded object before rethrowing the same insert error', async () => {
@@ -125,6 +220,76 @@ test('removes the uploaded object before rethrowing the same insert error', asyn
   await expect(upload(mock.client, createFile())).rejects.toBe(insertError)
   expect(mock.remove).toHaveBeenCalledOnce()
   expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
+})
+
+test('returns a committed row after reconciling a status-0 insert response', async () => {
+  const insertError = { message: 'TypeError: fetch failed', code: '' }
+  const committedRow = { id: assetId, storage_path: `raw/${projectId}/${assetId}.jpg` }
+  const mock = createClient({
+    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
+    reconcileResult: { data: committedRow, error: null, status: 200 },
+  })
+
+  await expect(upload(mock.client, createFile())).resolves.toBe(committedRow)
+  expect(mock.reconcileSelect).toHaveBeenCalledWith(assetFields)
+  expect(mock.eq).toHaveBeenCalledWith('id', assetId)
+  expect(mock.maybeSingle).toHaveBeenCalledOnce()
+  expect(mock.single.mock.invocationCallOrder[0]).toBeLessThan(
+    mock.maybeSingle.mock.invocationCallOrder[0],
+  )
+  expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('also reconciles a transport status carried by the insert error', async () => {
+  const insertError = { message: 'TypeError: fetch failed', code: '', status: 0 }
+  const committedRow = { id: assetId, storage_path: `raw/${projectId}/${assetId}.jpg` }
+  const mock = createClient({
+    insertResult: { data: null, error: insertError },
+    reconcileResult: { data: committedRow, error: null, status: 200 },
+  })
+
+  await expect(upload(mock.client, createFile())).resolves.toBe(committedRow)
+  expect(mock.maybeSingle).toHaveBeenCalledOnce()
+  expect(mock.remove).not.toHaveBeenCalled()
+})
+
+test('removes Storage only after reconciliation confirms a status-0 insert is absent', async () => {
+  const insertError = { message: 'TypeError: fetch failed', code: '' }
+  const mock = createClient({
+    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
+    reconcileResult: { data: null, error: null, status: 200 },
+  })
+
+  await expect(upload(mock.client, createFile())).rejects.toBe(insertError)
+  expect(mock.maybeSingle).toHaveBeenCalledOnce()
+  expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
+  expect(mock.maybeSingle.mock.invocationCallOrder[0]).toBeLessThan(
+    mock.remove.mock.invocationCallOrder[0],
+  )
+})
+
+test('records reconciliation when the commit check fails and preserves the insert error', async () => {
+  const insertError = { message: 'TypeError: fetch failed', code: '' }
+  const reconcileError = { message: 'TypeError: fetch failed again', code: '' }
+  const recordRecovery = vi.fn()
+  const mock = createClient({
+    insertResult: { data: null, error: insertError, status: 0, statusText: '' },
+    reconcileResult: { data: null, error: reconcileError, status: 0, statusText: '' },
+  })
+
+  await expect(upload(mock.client, createFile(), projectId, { recordRecovery }))
+    .rejects.toBe(insertError)
+  expect(mock.maybeSingle).toHaveBeenCalledOnce()
+  expect(mock.remove).not.toHaveBeenCalled()
+  expect(recordRecovery).toHaveBeenCalledWith({
+    kind: 'reconcile_insert',
+    assetId,
+    projectId,
+    storagePath: `raw/${projectId}/${assetId}.jpg`,
+  })
+  expect(mock.maybeSingle.mock.invocationCallOrder[0]).toBeLessThan(
+    recordRecovery.mock.invocationCallOrder[0],
+  )
 })
 
 test('cleans up and preserves a rejected insert request error', async () => {

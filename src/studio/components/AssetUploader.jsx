@@ -74,6 +74,7 @@ export default function AssetUploader({
     setIsProcessing(true)
 
     const safeErrors = []
+    let callbackFailed = false
 
     try {
       for (const item of nextItems) {
@@ -87,25 +88,38 @@ export default function AssetUploader({
         }
 
         updateItem(item.id, 'uploading', generation)
+        let row
 
         try {
-          const row = await upload(client, projectId, validation.data)
-          if (!isActiveGeneration(generation)) return
-          updateItem(item.id, 'success', generation)
-          onUploaded?.(row)
+          row = await upload(client, projectId, validation.data)
         } catch {
           if (!isActiveGeneration(generation)) return
           safeErrors.push('圖片上傳失敗，請再試一次。')
           updateItem(item.id, 'failure', generation)
+          continue
+        }
+
+        if (!isActiveGeneration(generation)) return
+        updateItem(item.id, 'success', generation)
+
+        try {
+          await onUploaded?.(row)
+        } catch {
+          if (!isActiveGeneration(generation)) return
+          callbackFailed = true
         }
       }
 
-      if (isActiveGeneration(generation) && safeErrors.length > 0) {
-        setErrorMessage(
-          files.length === 1
+      if (isActiveGeneration(generation) && (safeErrors.length > 0 || callbackFailed)) {
+        const uploadMessage = safeErrors.length > 0
+          ? (files.length === 1
             ? safeErrors[0]
-            : '部分圖片上傳失敗，請再試一次。',
-        )
+            : '部分圖片上傳失敗，請再試一次。')
+          : ''
+        const callbackMessage = callbackFailed
+          ? '素材已上傳，但畫面更新失敗，請重新整理。'
+          : ''
+        setErrorMessage([uploadMessage, callbackMessage].filter(Boolean).join(' '))
       }
     } finally {
       if (isActiveGeneration(generation)) {
