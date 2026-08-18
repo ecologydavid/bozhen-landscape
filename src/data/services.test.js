@@ -7,7 +7,10 @@ test('services provide real imagery and a consistent plant icon', () => {
       id: expect.any(String),
       title: expect.any(String),
       summary: expect.any(String),
-      image: expect.anything(),
+      image: expect.objectContaining({
+        src: expect.stringMatching(/\.webp$/),
+        avifSrc: expect.stringMatching(/\.avif$/),
+      }),
       imageAlt: expect.any(String),
       icon: expect.stringMatching(/^(sprout|leaf|water|care)$/),
     }))

@@ -27,7 +27,10 @@ test('project slugs are unique and required content is present', () => {
         title: expect.any(String),
         category: expect.any(String),
         location: expect.any(String),
-        heroImage: expect.any(String),
+        heroImage: expect.objectContaining({
+          src: expect.stringMatching(/\.webp$/),
+          avifSrc: expect.stringMatching(/\.avif$/),
+        }),
         gallery: expect.any(Array),
         clientNeed: expect.any(String),
         designApproach: expect.any(String),
@@ -37,7 +40,6 @@ test('project slugs are unique and required content is present', () => {
         featured: expect.any(Boolean),
       }),
     )
-    expect(project.heroImage).toMatch(/\.webp$/)
     expect(project.focalPoint).toMatch(/^\d+% \d+%$/)
     const [horizontal, vertical] = project.focalPoint
       .split(' ')
@@ -47,7 +49,9 @@ test('project slugs are unique and required content is present', () => {
     expect(vertical).toBeGreaterThanOrEqual(0)
     expect(vertical).toBeLessThanOrEqual(100)
     expect(project.gallery.length).toBeGreaterThanOrEqual(2)
-    expect(project.gallery.every((image) => image.endsWith('.webp'))).toBe(true)
+    expect(project.gallery.every((image) => (
+      /\.webp$/.test(image.src) && /\.avif$/.test(image.avifSrc)
+    ))).toBe(true)
     expect(project.services.length).toBeGreaterThan(0)
   }
 })

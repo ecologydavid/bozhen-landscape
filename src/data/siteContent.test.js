@@ -25,5 +25,8 @@ test('stores the official Yao Sei brand and direct contact details', () => {
     description: '庭園設計・植栽綠化・假山水景・後續養護',
     alt: '彰化私人住宅庭園實景',
   })
-  expect(siteContent.hero.image).toMatch(/\.webp$/)
+  expect(siteContent.hero.image).toEqual(expect.objectContaining({
+    src: expect.stringMatching(/\.webp$/),
+    avifSrc: expect.stringMatching(/\.avif$/),
+  }))
 })

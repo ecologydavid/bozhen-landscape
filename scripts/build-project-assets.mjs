@@ -31,17 +31,28 @@ async function existingInput(folder, source) {
 await mkdir(outputRoot, { recursive: true })
 
 for (const item of projectAssetManifest) {
+  if (!item.approved) {
+    throw new Error(`Asset is not approved for public output: ${item.folder}/${item.source}`)
+  }
+
   const input = await existingInput(item.folder, item.source)
-  const output = path.join(outputRoot, item.output)
   const source = path.extname(input).toLowerCase() === '.heic'
     ? await convert({ buffer: await readFile(input), format: 'JPEG', quality: 0.96 })
     : input
 
-  await sharp(source, { unlimited: true })
+  const stem = path.parse(item.output).name
+  const image = sharp(source, { unlimited: true })
     .rotate()
     .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 84, effort: 5, smartSubsample: true })
-    .toFile(output)
+
+  await Promise.all([
+    image.clone()
+      .webp({ quality: 78, effort: 6, smartSubsample: true })
+      .toFile(path.join(outputRoot, `${stem}.webp`)),
+    image.clone()
+      .avif({ quality: 52, effort: 6, chromaSubsampling: '4:2:0' })
+      .toFile(path.join(outputRoot, `${stem}.avif`)),
+  ])
 }
 
-console.log(`Built ${projectAssetManifest.length} project assets.`)
+console.log(`Built ${projectAssetManifest.length} approved project assets in WebP and AVIF.`)

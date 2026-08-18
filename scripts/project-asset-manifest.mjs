@@ -25,4 +25,9 @@ export const projectAssetManifest = [
   ['puli-winery', 'IMG_1595.HEIC', 'puli-winery-03.webp'],
   ['puli-winery', 'IMG_1247.HEIC', 'puli-winery-04.webp'],
   ['puli-winery', 'IMG_1250.HEIC', 'puli-winery-05.webp'],
-].map(([folder, source, output]) => ({ folder, source, output }))
+].map(([folder, source, output]) => ({
+  folder,
+  source,
+  output,
+  approved: true,
+}))

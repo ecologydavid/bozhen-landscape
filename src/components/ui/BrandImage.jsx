@@ -1,13 +1,18 @@
 import { useState } from 'react'
 
-export default function BrandImage({ src, alt, onError, ...imageProps }) {
+const normalizeSource = (source) => (
+  typeof source === 'string' ? { src: source, avifSrc: '' } : source
+)
+
+export default function BrandImage({ src, alt, onError, className, ...imageProps }) {
+  const media = normalizeSource(src)
   const [failedSrc, setFailedSrc] = useState('')
-  const failed = failedSrc === src
+  const failed = failedSrc === media.src
 
   if (failed) {
     return (
       <div
-        className="image-fallback"
+        className={`image-fallback ${className ?? ''}`.trim()}
         role="img"
         aria-label={`${alt}（圖片暫時無法顯示）`}
       >
@@ -18,14 +23,18 @@ export default function BrandImage({ src, alt, onError, ...imageProps }) {
   }
 
   return (
-    <img
-      {...imageProps}
-      src={src}
-      alt={alt}
-      onError={(event) => {
-        setFailedSrc(src)
-        onError?.(event)
-      }}
-    />
+    <picture>
+      {media.avifSrc ? <source srcSet={media.avifSrc} type="image/avif" /> : null}
+      <img
+        {...imageProps}
+        className={className}
+        src={media.src}
+        alt={alt}
+        onError={(event) => {
+          setFailedSrc(media.src)
+          onError?.(event)
+        }}
+      />
+    </picture>
   )
 }
