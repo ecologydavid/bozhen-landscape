@@ -4,7 +4,7 @@ import HomePage from './HomePage'
 import { siteContent } from '../data/siteContent'
 
 test('renders the approved works-first homepage sections', () => {
-  render(
+  const { container } = render(
     <MemoryRouter>
       <HomePage
         brand={siteContent.brand}
@@ -12,6 +12,19 @@ test('renders the approved works-first homepage sections', () => {
         hero={siteContent.hero}
       />
     </MemoryRouter>,
+  )
+
+  const sceneSections = container.querySelectorAll('.scene-section[data-scene]')
+  expect([...sceneSections].map((section) => section.dataset.scene)).toEqual([
+    'plant',
+    'stone',
+    'water',
+    'craft',
+    'care',
+  ])
+  expect(container.querySelector('.editorial-home')).toHaveAttribute(
+    'data-active-scene',
+    'plant',
   )
 
   const heroHeading = screen.getByRole('heading', { name: '把自然，安放進日常' })

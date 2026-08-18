@@ -9,7 +9,7 @@ const ArrowIcon = () => (
 
 export default function ContactActions({ brand, contact }) {
   return (
-    <section className="contact-panel section" id="contact">
+    <section className="contact-panel section scene-section" id="contact" data-scene="care">
       <div className="container contact-panel__grid">
         <Reveal className="contact-panel__brand">
           <BrandImage

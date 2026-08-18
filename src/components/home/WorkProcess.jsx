@@ -3,7 +3,7 @@ import Reveal from '../ui/Reveal'
 
 export default function WorkProcess() {
   return (
-    <section className="work-process section">
+    <section className="work-process section scene-section" id="process" data-scene="craft">
       <div className="container">
         <Reveal className="section-heading section-heading--split">
           <p className="section-label">OUR PROCESS</p>

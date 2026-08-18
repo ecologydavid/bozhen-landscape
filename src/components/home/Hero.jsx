@@ -2,7 +2,12 @@ import BrandImage from '../ui/BrandImage'
 
 export default function Hero({ hero, contact }) {
   return (
-    <section className="hero" aria-labelledby="hero-title">
+    <section
+      className="hero scene-section"
+      id="home"
+      data-scene="plant"
+      aria-labelledby="hero-title"
+    >
       <div className="container hero__layout">
         <div className="hero__copy">
           <p className="hero__eyebrow">GREEN YOUR LIFE</p>

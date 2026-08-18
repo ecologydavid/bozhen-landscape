@@ -5,15 +5,21 @@ import BrandStory from '../components/home/BrandStory'
 import WorkProcess from '../components/home/WorkProcess'
 import ClientTypes from '../components/home/ClientTypes'
 import ContactActions from '../components/home/ContactActions'
+import ScrollEnvironment from '../components/home/ScrollEnvironment'
+import { homeScenes } from '../data/homeScenes'
+import { useActiveScene } from '../hooks/useActiveScene'
 
 export default function HomePage({ brand, contact, hero }) {
+  const activeScene = useActiveScene(homeScenes.map((scene) => scene.id))
+
   return (
-    <main className="editorial-home">
+    <main className="editorial-home" data-active-scene={activeScene}>
+      <ScrollEnvironment scenes={homeScenes} activeScene={activeScene} />
       <Hero hero={hero} contact={contact} />
       <FeaturedProjects />
       <ServiceOverview />
-      <BrandStory />
       <WorkProcess />
+      <BrandStory />
       <ClientTypes />
       <ContactActions brand={brand} contact={contact} />
     </main>

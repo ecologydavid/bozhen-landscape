@@ -3,7 +3,7 @@ import Reveal from '../ui/Reveal'
 
 export default function ServiceOverview() {
   return (
-    <section className="services section" id="services">
+    <section className="services section scene-section" id="services" data-scene="water">
       <div className="container">
         <Reveal className="section-heading section-heading--split">
           <p className="section-label">OUR SERVICES</p>

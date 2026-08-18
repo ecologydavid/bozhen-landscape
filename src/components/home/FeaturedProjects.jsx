@@ -7,7 +7,11 @@ export default function FeaturedProjects() {
   const featuredProjects = projects.filter((project) => project.featured)
 
   return (
-    <section className="featured-projects section">
+    <section
+      className="featured-projects section scene-section"
+      id="works"
+      data-scene="stone"
+    >
       <div className="container">
         <Reveal className="section-heading section-heading--projects">
           <div>
