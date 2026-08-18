@@ -11,6 +11,16 @@ test('renders the LINE and phone contact links from site content', () => {
 
   expect(lineLink).toHaveAttribute('href', siteContent.contact.lineHref)
   expect(lineLink).toHaveClass('leaf-contact-links__item', 'leaf-contact-links__line')
+  expect(lineLink).toHaveAttribute('target', '_blank')
+  expect(lineLink).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
   expect(phoneLink).toHaveAttribute('href', siteContent.contact.phoneHref)
   expect(phoneLink).toHaveClass('leaf-contact-links__item', 'leaf-contact-links__phone')
+})
+
+test('preserves a custom wrapper class for mobile presentation', () => {
+  const { container } = render(
+    <LeafContactLinks contact={siteContent.contact} className="leaf-contact-links--mobile" />,
+  )
+
+  expect(container.querySelector('.leaf-contact-links')).toHaveClass('leaf-contact-links--mobile')
 })

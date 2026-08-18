@@ -291,6 +291,10 @@
     line-height: 1.9;
   }
 
+  .hero__actions > .leaf-contact-links {
+    display: none;
+  }
+
   .service-list {
     grid-template-columns: repeat(2, 1fr);
   }
