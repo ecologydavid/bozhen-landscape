@@ -521,12 +521,17 @@
   content: '';
 }
 
-.contact-panel__brand img {
+.contact-panel__brand img,
+.contact-panel__brand > .image-fallback {
   width: 100%;
   aspect-ratio: 933 / 568;
   border-radius: var(--radius-image);
   box-shadow: 0 28px 70px rgba(24, 25, 26, 0.28);
   object-fit: cover;
+}
+
+.contact-panel__brand > .image-fallback {
+  min-height: 0;
 }
 
 .contact-panel__content h2 {
