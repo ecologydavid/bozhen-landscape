@@ -13,8 +13,11 @@ function getViewportIntersectionRatio(node) {
     return null
   }
 
-  const rootTop = viewportHeight * 0.18
-  const rootBottom = viewportHeight * 0.62
+  const rootTop = Math.min(viewportHeight, viewportWidth * 0.18)
+  const rootBottom = Math.max(0, viewportHeight - viewportWidth * 0.38)
+
+  if (rootBottom <= rootTop) return null
+
   const visibleWidth = Math.max(
     0,
     Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0),

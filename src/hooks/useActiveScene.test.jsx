@@ -8,6 +8,8 @@ let observerInstances
 let originalIntersectionObserver
 let originalRequestAnimationFrame
 let originalCancelAnimationFrame
+let originalInnerWidth
+let originalInnerHeight
 let requestAnimationFrameMock
 let cancelAnimationFrameMock
 let frameCallback
@@ -36,6 +38,8 @@ beforeEach(() => {
   originalIntersectionObserver = window.IntersectionObserver
   originalRequestAnimationFrame = window.requestAnimationFrame
   originalCancelAnimationFrame = window.cancelAnimationFrame
+  originalInnerWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth')
+  originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
   window.IntersectionObserver = ObserverMock
   requestAnimationFrameMock = vi.fn((callback) => {
     frameCallback = callback
@@ -53,6 +57,8 @@ afterEach(() => {
   window.IntersectionObserver = originalIntersectionObserver
   window.requestAnimationFrame = originalRequestAnimationFrame
   window.cancelAnimationFrame = originalCancelAnimationFrame
+  Object.defineProperty(window, 'innerWidth', originalInnerWidth)
+  Object.defineProperty(window, 'innerHeight', originalInnerHeight)
 })
 
 test('activates the most visible scene', () => {
@@ -137,23 +143,28 @@ test('refines cached ratios against the observer root bounds on scroll', () => {
   render(<Probe />)
 
   const [plant, stone] = document.querySelectorAll('[data-scene]')
-  const rootTop = window.innerHeight * 0.18
-  const rootBottom = window.innerHeight * 0.62
+  Object.defineProperties(window, {
+    innerWidth: { configurable: true, value: 1200 },
+    innerHeight: { configurable: true, value: 800 },
+  })
+
+  const rootTop = window.innerWidth * 0.18
+  const rootBottom = window.innerHeight - window.innerWidth * 0.38
   vi.spyOn(plant, 'getBoundingClientRect').mockReturnValue({
-    top: 0,
+    top: 300,
     right: window.innerWidth,
-    bottom: 600,
+    bottom: rootBottom + 356,
     left: 0,
     width: window.innerWidth,
-    height: 600,
+    height: 400,
   })
   vi.spyOn(stone, 'getBoundingClientRect').mockReturnValue({
-    top: rootTop + 20,
-    right: window.innerWidth * 0.9,
-    bottom: rootBottom - 20,
-    left: window.innerWidth * -0.1,
+    top: rootTop,
+    right: window.innerWidth,
+    bottom: rootBottom + 656,
+    left: 0,
     width: window.innerWidth,
-    height: rootBottom - rootTop - 40,
+    height: rootBottom + 656 - rootTop,
   })
 
   act(() =>
