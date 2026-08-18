@@ -52,7 +52,40 @@ test('shows a permission message to an authenticated non-admin', () => {
     </MemoryRouter>,
   )
 
-  expect(screen.getByText('此帳號沒有內容工作室權限。')).toBeInTheDocument()
+  expect(screen.getByRole('main')).toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    '此帳號沒有內容工作室權限。',
+  )
+})
+
+test('marks the loading guard as an accessible status view', () => {
+  useStudioAuth.mockReturnValue({ status: 'loading' })
+
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <StudioApp />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('main')).toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent(
+    '正在確認內容工作室權限…',
+  )
+})
+
+test('marks an auth failure as an accessible alert view', () => {
+  useStudioAuth.mockReturnValue({ status: 'error' })
+
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <StudioApp />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('main')).toBeInTheDocument()
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    '無法確認內容工作室權限，請稍後再試。',
+  )
 })
 
 test('keeps the workspace closed for an unknown auth status', () => {
@@ -112,4 +145,57 @@ test('disables login submission while authentication is pending', async () => {
 
   expect(submit).toBeDisabled()
   resolveSignIn()
+})
+
+test('leaves the login route for the workspace after authentication succeeds', async () => {
+  const user = userEvent.setup()
+  const signIn = vi.fn().mockResolvedValue({})
+  let authState = { status: 'anonymous', signIn }
+  useStudioAuth.mockImplementation(() => authState)
+  const renderRoute = () => (
+    <MemoryRouter initialEntries={['/studio/login']}>
+      <StudioApp />
+    </MemoryRouter>
+  )
+  const { rerender } = render(renderRoute())
+
+  await user.type(screen.getByLabelText('電子郵件'), 'admin@example.com')
+  await user.type(screen.getByLabelText('密碼'), 'password')
+  await user.click(screen.getByRole('button', { name: '登入' }))
+  expect(signIn).toHaveBeenCalledWith('admin@example.com', 'password')
+
+  authState = {
+    status: 'admin',
+    user: { email: 'admin@example.com' },
+    signIn,
+  }
+  rerender(renderRoute())
+
+  expect(
+    await screen.findByRole('heading', { name: '內容工作室' }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('heading', { name: '內容工作室登入' }),
+  ).not.toBeInTheDocument()
+})
+
+test('leaves the login route for the denial guard when the user is not an admin', async () => {
+  let authState = { status: 'anonymous', signIn: vi.fn() }
+  useStudioAuth.mockImplementation(() => authState)
+  const renderRoute = () => (
+    <MemoryRouter initialEntries={['/studio/login']}>
+      <StudioApp />
+    </MemoryRouter>
+  )
+  const { rerender } = render(renderRoute())
+
+  authState = { status: 'forbidden' }
+  rerender(renderRoute())
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    '此帳號沒有內容工作室權限。',
+  )
+  expect(
+    screen.queryByRole('heading', { name: '內容工作室登入' }),
+  ).not.toBeInTheDocument()
 })

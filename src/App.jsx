@@ -16,9 +16,18 @@ export default function App() {
   const location = useLocation()
   const { brand, contact } = siteContent
 
-  if (location.pathname.startsWith('/studio')) {
+  if (
+    location.pathname === '/studio' ||
+    location.pathname.startsWith('/studio/')
+  ) {
     return (
-      <Suspense fallback={<p>正在載入內容工作室…</p>}>
+      <Suspense
+        fallback={
+          <main>
+            <p role="status">正在載入內容工作室…</p>
+          </main>
+        }
+      >
         <StudioRoot />
       </Suspense>
     )

@@ -1,12 +1,17 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useStudioAuth } from '../auth/StudioAuthProvider'
 
 export default function StudioLoginPage() {
-  const { signIn } = useStudioAuth()
+  const { signIn, status } = useStudioAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
+
+  if (status === 'admin' || status === 'forbidden') {
+    return <Navigate to="/studio" replace />
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()

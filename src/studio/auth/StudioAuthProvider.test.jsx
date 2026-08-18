@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, vi } from 'vitest'
 import StudioAuthProvider, { useStudioAuth } from './StudioAuthProvider'
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   from: vi.fn(),
   unsubscribe: vi.fn(),
+  authStateChangeCallback: null,
 }))
 
 vi.mock('../lib/supabase', () => ({
@@ -43,8 +44,11 @@ function AuthProbe() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mocks.onAuthStateChange.mockReturnValue({
-    data: { subscription: { unsubscribe: mocks.unsubscribe } },
+  mocks.onAuthStateChange.mockImplementation((callback) => {
+    mocks.authStateChangeCallback = callback
+    return {
+      data: { subscription: { unsubscribe: mocks.unsubscribe } },
+    }
   })
 })
 
@@ -168,4 +172,77 @@ test('ignores a pending session lookup after unmount', async () => {
   await waitFor(() => expect(mocks.unsubscribe).toHaveBeenCalledOnce())
   expect(consoleError).not.toHaveBeenCalled()
   consoleError.mockRestore()
+})
+
+test('a newer auth event supersedes an older getSession result', async () => {
+  let resolveSession
+  mocks.getSession.mockReturnValue(
+    new Promise((resolve) => {
+      resolveSession = resolve
+    }),
+  )
+  const currentUser = { id: 'user-current', email: 'current@example.com' }
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: { user_id: currentUser.id },
+    error: null,
+  })
+  mocks.from.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({ maybeSingle }),
+    }),
+  })
+
+  render(
+    <StudioAuthProvider>
+      <AuthProbe />
+    </StudioAuthProvider>,
+  )
+
+  await act(async () => {
+    mocks.authStateChangeCallback('SIGNED_IN', { user: currentUser })
+  })
+  expect(await screen.findByText('admin')).toBeInTheDocument()
+
+  await act(async () => {
+    resolveSession({ data: { session: null }, error: null })
+  })
+  expect(screen.getByText('admin')).toBeInTheDocument()
+  expect(screen.getByText('current@example.com')).toBeInTheDocument()
+})
+
+test('a late admin lookup cannot override a subsequent signed-out event', async () => {
+  let resolveLookup
+  const sessionUser = { id: 'user-old', email: 'old@example.com' }
+  const maybeSingle = vi.fn().mockReturnValue(
+    new Promise((resolve) => {
+      resolveLookup = resolve
+    }),
+  )
+  mocks.from.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({ maybeSingle }),
+    }),
+  })
+  mocks.getSession.mockResolvedValue({
+    data: { session: { user: sessionUser } },
+    error: null,
+  })
+
+  render(
+    <StudioAuthProvider>
+      <AuthProbe />
+    </StudioAuthProvider>,
+  )
+
+  await waitFor(() => expect(maybeSingle).toHaveBeenCalledOnce())
+  await act(async () => {
+    mocks.authStateChangeCallback('SIGNED_OUT', null)
+  })
+  expect(screen.getByText('anonymous')).toBeInTheDocument()
+
+  await act(async () => {
+    resolveLookup({ data: { user_id: sessionUser.id }, error: null })
+  })
+  expect(screen.getByText('anonymous')).toBeInTheDocument()
+  expect(screen.queryByText('old@example.com')).not.toBeInTheDocument()
 })

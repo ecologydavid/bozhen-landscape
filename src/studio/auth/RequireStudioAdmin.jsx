@@ -5,7 +5,11 @@ export default function RequireStudioAdmin() {
   const { status } = useStudioAuth()
 
   if (status === 'loading') {
-    return <p>正在確認內容工作室權限…</p>
+    return (
+      <main>
+        <p role="status">正在確認內容工作室權限…</p>
+      </main>
+    )
   }
 
   if (status === 'anonymous') {
@@ -13,11 +17,19 @@ export default function RequireStudioAdmin() {
   }
 
   if (status === 'forbidden') {
-    return <p>此帳號沒有內容工作室權限。</p>
+    return (
+      <main>
+        <p role="alert">此帳號沒有內容工作室權限。</p>
+      </main>
+    )
   }
 
   if (status !== 'admin') {
-    return <p>無法確認內容工作室權限，請稍後再試。</p>
+    return (
+      <main>
+        <p role="alert">無法確認內容工作室權限，請稍後再試。</p>
+      </main>
+    )
   }
 
   return <Outlet />
