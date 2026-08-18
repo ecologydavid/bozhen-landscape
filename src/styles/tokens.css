@@ -10,7 +10,7 @@
   --font-display: 'Noto Serif TC', 'Songti TC', serif;
   --font-body: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
   --font-utility: 'Manrope Variable', 'Noto Sans TC', sans-serif;
-  --font-editorial: 'Cormorant Garamond', Georgia, serif;
+  --font-editorial: var(--font-utility);
   --container: min(1480px, calc(100% - 64px));
   --radius-control: 7px;
   --radius-panel: 9px;

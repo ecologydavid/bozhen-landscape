@@ -8,8 +8,10 @@
   "scripts": {
     "test": "vitest",
     "assets:build": "node scripts/build-project-assets.mjs",
+    "fonts:build": "node scripts/build-local-fonts.mjs",
+    "fonts:check": "node scripts/check-font-budget.mjs",
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run fonts:build && vite build && npm run fonts:check",
     "preview": "vite preview",
     "lint": "eslint ."
   },
@@ -38,6 +40,7 @@
     "heic-convert": "^2.1.0",
     "jsdom": "^29.1.1",
     "sharp": "^0.35.3",
+    "subset-font": "2.5.0",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
   },
