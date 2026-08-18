@@ -1,6 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useLocation } from 'react-router-dom'
 import LeafContactLinks from '../ui/LeafContactLinks'
+
+function getNavigationSnapshot() {
+  return document.body.classList.contains('nav-open')
+}
+
+function subscribeToNavigationState(onStoreChange) {
+  if (typeof window.MutationObserver === 'undefined') return () => {}
+
+  const observer = new window.MutationObserver(onStoreChange)
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class'],
+  })
+
+  return () => observer.disconnect()
+}
 
 export default function MobileQuoteBar({ contact }) {
   const { pathname } = useLocation()
@@ -15,8 +31,10 @@ export default function MobileQuoteBar({ contact }) {
 
 function MobileQuoteBarContent({ contact, isHome }) {
   const [isHeroVisible, setIsHeroVisible] = useState(() => isHome)
-  const [isNavOpen, setIsNavOpen] = useState(() =>
-    document.body.classList.contains('nav-open'),
+  const isNavOpen = useSyncExternalStore(
+    subscribeToNavigationState,
+    getNavigationSnapshot,
+    () => false,
   )
   const isVisible = !isNavOpen && (!isHome || !isHeroVisible)
 
@@ -33,20 +51,6 @@ function MobileQuoteBarContent({ contact, isHome }) {
 
     return () => observer.disconnect()
   }, [isHome])
-
-  useEffect(() => {
-    if (typeof window.MutationObserver === 'undefined') return undefined
-
-    const observer = new window.MutationObserver(() => {
-      setIsNavOpen(document.body.classList.contains('nav-open'))
-    })
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-
-    return () => observer.disconnect()
-  }, [])
 
   return (
     <nav

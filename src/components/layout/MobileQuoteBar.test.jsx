@@ -1,6 +1,7 @@
-import { StrictMode } from 'react'
-import { act, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { StrictMode, useLayoutEffect } from 'react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import { Link, MemoryRouter, useLocation } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import MobileQuoteBar from './MobileQuoteBar'
 import { siteContent } from '../../data/siteContent'
@@ -47,6 +48,28 @@ function renderBar(pathname, strict = false) {
   )
 
   return render(strict ? <StrictMode>{content}</StrictMode> : content)
+}
+
+function MenuNavigationHarness() {
+  const { pathname } = useLocation()
+
+  useLayoutEffect(() => {
+    if (pathname === '/projects') document.body.classList.remove('nav-open')
+  }, [pathname])
+
+  return (
+    <>
+      <Link
+        to="/projects"
+        onClick={() => {
+          document.body.classList.add('nav-open')
+        }}
+      >
+        作品案例
+      </Link>
+      <MobileQuoteBar contact={siteContent.contact} />
+    </>
+  )
 }
 
 beforeEach(() => {
@@ -116,6 +139,25 @@ test('hides quick contacts accessibly while the navigation menu is open', () => 
   document.body.classList.remove('nav-open')
   act(() => mutationObserverInstances[0].callback())
   expect(screen.getByRole('navigation', { name: '快速聯絡' })).toHaveClass('is-visible')
+})
+
+test('resyncs contacts after navigation closes an open menu in StrictMode', async () => {
+  const user = userEvent.setup()
+  const { container } = render(
+    <StrictMode>
+      <MemoryRouter initialEntries={['/']}>
+        <MenuNavigationHarness />
+      </MemoryRouter>
+    </StrictMode>,
+  )
+
+  await user.click(screen.getByRole('link', { name: '作品案例' }))
+  await waitFor(() => expect(document.body).not.toHaveClass('nav-open'))
+
+  const navigation = container.querySelector('.mobile-contact-bar')
+  expect(navigation).toHaveClass('is-visible')
+  expect(navigation).toHaveAttribute('aria-hidden', 'false')
+  expect(navigation).not.toHaveAttribute('inert')
 })
 
 test('disconnects every Hero observer created by StrictMode', () => {
