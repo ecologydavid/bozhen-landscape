@@ -8,6 +8,7 @@ import {
   realpath,
   rename,
   rm,
+  writeFile,
 } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -23,9 +24,51 @@ const defaultRoots = {
 
 const inputPixelLimit = 40_000_000
 export const responsiveAssetWidths = [480, 768, 1280, 1920]
+export const responsiveMetadataFilename = 'responsive-media.json'
 
 function responsiveOutputName(stem, width, extension) {
   return `${stem}${width === 1920 ? '' : `-${width}`}.${extension}`
+}
+
+function emptyResponsiveMetadata() {
+  return { version: 1, assets: {} }
+}
+
+async function decodedWidth(file) {
+  // Read the staged file into memory first so Windows does not retain a file
+  // handle that can prevent the staging directory's atomic rename.
+  const contents = await readFile(file)
+  const metadata = await sharp(contents, { limitInputPixels: inputPixelLimit }).metadata()
+  if (!metadata.width) throw new Error(`Missing staged image width: ${path.basename(file)}`)
+  return metadata.width
+}
+
+async function createResponsiveMetadata(stagingRoot, assets) {
+  const metadata = emptyResponsiveMetadata()
+  for (const item of [...assets].sort((left, right) => left.stem.localeCompare(right.stem))) {
+    metadata.assets[item.stem] = {}
+    for (const extension of ['avif', 'webp']) {
+      metadata.assets[item.stem][extension] = []
+      for (const tier of responsiveAssetWidths) {
+        const file = responsiveOutputName(item.stem, tier, extension)
+        metadata.assets[item.stem][extension].push({
+          file,
+          tier,
+          width: await decodedWidth(path.join(stagingRoot, file)),
+        })
+      }
+    }
+  }
+  return metadata
+}
+
+export async function writeResponsiveMetadata(stagingRoot, assets) {
+  const metadata = await createResponsiveMetadata(stagingRoot, assets)
+  await writeFile(
+    path.join(stagingRoot, responsiveMetadataFilename),
+    `${JSON.stringify(metadata, null, 2)}\n`,
+    'utf8',
+  )
 }
 
 function isWithin(root, target) {
@@ -209,19 +252,23 @@ export async function validateStagedAssets(stagingRoot, assets) {
       responsiveOutputName(stem, width, 'avif'),
     ])
   )))
+  expected.add(responsiveMetadataFilename)
   const files = await readdir(stagingRoot)
   if (files.length !== expected.size || files.some((file) => !expected.has(file))) {
     throw new Error(`Staged asset count mismatch: expected ${expected.size}, received ${files.length}`)
   }
 
+  const actualWidths = new Map()
   for (const item of assets) {
     for (const width of responsiveAssetWidths) {
+      const webpFilename = responsiveOutputName(item.stem, width, 'webp')
+      const avifFilename = responsiveOutputName(item.stem, width, 'avif')
       const webp = await validatedMetadata(
-        path.join(stagingRoot, responsiveOutputName(item.stem, width, 'webp')),
+        path.join(stagingRoot, webpFilename),
         'webp',
       )
       const avif = await validatedMetadata(
-        path.join(stagingRoot, responsiveOutputName(item.stem, width, 'avif')),
+        path.join(stagingRoot, avifFilename),
         'avif',
       )
       if (webp.width !== avif.width || webp.height !== avif.height) {
@@ -230,7 +277,31 @@ export async function validateStagedAssets(stagingRoot, assets) {
       if (Math.max(webp.width, webp.height) > width) {
         throw new Error(`Staged asset exceeds responsive width: ${item.stem} at ${width}px`)
       }
+      actualWidths.set(webpFilename, webp.width)
+      actualWidths.set(avifFilename, avif.width)
     }
+  }
+
+  let metadata
+  try {
+    metadata = JSON.parse(
+      await readFile(path.join(stagingRoot, responsiveMetadataFilename), 'utf8'),
+    )
+  } catch (error) {
+    throw new Error('Invalid staged responsive metadata', { cause: error })
+  }
+  const expectedMetadata = emptyResponsiveMetadata()
+  for (const item of [...assets].sort((left, right) => left.stem.localeCompare(right.stem))) {
+    expectedMetadata.assets[item.stem] = {}
+    for (const extension of ['avif', 'webp']) {
+      expectedMetadata.assets[item.stem][extension] = responsiveAssetWidths.map((tier) => {
+        const file = responsiveOutputName(item.stem, tier, extension)
+        return { file, tier, width: actualWidths.get(file) }
+      })
+    }
+  }
+  if (JSON.stringify(metadata) !== JSON.stringify(expectedMetadata)) {
+    throw new Error('Staged responsive metadata does not match decoded assets')
   }
 }
 
@@ -323,6 +394,7 @@ export async function buildProjectAssets({
   editedRoot = defaultRoots.editedRoot,
   outputRoot = defaultRoots.outputRoot,
   encodeAsset = encodeProjectAsset,
+  writeMetadata = writeResponsiveMetadata,
   validateAssets = validateStagedAssets,
 } = {}) {
   const assets = await preflightProjectAssets(manifest, { originalRoot, editedRoot })
@@ -341,6 +413,7 @@ export async function buildProjectAssets({
 
   try {
     for (const item of assets) await encodeAsset(item, stagingRoot)
+    await writeMetadata(stagingRoot, assets)
     await validateAssets(stagingRoot, assets)
     await publishStagedAssets(stagingRoot, resolvedOutputRoot)
     return assets.length

@@ -211,6 +211,23 @@ test('keeps published output unchanged when staged formats fail validation', asy
   await expectPublishedOutputUnchanged(fixture, before)
 })
 
+test('keeps published output unchanged when responsive metadata generation fails', async () => {
+  const fixture = await createAtomicFixture()
+  const before = await snapshotDirectory(fixture.outputRoot)
+
+  await expect(buildProjectAssets({
+    manifest: [
+      { folder: 'first', source: 'valid.png', output: 'first.webp', approved: true },
+    ],
+    ...fixture,
+    writeMetadata: async () => {
+      throw new Error('responsive metadata failed')
+    },
+  })).rejects.toThrow('responsive metadata failed')
+
+  await expectPublishedOutputUnchanged(fixture, before)
+})
+
 test('publishes four responsive widths in both formats and removes every swap directory on success', async () => {
   const fixture = await createAtomicFixture()
 
@@ -230,6 +247,7 @@ test('publishes four responsive widths in both formats and removes every swap di
     'first-768.webp',
     'first.avif',
     'first.webp',
+    'responsive-media.json',
   ])
   const siblings = await readdir(path.dirname(fixture.outputRoot))
   const prefix = path.basename(fixture.outputRoot)

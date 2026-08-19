@@ -1,0 +1,1201 @@
+{
+  "version": 1,
+  "assets": {
+    "changhua-residence-01": {
+      "avif": [
+        {
+          "file": "changhua-residence-01-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-01-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-01-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-01.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "changhua-residence-01-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-01-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-01-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-01.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "changhua-residence-02": {
+      "avif": [
+        {
+          "file": "changhua-residence-02-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-02-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-02-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-02.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "changhua-residence-02-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-02-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-02-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-02.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "changhua-residence-03": {
+      "avif": [
+        {
+          "file": "changhua-residence-03-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-03-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-03-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-03.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "changhua-residence-03-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-03-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-03-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-03.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "changhua-residence-04": {
+      "avif": [
+        {
+          "file": "changhua-residence-04-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-04-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-04-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-04.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "changhua-residence-04-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-04-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-04-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-04.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "changhua-residence-05": {
+      "avif": [
+        {
+          "file": "changhua-residence-05-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-05-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-05-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-05.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "changhua-residence-05-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "changhua-residence-05-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "changhua-residence-05-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "changhua-residence-05.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "nantun-residence-01": {
+      "avif": [
+        {
+          "file": "nantun-residence-01-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-01-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-01-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-01.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "nantun-residence-01-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-01-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-01-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-01.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "nantun-residence-02": {
+      "avif": [
+        {
+          "file": "nantun-residence-02-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-02-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-02-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-02.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "nantun-residence-02-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-02-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-02-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-02.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "nantun-residence-03": {
+      "avif": [
+        {
+          "file": "nantun-residence-03-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-03-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-03-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-03.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "nantun-residence-03-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-03-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-03-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-03.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "nantun-residence-04": {
+      "avif": [
+        {
+          "file": "nantun-residence-04-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-04-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-04-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-04.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "nantun-residence-04-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-04-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-04-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-04.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "nantun-residence-05": {
+      "avif": [
+        {
+          "file": "nantun-residence-05-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-05-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-05-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-05.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "nantun-residence-05-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "nantun-residence-05-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "nantun-residence-05-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "nantun-residence-05.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "puli-winery-01": {
+      "avif": [
+        {
+          "file": "puli-winery-01-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-01-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-01-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-01.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "puli-winery-01-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-01-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-01-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-01.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "puli-winery-02": {
+      "avif": [
+        {
+          "file": "puli-winery-02-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-02-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-02-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-02.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "puli-winery-02-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-02-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-02-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-02.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "puli-winery-03": {
+      "avif": [
+        {
+          "file": "puli-winery-03-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-03-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-03-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-03.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "puli-winery-03-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-03-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-03-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-03.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "puli-winery-04": {
+      "avif": [
+        {
+          "file": "puli-winery-04-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-04-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-04-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-04.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "puli-winery-04-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-04-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-04-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-04.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "puli-winery-05": {
+      "avif": [
+        {
+          "file": "puli-winery-05-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-05-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-05-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-05.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "puli-winery-05-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "puli-winery-05-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "puli-winery-05-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "puli-winery-05.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "taichung-maintenance-01": {
+      "avif": [
+        {
+          "file": "taichung-maintenance-01-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-01-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-01-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-01.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "taichung-maintenance-01-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-01-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-01-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-01.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "taichung-maintenance-02": {
+      "avif": [
+        {
+          "file": "taichung-maintenance-02-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-02-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-02-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-02.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "taichung-maintenance-02-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-02-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-02-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-02.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "taichung-maintenance-03": {
+      "avif": [
+        {
+          "file": "taichung-maintenance-03-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-03-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-03-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-03.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "taichung-maintenance-03-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-03-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-03-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-03.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "taichung-maintenance-04": {
+      "avif": [
+        {
+          "file": "taichung-maintenance-04-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-04-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-04-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-04.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "taichung-maintenance-04-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "taichung-maintenance-04-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "taichung-maintenance-04-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "taichung-maintenance-04.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "taichung-maintenance-05": {
+      "avif": [
+        {
+          "file": "taichung-maintenance-05-480.avif",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taichung-maintenance-05-768.avif",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taichung-maintenance-05-1280.avif",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taichung-maintenance-05.avif",
+          "tier": 1920,
+          "width": 1440
+        }
+      ],
+      "webp": [
+        {
+          "file": "taichung-maintenance-05-480.webp",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taichung-maintenance-05-768.webp",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taichung-maintenance-05-1280.webp",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taichung-maintenance-05.webp",
+          "tier": 1920,
+          "width": 1440
+        }
+      ]
+    },
+    "taoyuan-greenwall-01": {
+      "avif": [
+        {
+          "file": "taoyuan-greenwall-01-480.avif",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taoyuan-greenwall-01-768.avif",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taoyuan-greenwall-01-1280.avif",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taoyuan-greenwall-01.avif",
+          "tier": 1920,
+          "width": 1440
+        }
+      ],
+      "webp": [
+        {
+          "file": "taoyuan-greenwall-01-480.webp",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taoyuan-greenwall-01-768.webp",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taoyuan-greenwall-01-1280.webp",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taoyuan-greenwall-01.webp",
+          "tier": 1920,
+          "width": 1440
+        }
+      ]
+    },
+    "taoyuan-greenwall-02": {
+      "avif": [
+        {
+          "file": "taoyuan-greenwall-02-480.avif",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taoyuan-greenwall-02-768.avif",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taoyuan-greenwall-02-1280.avif",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taoyuan-greenwall-02.avif",
+          "tier": 1920,
+          "width": 1440
+        }
+      ],
+      "webp": [
+        {
+          "file": "taoyuan-greenwall-02-480.webp",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "taoyuan-greenwall-02-768.webp",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "taoyuan-greenwall-02-1280.webp",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "taoyuan-greenwall-02.webp",
+          "tier": 1920,
+          "width": 1440
+        }
+      ]
+    },
+    "tianzhong-courtyard-01": {
+      "avif": [
+        {
+          "file": "tianzhong-courtyard-01-480.avif",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "tianzhong-courtyard-01-768.avif",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "tianzhong-courtyard-01-1280.avif",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "tianzhong-courtyard-01.avif",
+          "tier": 1920,
+          "width": 1440
+        }
+      ],
+      "webp": [
+        {
+          "file": "tianzhong-courtyard-01-480.webp",
+          "tier": 480,
+          "width": 360
+        },
+        {
+          "file": "tianzhong-courtyard-01-768.webp",
+          "tier": 768,
+          "width": 576
+        },
+        {
+          "file": "tianzhong-courtyard-01-1280.webp",
+          "tier": 1280,
+          "width": 960
+        },
+        {
+          "file": "tianzhong-courtyard-01.webp",
+          "tier": 1920,
+          "width": 1440
+        }
+      ]
+    },
+    "tianzhong-courtyard-02": {
+      "avif": [
+        {
+          "file": "tianzhong-courtyard-02-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-02-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-02-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-02.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "tianzhong-courtyard-02-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-02-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-02-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-02.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "tianzhong-courtyard-03": {
+      "avif": [
+        {
+          "file": "tianzhong-courtyard-03-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-03-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-03-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-03.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "tianzhong-courtyard-03-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-03-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-03-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-03.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    },
+    "tianzhong-courtyard-04": {
+      "avif": [
+        {
+          "file": "tianzhong-courtyard-04-480.avif",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-04-768.avif",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-04-1280.avif",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-04.avif",
+          "tier": 1920,
+          "width": 1920
+        }
+      ],
+      "webp": [
+        {
+          "file": "tianzhong-courtyard-04-480.webp",
+          "tier": 480,
+          "width": 480
+        },
+        {
+          "file": "tianzhong-courtyard-04-768.webp",
+          "tier": 768,
+          "width": 768
+        },
+        {
+          "file": "tianzhong-courtyard-04-1280.webp",
+          "tier": 1280,
+          "width": 1280
+        },
+        {
+          "file": "tianzhong-courtyard-04.webp",
+          "tier": 1920,
+          "width": 1920
+        }
+      ]
+    }
+  }
+}
