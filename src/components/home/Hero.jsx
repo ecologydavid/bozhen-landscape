@@ -22,6 +22,7 @@ export default function Hero({ hero, contact }) {
             className="hero__image"
             src={hero.image}
             alt={hero.alt}
+            sizes="(max-width: 768px) calc(100vw - 52px), (max-width: 1280px) 54vw, 720px"
             loading="eager"
             decoding="async"
             fetchPriority="high"

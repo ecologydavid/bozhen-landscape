@@ -30,3 +30,7 @@ test('stores the official Yao Sei brand and direct contact details', () => {
     avifSrc: expect.stringMatching(/\.avif$/),
   }))
 })
+
+test('serves a compact WebP logo while retaining the printed brand artwork', () => {
+  expect(siteContent.brand.logoSrc).toMatch(/yaosei-logo-compact\.webp$/)
+})

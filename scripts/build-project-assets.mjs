@@ -22,6 +22,11 @@ const defaultRoots = {
 }
 
 const inputPixelLimit = 40_000_000
+export const responsiveAssetWidths = [480, 768, 1280, 1920]
+
+function responsiveOutputName(stem, width, extension) {
+  return `${stem}${width === 1920 ? '' : `-${width}`}.${extension}`
+}
 
 function isWithin(root, target) {
   const relative = path.relative(root, target)
@@ -156,18 +161,24 @@ export async function encodeProjectAsset(item, stagingRoot) {
   const source = path.extname(item.input).toLowerCase() === '.heic'
     ? await convert({ buffer: await readFile(item.input), format: 'JPEG', quality: 0.96 })
     : await readFile(item.input)
-  const image = sharp(source, { limitInputPixels: inputPixelLimit })
-    .rotate()
-    .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+  const image = sharp(source, { limitInputPixels: inputPixelLimit }).rotate()
 
-  await Promise.all([
-    image.clone()
-      .webp({ quality: 78, effort: 6, smartSubsample: true })
-      .toFile(path.join(stagingRoot, `${item.stem}.webp`)),
-    image.clone()
-      .avif({ quality: 52, effort: 6, chromaSubsampling: '4:2:0' })
-      .toFile(path.join(stagingRoot, `${item.stem}.avif`)),
-  ])
+  for (const width of responsiveAssetWidths) {
+    const resized = image.clone().resize({
+      width,
+      height: width,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    await Promise.all([
+      resized.clone()
+        .webp({ quality: 78, effort: 6, smartSubsample: true })
+        .toFile(path.join(stagingRoot, responsiveOutputName(item.stem, width, 'webp'))),
+      resized.clone()
+        .avif({ quality: 52, effort: 6, chromaSubsampling: '4:2:0' })
+        .toFile(path.join(stagingRoot, responsiveOutputName(item.stem, width, 'avif'))),
+    ])
+  }
 }
 
 async function validatedMetadata(file, expectedFormat) {
@@ -192,20 +203,33 @@ async function validatedMetadata(file, expectedFormat) {
 }
 
 export async function validateStagedAssets(stagingRoot, assets) {
-  const expected = new Set(assets.flatMap(({ stem }) => [
-    `${stem}.webp`,
-    `${stem}.avif`,
-  ]))
+  const expected = new Set(assets.flatMap(({ stem }) => (
+    responsiveAssetWidths.flatMap((width) => [
+      responsiveOutputName(stem, width, 'webp'),
+      responsiveOutputName(stem, width, 'avif'),
+    ])
+  )))
   const files = await readdir(stagingRoot)
   if (files.length !== expected.size || files.some((file) => !expected.has(file))) {
     throw new Error(`Staged asset count mismatch: expected ${expected.size}, received ${files.length}`)
   }
 
   for (const item of assets) {
-    const webp = await validatedMetadata(path.join(stagingRoot, `${item.stem}.webp`), 'webp')
-    const avif = await validatedMetadata(path.join(stagingRoot, `${item.stem}.avif`), 'avif')
-    if (webp.width !== avif.width || webp.height !== avif.height) {
-      throw new Error(`Staged asset dimensions do not match: ${item.stem}`)
+    for (const width of responsiveAssetWidths) {
+      const webp = await validatedMetadata(
+        path.join(stagingRoot, responsiveOutputName(item.stem, width, 'webp')),
+        'webp',
+      )
+      const avif = await validatedMetadata(
+        path.join(stagingRoot, responsiveOutputName(item.stem, width, 'avif')),
+        'avif',
+      )
+      if (webp.width !== avif.width || webp.height !== avif.height) {
+        throw new Error(`Staged asset dimensions do not match: ${item.stem} at ${width}px`)
+      }
+      if (Math.max(webp.width, webp.height) > width) {
+        throw new Error(`Staged asset exceeds responsive width: ${item.stem} at ${width}px`)
+      }
     }
   }
 }
@@ -340,5 +364,5 @@ const isDirectRun = Boolean(
 
 if (isDirectRun) {
   const count = await buildProjectAssets()
-  console.log(`Built ${count} approved project assets in WebP and AVIF.`)
+  console.log(`Built ${count} approved project assets at four responsive widths in WebP and AVIF.`)
 }

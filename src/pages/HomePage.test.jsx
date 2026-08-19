@@ -67,6 +67,17 @@ test('renders the approved works-first homepage sections', () => {
   const worksHeading = screen.getByRole('heading', { name: '作品，是最直接的回答' })
   const servicesHeading = screen.getByRole('heading', { name: '以專業工法，完成自然的尺度' })
   expect(heroHeading).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: '彰化私人住宅庭園實景' })).toHaveAttribute(
+    'sizes',
+    '(max-width: 768px) calc(100vw - 52px), (max-width: 1280px) 54vw, 720px',
+  )
+  expect(screen.getByRole('img', { name: '彰化私人住宅庭園實景' })).toHaveAttribute(
+    'fetchpriority',
+    'high',
+  )
+  expect(screen.getByRole('img', {
+    name: '彰化私人住宅整理完成後的植栽與石材鋪面庭園',
+  })).toHaveAttribute('loading', 'lazy')
   expect(heroHeading.compareDocumentPosition(worksHeading)).toBe(
     Node.DOCUMENT_POSITION_FOLLOWING,
   )

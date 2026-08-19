@@ -10,6 +10,7 @@
 - 正式 LINE、手機、公司電話與 Email 直接聯絡。
 - 無報價表單，不儲存訪客資料。
 - 專案圖片由人工核准的 HEIC／JPG 原稿產出本地 AVIF／WebP；Google Drive 原稿不會被建置腳本修改。
+- 26 張核准作品各自提供 480／768／1280／1920 四種寬度與 AVIF／WebP fallback，共 208 個公開衍生檔。
 
 ## 環境需求
 
@@ -39,7 +40,7 @@ npm run test:e2e
 1. 原稿只放在忽略版控的 `workbench/landscape-originals`。
 2. 自然商業修美副本放在 `workbench/landscape-edited`。
 3. 人工核准後才在 `scripts/project-asset-manifest.mjs` 設定 `approved: true`。
-4. 執行 `npm run assets:build` 產生 AVIF／WebP。
+4. 執行 `npm run assets:build`，原子化產生四種 responsive 寬度的 AVIF／WebP；所有檔案驗證成功後才會替換公開目錄。
 5. 檢查修美前後對照與網站裁切後，再提交 `src/assets/projects`。
 
 `npm run assets:build` 是素材維護者重新產圖時使用的指令。全新 clone 不包含已忽略版控的私有 `workbench/landscape-originals` 原稿，因此直接執行會出現 `Missing source`；一般開發與 `npm run build` 會直接使用已提交至 `src/assets/projects` 的 AVIF／WebP，不需要原稿。

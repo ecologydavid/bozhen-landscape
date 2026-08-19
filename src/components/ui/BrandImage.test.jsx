@@ -14,6 +14,38 @@ test('prefers AVIF while preserving the WebP fallback', () => {
   expect(screen.getByRole('img', { name: '庭園' })).toHaveAttribute('src', '/garden.webp')
 })
 
+test('forwards responsive candidates and sizes to both formats', () => {
+  const { container } = render(
+    <BrandImage
+      src={{
+        src: '/garden.webp',
+        avifSrc: '/garden.avif',
+        srcSet: '/garden-480.webp 480w, /garden.webp 1920w',
+        avifSrcSet: '/garden-480.avif 480w, /garden.avif 1920w',
+      }}
+      sizes="(max-width: 768px) calc(100vw - 52px), 720px"
+      alt="庭園"
+    />,
+  )
+
+  expect(container.querySelector('source')).toHaveAttribute(
+    'srcset',
+    '/garden-480.avif 480w, /garden.avif 1920w',
+  )
+  expect(container.querySelector('source')).toHaveAttribute(
+    'sizes',
+    '(max-width: 768px) calc(100vw - 52px), 720px',
+  )
+  expect(screen.getByRole('img', { name: '庭園' })).toHaveAttribute(
+    'srcset',
+    '/garden-480.webp 480w, /garden.webp 1920w',
+  )
+  expect(screen.getByRole('img', { name: '庭園' })).toHaveAttribute(
+    'sizes',
+    '(max-width: 768px) calc(100vw - 52px), 720px',
+  )
+})
+
 test('keeps string sources compatible without an AVIF source', () => {
   const { container } = render(<BrandImage src="/garden.webp" alt="庭園" />)
 

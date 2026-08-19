@@ -4,6 +4,7 @@ const pagesBasePath = '/bozhen-landscape/'
 const homeUrl = './#/'
 
 const viewports = [
+  { name: 'compact-320', width: 320, height: 720 },
   { name: 'mobile-360', width: 360, height: 800 },
   { name: 'tablet-768', width: 768, height: 1024 },
   { name: 'desktop-1280', width: 1280, height: 900 },
@@ -48,12 +49,13 @@ async function expectHealthyProductionPage(page, route) {
 }
 
 async function expectVisibleContactPairToFit(page) {
-  const pair = page.locator('.leaf-contact-links:visible')
-  await expect(pair).toHaveCount(1)
-  const links = pair.locator('.leaf-contact-links__item')
-  await expect(links).toHaveCount(2)
+  const pairs = page.locator('.leaf-contact-links:visible')
+  expect(await pairs.count()).toBeGreaterThanOrEqual(1)
 
-  for (let index = 0; index < await links.count(); index += 1) {
+  for (let pairIndex = 0; pairIndex < await pairs.count(); pairIndex += 1) {
+    const links = pairs.nth(pairIndex).locator('.leaf-contact-links__item')
+    await expect(links).toHaveCount(2)
+    for (let index = 0; index < await links.count(); index += 1) {
     const geometry = await links.nth(index).evaluate((anchor) => {
       const label = anchor.querySelector(':scope > span')
       if (!label) return null
@@ -90,6 +92,7 @@ async function expectVisibleContactPairToFit(page) {
     expect(geometry.label.right).toBeLessThanOrEqual(geometry.anchor.right + 1)
     expect(geometry.label.top).toBeGreaterThanOrEqual(geometry.anchor.top - 1)
     expect(geometry.label.bottom).toBeLessThanOrEqual(geometry.anchor.bottom + 1)
+    }
   }
 }
 
@@ -189,6 +192,116 @@ test('mobile menu is full, refined, focus-trapped, and closeable', async ({ page
   await expect(toggle).toBeFocused()
   await expect(page.locator('body')).not.toHaveClass(/nav-open/)
   expect(issues, issues.join('\n')).toEqual([])
+})
+
+test('browser back closes an open menu, restores content, and focuses the returned route', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+  await page.goto('./#/projects', { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: '開啟選單' }).click()
+
+  const content = page.locator('.site-content')
+  await expect(content).toHaveAttribute('inert', '')
+  await expect(content).toHaveAttribute('aria-hidden', 'true')
+  await page.evaluate(() => document.querySelector('main a')?.focus())
+  await expect(page.getByRole('link', { name: '作品案例' })).toBeFocused()
+
+  await page.goBack({ waitUntil: 'networkidle' })
+
+  await expect(page).toHaveURL(/#\/$/)
+  await expect(page.locator('#primary-navigation')).not.toHaveClass(/is-open/)
+  await expect(content).not.toHaveAttribute('inert')
+  await expect(content).not.toHaveAttribute('aria-hidden')
+  await expect(page.locator('main')).toBeFocused()
+  await expect(page.getByRole('button', { name: '開啟選單' })).not.toBeFocused()
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+for (const width of [360, 768]) {
+  test(`${width}px Hero keeps direct leaf contacts while the fixed bar waits below the fold`, async ({ page }) => {
+    const issues = watchPageHealth(page)
+    await page.setViewportSize({ width, height: width === 360 ? 800 : 1024 })
+    await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+    const heroContacts = page.locator('.hero__actions .leaf-contact-links')
+    await expect(heroContacts).toBeVisible()
+    await expect(heroContacts.getByRole('link', { name: 'LINE 聯絡' })).toBeVisible()
+    await expect(heroContacts.getByRole('link', { name: '撥打 0921-047-049' })).toBeVisible()
+    await expect(page.locator('.mobile-contact-bar')).not.toHaveClass(/is-visible/)
+    await expect(page.locator('.mobile-contact-bar')).toHaveAttribute('aria-hidden', 'true')
+    await expectVisibleContactPairToFit(page)
+
+    await page.locator('#services').scrollIntoViewIfNeeded()
+    await expect(page.locator('.mobile-contact-bar')).toHaveClass(/is-visible/)
+    expect(issues, issues.join('\n')).toEqual([])
+  })
+}
+
+test('craft-to-care bridge remains continuous across its internal section boundary', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+  const bridge = page.locator('[data-transition="craft-to-care"]')
+  await expect(bridge).toBeVisible()
+
+  const contract = await bridge.evaluate((node) => {
+    const brand = node.querySelector('.brand-story')
+    const clients = node.querySelector('.client-types')
+    const brandRect = brand.getBoundingClientRect()
+    const clientsRect = clients.getBoundingClientRect()
+    return {
+      backgroundImage: getComputedStyle(node).backgroundImage,
+      brandBackground: getComputedStyle(brand).backgroundColor,
+      clientsBackground: getComputedStyle(clients).backgroundColor,
+      boundaryGap: Math.abs(brandRect.bottom - clientsRect.top),
+      brandColor: getComputedStyle(brand.querySelector('h2')).color,
+      clientsColor: getComputedStyle(clients.querySelector('h2')).color,
+    }
+  })
+
+  expect(contract.backgroundImage).toContain('linear-gradient')
+  expect(contract.brandBackground).toBe('rgba(0, 0, 0, 0)')
+  expect(contract.clientsBackground).toBe('rgba(0, 0, 0, 0)')
+  expect(contract.boundaryGap).toBeLessThanOrEqual(1)
+  expect(contract.brandColor).toBe('rgb(250, 249, 245)')
+  expect(contract.clientsColor).toBe('rgb(250, 249, 245)')
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+test.describe('mobile performance budget', () => {
+  test.describe.configure({ retries: 2 })
+
+  test('390px selects the 480 AVIF Hero and reaches LCP within 2.5 seconds', async ({ page, context }) => {
+    const client = await context.newCDPSession(page)
+    await client.send('Network.enable')
+    await client.send('Network.setCacheDisabled', { cacheDisabled: true })
+    await client.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 150,
+      downloadThroughput: 500_000,
+      uploadThroughput: 500_000,
+    })
+    await client.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+    await page.addInitScript(() => {
+      window.__yaoseiLcp = []
+      new PerformanceObserver((list) => {
+        window.__yaoseiLcp.push(...list.getEntries().map((entry) => entry.startTime))
+      }).observe({ type: 'largest-contentful-paint', buffered: true })
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(homeUrl, { waitUntil: 'networkidle' })
+    await expect(page.locator('.hero__image')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    const result = await page.locator('.hero__image').evaluate((image) => ({
+      currentSrc: image.currentSrc,
+      lcp: Math.max(...window.__yaoseiLcp),
+    }))
+    expect(result.currentSrc).toMatch(/changhua-residence-03-480.*\.avif(?:\?|$)/)
+    expect(result.lcp).toBeGreaterThan(0)
+    expect(result.lcp).toBeLessThanOrEqual(2_500)
+  })
 })
 
 test('reduced motion keeps all five scenes readable and activates each environment', async ({ page }) => {

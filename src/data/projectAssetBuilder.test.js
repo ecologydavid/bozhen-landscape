@@ -14,7 +14,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { platform } from 'node:process'
 import { afterEach, expect, test } from 'vitest'
-import { buildProjectAssets } from '../../scripts/build-project-assets.mjs'
+import {
+  buildProjectAssets,
+  responsiveAssetWidths,
+} from '../../scripts/build-project-assets.mjs'
 
 const temporaryRoots = []
 
@@ -195,17 +198,20 @@ test('keeps published output unchanged when staged formats fail validation', asy
     ],
     ...fixture,
     encodeAsset: async (item, stagingRoot) => {
-      await Promise.all([
-        writeFile(path.join(stagingRoot, `${item.stem}.webp`), validPng),
-        writeFile(path.join(stagingRoot, `${item.stem}.avif`), validPng),
-      ])
+      await Promise.all(responsiveAssetWidths.flatMap((width) => {
+        const suffix = width === 1920 ? '' : `-${width}`
+        return [
+          writeFile(path.join(stagingRoot, `${item.stem}${suffix}.webp`), validPng),
+          writeFile(path.join(stagingRoot, `${item.stem}${suffix}.avif`), validPng),
+        ]
+      }))
     },
   })).rejects.toThrow('Invalid staged WebP format')
 
   await expectPublishedOutputUnchanged(fixture, before)
 })
 
-test('publishes a complete pair and removes every swap directory on success', async () => {
+test('publishes four responsive widths in both formats and removes every swap directory on success', async () => {
   const fixture = await createAtomicFixture()
 
   await expect(buildProjectAssets({
@@ -216,6 +222,12 @@ test('publishes a complete pair and removes every swap directory on success', as
   })).resolves.toBe(1)
 
   expect((await readdir(fixture.outputRoot)).sort()).toEqual([
+    'first-1280.avif',
+    'first-1280.webp',
+    'first-480.avif',
+    'first-480.webp',
+    'first-768.avif',
+    'first-768.webp',
     'first.avif',
     'first.webp',
   ])

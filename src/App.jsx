@@ -27,7 +27,7 @@ export default function App() {
         inert={menuOpen ? true : undefined}
         aria-hidden={menuOpen ? 'true' : undefined}
       >
-        <ScrollToHash />
+        <ScrollToHash focusBlocked={menuOpen} />
         <Routes>
           <Route
             path="/"

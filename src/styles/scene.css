@@ -141,9 +141,21 @@
   --ink: #faf9f5;
   --muted: rgba(250, 249, 245, 0.78);
   --line: rgba(250, 249, 245, 0.24);
-  background: rgba(18, 28, 22, 0.76);
   color: var(--ink);
-  transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);
+  transition: color var(--scene-transition) var(--ease);
+}
+
+.scene-section[data-scene='care'] {
+  background: rgba(18, 28, 22, 0.76);
+}
+
+.scene-section.contact-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(112, 76, 39, 0.8) 0%,
+    rgba(24, 34, 28, 0.9) 30%,
+    rgba(24, 34, 28, 0.9) 100%
+  );
 }
 
 @media (min-width: 1025px) {

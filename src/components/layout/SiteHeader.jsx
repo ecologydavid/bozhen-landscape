@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { navigation } from '../../data/navigation'
 import LeafIcon from '../ui/LeafIcon'
@@ -23,15 +23,15 @@ export default function SiteHeader({
     pathname: location.pathname,
   })
 
-  const setMenuOpen = (nextOpen) => {
+  const setMenuOpen = useCallback((nextOpen) => {
     if (controlledMenuOpen === undefined) setUncontrolledMenuOpen(nextOpen)
     onMenuOpenChange?.(nextOpen)
-  }
+  }, [controlledMenuOpen, onMenuOpenChange])
 
-  const closeMenu = ({ returnFocus = false } = {}) => {
+  const closeMenu = useCallback(({ returnFocus = false } = {}) => {
     returnFocusRef.current = returnFocus
     setMenuOpen(false)
-  }
+  }, [setMenuOpen])
 
   const toggleMenu = () => {
     if (menuOpen) closeMenu({ returnFocus: true })
@@ -52,7 +52,7 @@ export default function SiteHeader({
     if (!locationChanged) return
     returnFocusRef.current = false
     setMenuOpen(false)
-  }, [location.hash, location.key, location.pathname])
+  }, [location.hash, location.key, location.pathname, setMenuOpen])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24)
@@ -101,7 +101,7 @@ export default function SiteHeader({
       document.body.classList.remove('nav-open')
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [menuOpen])
+  }, [closeMenu, menuOpen])
 
   useEffect(() => {
     if (!menuOpen && returnFocusRef.current) {

@@ -17,7 +17,10 @@ test('provides transparent light-on-dark surfaces for scene-marked sections', ()
     /\.scene-section\[data-scene='craft'\]\s*\{[\s\S]*?background:\s*rgba\(15,\s*28,\s*23,\s*0\.7\);/,
   )
   expect(stylesheet).toMatch(
-    /\.scene-section\[data-scene='care'\],\s*\.scene-section\.contact-panel\s*\{[\s\S]*?--ink:\s*#faf9f5;[\s\S]*?background:\s*rgba\(18,\s*28,\s*22,\s*0\.76\);/,
+    /\.scene-section\[data-scene='care'\],\s*\.scene-section\.contact-panel\s*\{[\s\S]*?--ink:\s*#faf9f5;[\s\S]*?color:\s*var\(--ink\);/,
+  )
+  expect(stylesheet).toMatch(
+    /\.scene-section\[data-scene='care'\]\s*\{\s*background:\s*rgba\(18,\s*28,\s*22,\s*0\.76\);/,
   )
 })
 
@@ -41,4 +44,7 @@ test('bridges craft into care without opaque section bands', () => {
   )
   expect(homeStyles).not.toMatch(/\.brand-story\s*\{\s*background:\s*var\(--paper\)/)
   expect(homeStyles).not.toMatch(/\.client-types\s*\{[\s\S]*?background:\s*var\(--paper\)/)
+  expect(sceneStyles).toMatch(
+    /\.scene-section\.contact-panel\s*\{[\s\S]*?linear-gradient\([\s\S]*?rgba\(112,\s*76,\s*39,\s*0\.8\)[\s\S]*?rgba\(24,\s*34,\s*28,\s*0\.9\)/,
+  )
 })

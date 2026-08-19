@@ -1,4 +1,4 @@
-import logoSrc from '../assets/brand/yaosei-logo.jpg'
+import logoSrc from '../assets/brand/yaosei-logo-compact.webp'
 import companyCardSrc from '../assets/brand/yaosei-company-card.jpg'
 import { media } from './projectMedia'
 

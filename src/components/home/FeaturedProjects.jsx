@@ -32,7 +32,6 @@ export default function FeaturedProjects() {
             <Reveal key={project.slug}>
               <ProjectCard
                 project={project}
-                priority={index === 0}
                 index={String(index + 1).padStart(2, '0')}
               />
             </Reveal>
