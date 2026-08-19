@@ -296,7 +296,8 @@
   }
 
   .hero__actions > .leaf-contact-links {
-    display: none;
+    display: grid;
+    width: min(100%, 430px);
   }
 
   .service-list,

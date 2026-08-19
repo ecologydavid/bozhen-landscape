@@ -21,8 +21,10 @@ export default function HomePage({ brand, contact, hero }) {
       <FeaturedProjects />
       <ServiceOverview />
       <WorkProcess />
-      <BrandStory />
-      <ClientTypes />
+      <div className="craft-care-bridge" data-transition="craft-to-care">
+        <BrandStory />
+        <ClientTypes />
+      </div>
       <ContactActions brand={brand} contact={contact} />
     </main>
   )

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useNavigate } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import { siteContent } from '../../data/siteContent'
 
@@ -127,4 +127,39 @@ test('keeps the drawer interactive after the header becomes scrolled', async () 
   expect(screen.getByRole('navigation', { name: '主要導覽' })).toHaveClass(
     'is-open',
   )
+})
+
+function PopHarness({ onMenuOpenChange }) {
+  const navigate = useNavigate()
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/projects')}>Forward</button>
+      <button type="button" onClick={() => navigate(-1)}>Back</button>
+      <SiteHeader
+        brand={siteContent.brand}
+        contact={siteContent.contact}
+        onMenuOpenChange={onMenuOpenChange}
+      />
+    </>
+  )
+}
+
+test('reports menu state and clears return focus when location changes', async () => {
+  const user = userEvent.setup()
+  const onMenuOpenChange = vi.fn()
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <PopHarness onMenuOpenChange={onMenuOpenChange} />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: 'Forward' }))
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(onMenuOpenChange).toHaveBeenLastCalledWith(true)
+
+  await user.click(screen.getByRole('button', { name: 'Back' }))
+
+  await waitFor(() => expect(onMenuOpenChange).toHaveBeenLastCalledWith(false))
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass('is-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).not.toHaveFocus()
 })

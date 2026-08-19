@@ -3,14 +3,30 @@ import { Link, useLocation } from 'react-router-dom'
 import { navigation } from '../../data/navigation'
 import LeafIcon from '../ui/LeafIcon'
 
-export default function SiteHeader({ brand, contact }) {
+export default function SiteHeader({
+  brand,
+  contact,
+  menuOpen: controlledMenuOpen,
+  onMenuOpenChange,
+}) {
   const location = useLocation()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [uncontrolledMenuOpen, setUncontrolledMenuOpen] = useState(false)
+  const menuOpen = controlledMenuOpen ?? uncontrolledMenuOpen
   const [scrolled, setScrolled] = useState(false)
   const toggleRef = useRef(null)
   const firstLinkRef = useRef(null)
   const navRef = useRef(null)
   const returnFocusRef = useRef(false)
+  const previousLocationRef = useRef({
+    hash: location.hash,
+    key: location.key,
+    pathname: location.pathname,
+  })
+
+  const setMenuOpen = (nextOpen) => {
+    if (controlledMenuOpen === undefined) setUncontrolledMenuOpen(nextOpen)
+    onMenuOpenChange?.(nextOpen)
+  }
 
   const closeMenu = ({ returnFocus = false } = {}) => {
     returnFocusRef.current = returnFocus
@@ -21,6 +37,22 @@ export default function SiteHeader({ brand, contact }) {
     if (menuOpen) closeMenu({ returnFocus: true })
     else setMenuOpen(true)
   }
+
+  useEffect(() => {
+    const previousLocation = previousLocationRef.current
+    const locationChanged = previousLocation.key !== location.key
+      || previousLocation.pathname !== location.pathname
+      || previousLocation.hash !== location.hash
+    previousLocationRef.current = {
+      hash: location.hash,
+      key: location.key,
+      pathname: location.pathname,
+    }
+
+    if (!locationChanged) return
+    returnFocusRef.current = false
+    setMenuOpen(false)
+  }, [location.hash, location.key, location.pathname])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24)

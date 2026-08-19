@@ -98,6 +98,34 @@
   color: var(--ink);
 }
 
+.craft-care-bridge {
+  --ink: #faf9f5;
+  --muted: rgba(250, 249, 245, 0.78);
+  --line: rgba(250, 249, 245, 0.24);
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(30, 43, 34, 0.72) 0%,
+    rgba(65, 66, 43, 0.78) 48%,
+    rgba(112, 76, 39, 0.8) 100%
+  );
+  color: var(--ink);
+}
+
+.craft-care-bridge .brand-story,
+.craft-care-bridge .client-types {
+  background: transparent;
+}
+
+.craft-care-bridge .brand-story__content h2,
+.craft-care-bridge .client-types__heading h2 {
+  color: var(--ink);
+}
+
+.craft-care-bridge .brand-story__content > p:not(.section-label) {
+  color: var(--muted);
+}
+
 .scene-section[data-scene='water'] {
   background: rgba(13, 29, 23, 0.84);
   transition: background-color var(--scene-transition) var(--ease), color var(--scene-transition) var(--ease);

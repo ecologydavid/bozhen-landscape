@@ -229,3 +229,54 @@ test('focuses main after POP returns to the initial route key', async () => {
   expect(screen.getByRole('main')).toHaveClass('projects-page')
   delete HTMLElement.prototype.scrollIntoView
 })
+
+test('makes every surface outside the header inert only while the menu is open', async () => {
+  const user = userEvent.setup()
+  const { container } = render(
+    <MemoryRouter initialEntries={['/']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  const content = container.querySelector('.site-content')
+  expect(content).not.toHaveAttribute('inert')
+  expect(content).not.toHaveAttribute('aria-hidden')
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(content).toHaveAttribute('inert')
+  expect(content).toHaveAttribute('aria-hidden', 'true')
+  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+
+  await user.keyboard('{Escape}')
+  expect(content).not.toHaveAttribute('inert')
+  expect(content).not.toHaveAttribute('aria-hidden')
+})
+
+test('closes an open menu on POP without returning focus to the stale toggle', async () => {
+  const user = userEvent.setup()
+  const scrollIntoView = vi.fn()
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: scrollIntoView,
+  })
+
+  render(
+    <MemoryRouter initialEntries={['/projects']}>
+      <HistoryNavigation />
+      <App />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: 'Go contact' }))
+  await waitFor(() => expect(document.getElementById('contact')).toHaveFocus())
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: 'Go back' }))
+
+  await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass('is-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).not.toHaveFocus()
+  expect(document.querySelector('.site-content')).not.toHaveAttribute('inert')
+  delete HTMLElement.prototype.scrollIntoView
+})

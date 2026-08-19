@@ -54,6 +54,7 @@
   right: 36px;
   width: 54px;
   height: 54px;
+  border-radius: 50%;
   background: var(--sun-500);
   box-shadow: 0 12px 34px rgba(232, 164, 72, 0.3);
 }
@@ -338,10 +339,6 @@
   transform: translate(4px, -2px) rotate(3deg);
 }
 
-.brand-story {
-  background: var(--paper);
-}
-
 .brand-story__grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.9fr);
@@ -456,7 +453,6 @@
 
 .client-types {
   padding-block: 90px;
-  background: var(--paper);
 }
 
 .client-types .container {

@@ -5,8 +5,11 @@ import { expect, test } from 'vitest'
 const stylesheet = readFileSync(resolve('src/styles/responsive.css'), 'utf8')
 const tokens = readFileSync(resolve('src/styles/tokens.css'), 'utf8')
 
-test('hides only Hero inline contact links at mobile widths', () => {
+test('keeps the Hero direct contact pair visible at mobile widths', () => {
   expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.hero__actions > \.leaf-contact-links \{[\s\S]*?display: grid;/,
+  )
+  expect(stylesheet).not.toMatch(
     /@media \(max-width: 768px\) \{[\s\S]*?\.hero__actions > \.leaf-contact-links \{\s*display: none;/,
   )
 })

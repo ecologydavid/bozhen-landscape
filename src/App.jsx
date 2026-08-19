@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import SiteHeader from './components/layout/SiteHeader'
 import SiteFooter from './components/layout/SiteFooter'
@@ -11,22 +12,34 @@ import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
   const { brand, contact } = siteContent
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="site-shell">
-      <SiteHeader brand={brand} contact={contact} />
-      <ScrollToHash />
-      <Routes>
-        <Route
-          path="/"
-          element={<HomePage brand={brand} contact={contact} hero={siteContent.hero} />}
-        />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/projects/:slug" element={<ProjectDetailPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-      <SiteFooter brand={brand} contact={contact} />
-      <MobileQuoteBar contact={contact} />
+      <SiteHeader
+        brand={brand}
+        contact={contact}
+        menuOpen={menuOpen}
+        onMenuOpenChange={setMenuOpen}
+      />
+      <div
+        className="site-content"
+        inert={menuOpen ? true : undefined}
+        aria-hidden={menuOpen ? 'true' : undefined}
+      >
+        <ScrollToHash />
+        <Routes>
+          <Route
+            path="/"
+            element={<HomePage brand={brand} contact={contact} hero={siteContent.hero} />}
+          />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:slug" element={<ProjectDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+        <SiteFooter brand={brand} contact={contact} />
+        <MobileQuoteBar contact={contact} />
+      </div>
     </div>
   )
 }

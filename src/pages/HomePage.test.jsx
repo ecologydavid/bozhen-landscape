@@ -51,9 +51,13 @@ test('renders the approved works-first homepage sections', () => {
     'featured-projects section scene-section',
     'services section scene-section',
     'work-process section scene-section',
+    'contact-panel section scene-section',
+  ])
+  const bridge = home.querySelector('.craft-care-bridge')
+  expect(bridge).toHaveAttribute('data-transition', 'craft-to-care')
+  expect([...bridge.querySelectorAll(':scope > section')].map((section) => section.className)).toEqual([
     'brand-story section',
     'client-types section',
-    'contact-panel section scene-section',
   ])
   homeScenes.forEach(({ id, sectionId }) => {
     expect(home.querySelector(`#${sectionId}`)).toHaveAttribute('data-scene', id)

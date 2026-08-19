@@ -10,6 +10,10 @@ test('fills the Hero media frame with its image and fallback on desktop', () => 
   )
 })
 
+test('keeps the Hero sun circular at every viewport', () => {
+  expect(stylesheet).toMatch(/\.hero__sun \{[^}]*border-radius:\s*50%;/)
+})
+
 test('fills service cards with images or accessible fallbacks without duplicate overlay copy', () => {
   expect(stylesheet).toMatch(
     /\.service-item__image,\s*\.service-item > picture,\s*\.service-item > \.image-fallback \{\s*position: absolute;\s*z-index: -2;\s*inset: 0;\s*width: 100%;\s*height: 100%;/,
