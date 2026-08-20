@@ -121,6 +121,8 @@
 }
 
 .site-footer {
+  position: relative;
+  z-index: 2;
   padding: 82px max(24px, calc((100vw - 1180px) / 2)) 26px;
   background: var(--forest-950);
   color: var(--ivory-100);

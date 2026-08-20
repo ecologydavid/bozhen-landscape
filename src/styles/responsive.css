@@ -397,9 +397,14 @@
     bottom: 76px;
   }
 
+  .site-footer {
+    padding: 56px 24px 24px;
+  }
+
   .site-footer__inner {
     grid-template-columns: repeat(2, 1fr);
-    gap: 48px;
+    gap: 30px;
+    padding-bottom: 40px;
   }
 
   .site-footer__brand {
@@ -543,13 +548,9 @@
     overflow-wrap: anywhere;
   }
 
-  .site-footer {
-    padding-top: 64px;
-  }
-
   .site-footer__inner {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 28px;
   }
 
   .site-footer__brand,

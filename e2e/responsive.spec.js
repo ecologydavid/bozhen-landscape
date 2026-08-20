@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test'
+import sharp from 'sharp'
 
 const pagesBasePath = '/bozhen-landscape/'
 const homeUrl = './#/'
 
 const viewports = [
   { name: 'compact-320', width: 320, height: 720 },
-  { name: 'mobile-360', width: 360, height: 800 },
+  { name: 'mobile-390', width: 390, height: 844 },
   { name: 'tablet-768', width: 768, height: 1024 },
+  { name: 'desktop-handoff-769', width: 769, height: 900 },
   { name: 'desktop-1280', width: 1280, height: 900 },
   { name: 'wide-1920', width: 1920, height: 1080 },
 ]
@@ -96,10 +98,73 @@ async function expectVisibleContactPairToFit(page) {
   }
 }
 
+async function expectFooterVisibleAndUncovered(page, viewport) {
+  const footer = page.locator('.site-footer')
+  const regions = [
+    footer.locator('.site-footer__brand'),
+    footer.locator('.site-footer__services'),
+    footer.locator('.site-footer__links'),
+    footer.locator('.site-footer__contact'),
+    footer.locator('.site-footer__bottom'),
+  ]
+
+  for (const region of regions) {
+    await region.scrollIntoViewIfNeeded()
+    await expect(region).toBeVisible()
+  }
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await expect(footer.locator('.site-footer__bottom')).toBeVisible()
+
+  if (viewport.width <= 768) {
+    const overlap = await page.evaluate(() => {
+      const bar = document.querySelector('.mobile-contact-bar')?.getBoundingClientRect()
+      const bottom = document.querySelector('.site-footer__bottom')?.getBoundingClientRect()
+      if (!bar || !bottom) return null
+      return Math.min(bar.bottom, bottom.bottom) - Math.max(bar.top, bottom.top)
+    })
+    expect(overlap).not.toBeNull()
+    expect(overlap).toBeLessThanOrEqual(0)
+  }
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  )
+  expect(overflow).toBeLessThanOrEqual(1)
+
+  const footerImage = await footer.screenshot({ animations: 'disabled' })
+  const { data, info } = await sharp(footerImage).raw().toBuffer({ resolveWithObject: true })
+  const sampleX = 8
+  const sampleY = 32
+  const offset = (sampleY * info.width + sampleX) * info.channels
+  const sampledForest = [data[offset], data[offset + 1], data[offset + 2]]
+  const expectedForest = [24, 34, 28]
+  const greatestChannelDelta = Math.max(
+    ...sampledForest.map((channel, index) => Math.abs(channel - expectedForest[index])),
+  )
+  expect(greatestChannelDelta).toBeLessThanOrEqual(5)
+}
+
 for (const route of productionRoutes) {
   test(`${route.url} loads from the production Pages mount without runtime or asset failures`, async ({ page }) => {
     await expectHealthyProductionPage(page, route)
   })
+}
+
+for (const viewport of [
+  { name: 'mobile-390', width: 390, height: 844 },
+  { name: 'desktop-1280', width: 1280, height: 900 },
+]) {
+  for (const route of productionRoutes) {
+    test(`${route.url} paints the complete Footer above the scene at ${viewport.name}`, async ({ page }) => {
+      const issues = watchPageHealth(page)
+      await page.setViewportSize(viewport)
+      await page.goto(route.url, { waitUntil: 'networkidle' })
+
+      await expectFooterVisibleAndUncovered(page, viewport)
+      expect(issues, issues.join('\n')).toEqual([])
+    })
+  }
 }
 
 for (const viewport of viewports) {

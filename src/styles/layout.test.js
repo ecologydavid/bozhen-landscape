@@ -18,3 +18,9 @@ test('keeps the scrolled-header blur outside the drawer containing block', () =>
     /\.site-header\.is-scrolled::before \{[\s\S]*backdrop-filter: blur\(18px\);/,
   )
 })
+
+test('keeps the Footer above the fixed scene environment', () => {
+  expect(stylesheet).toMatch(
+    /\.site-footer \{[\s\S]*?position: relative;[\s\S]*?z-index: 2;[\s\S]*?background: var\(--forest-950\);/,
+  )
+})

@@ -99,3 +99,12 @@ test('lets the document shrink below 320 CSS pixels when a Windows scrollbar is 
   )
   expect(tokens).not.toMatch(/body \{[\s\S]*?min-width: 320px;/)
 })
+
+test('keeps the mobile Footer compact through the 768 pixel handoff', () => {
+  expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.site-footer \{[\s\S]*?padding: 56px 24px 24px;/,
+  )
+  expect(stylesheet).toMatch(
+    /@media \(max-width: 768px\) \{[\s\S]*?\.site-footer__inner \{[\s\S]*?gap: 30px;[\s\S]*?padding-bottom: 40px;/,
+  )
+})
