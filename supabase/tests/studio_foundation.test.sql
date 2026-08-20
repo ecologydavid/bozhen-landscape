@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(84);
+select plan(86);
 
 select ok(exists (select 1 from pg_extension where extname = 'pgcrypto' and extnamespace = 'extensions'::regnamespace), 'pgcrypto is enabled in the extensions schema');
 select results_eq($$ select unnest(enum_range(null::public.studio_audience))::text $$, array['builder', 'corporate', 'luxury_home'], 'studio_audience values match the Studio contract');
@@ -179,6 +179,14 @@ select results_eq(
 select throws_ok(
   $$ insert into public.studio_projects (internal_name, public_name, region, audience, site_type) values ('Anon project', 'Anon project', 'Taipei', 'builder', 'Garden') $$,
   '42501', null::text, 'anon cannot create Studio projects'
+);
+select throws_ok(
+  $$ insert into public.studio_project_fact_versions (project_id, version, facts, is_current, created_by) values ('22222222-2222-2222-2222-222222222222', 2, '{"site":"anon"}'::jsonb, false, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') $$,
+  '42501', null::text, 'anon cannot create Studio facts'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes) values ('22222222-2222-2222-2222-222222222222', 'raw/anon-rls.jpg', 'anon-rls.jpg', 'image/jpeg', 1) $$,
+  '42501', null::text, 'anon cannot create Studio assets'
 );
 select throws_ok(
   $$ insert into public.studio_admins (user_id) values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') $$,
