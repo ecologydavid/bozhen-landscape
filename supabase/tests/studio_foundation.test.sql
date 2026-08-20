@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(86);
+select plan(95);
 
 select ok(exists (select 1 from pg_extension where extname = 'pgcrypto' and extnamespace = 'extensions'::regnamespace), 'pgcrypto is enabled in the extensions schema');
 select results_eq($$ select unnest(enum_range(null::public.studio_audience))::text $$, array['builder', 'corporate', 'luxury_home'], 'studio_audience values match the Studio contract');
@@ -50,6 +50,8 @@ select ok(exists (
 select has_index('public', 'studio_assets', 'studio_assets_project_created_id_idx', 'asset pagination index exists');
 select has_index('public', 'studio_project_fact_versions', 'studio_fact_one_current', 'one-current-fact index exists');
 select ok(position('WHERE is_current' in pg_get_indexdef('public.studio_fact_one_current'::regclass)) > 0, 'one-current-fact index is partial');
+select has_index('public', 'studio_admins', 'studio_admins_singleton', 'Studio admin membership has a singleton index');
+select has_index('public', 'studio_project_fact_versions', 'studio_fact_versions_created_by_idx', 'fact provenance index exists');
 
 select is((select relrowsecurity from pg_class where oid = 'public.studio_admins'::regclass), true, 'admin membership RLS is enabled');
 select is((select relrowsecurity from pg_class where oid = 'public.studio_projects'::regclass), true, 'project RLS is enabled');
@@ -93,11 +95,27 @@ select results_eq(
 select ok((
   select bool_and(has_table_privilege(role_name, relation_name, 'select') and has_table_privilege(role_name, relation_name, 'insert') and has_table_privilege(role_name, relation_name, 'update') and has_table_privilege(role_name, relation_name, 'delete'))
   from unnest(array['anon', 'authenticated']) as role_name
-  cross join unnest(array['public.studio_admins', 'public.studio_projects', 'public.studio_project_fact_versions', 'public.studio_assets']) as relation_name
-), 'API table privileges let RLS, not grants, decide Studio access');
+  cross join unnest(array['public.studio_admins', 'public.studio_projects', 'public.studio_assets']) as relation_name
+) and has_table_privilege('anon', 'public.studio_project_fact_versions', 'select')
+  and has_table_privilege('anon', 'public.studio_project_fact_versions', 'insert')
+  and not has_table_privilege('anon', 'public.studio_project_fact_versions', 'update')
+  and not has_table_privilege('anon', 'public.studio_project_fact_versions', 'delete')
+  and has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'select')
+  and has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'insert')
+  and not has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'delete'), 'API table privileges keep facts append-only while RLS protects access');
+select ok(
+  has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'is_current', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'id', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'project_id', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'version', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'facts', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'created_by', 'update')
+  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'created_at', 'update'),
+  'authenticated can update only the fact current marker'
+);
 select results_eq(
   $$ select policyname::text collate "default" from pg_policies where schemaname = 'public' and tablename in ('studio_admins', 'studio_projects', 'studio_project_fact_versions', 'studio_assets') order by policyname $$,
-  array['admin manages assets', 'admin manages facts', 'admin manages projects', 'admin reads own membership'],
+  array['admin appends facts', 'admin manages assets', 'admin manages projects', 'admin marks current facts', 'admin reads facts', 'admin reads own membership'],
   'public Studio policies are limited to the single-admin boundary'
 );
 select results_eq(
@@ -117,10 +135,15 @@ insert into auth.users (id, aud, role, email, encrypted_password, email_confirme
 values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'authenticated', 'authenticated', 'studio-admin@example.test', 'not-a-password', now(), '{}'::jsonb, '{}'::jsonb, now(), now()),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'authenticated', 'authenticated', 'studio-member@example.test', 'not-a-password', now(), '{}'::jsonb, '{}'::jsonb, now(), now()),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'authenticated', 'authenticated', 'other-admin@example.test', 'not-a-password', now(), '{}'::jsonb, '{}'::jsonb, now(), now());
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'authenticated', 'authenticated', 'other-user@example.test', 'not-a-password', now(), '{}'::jsonb, '{}'::jsonb, now(), now());
 
 insert into public.studio_admins (user_id)
-values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), ('cccccccc-cccc-cccc-cccc-cccccccccccc');
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+
+select throws_ok(
+  $$ insert into public.studio_admins (user_id) values ('cccccccc-cccc-cccc-cccc-cccccccccccc') $$,
+  '23505', null::text, 'service provisioning cannot register a second Studio admin'
+);
 
 insert into public.studio_projects (id, internal_name, public_name, region, audience, site_type)
 values ('22222222-2222-2222-2222-222222222222', 'Seed project', 'Seed project', 'Taipei', 'builder', 'Garden');
@@ -193,9 +216,14 @@ select throws_ok(
   '42501', null::text, 'anon cannot change Studio memberships'
 );
 select results_eq(
-  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), fact_update as (update public.studio_project_fact_versions set facts = '{}'::jsonb where project_id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from fact_update union all select * from asset_update union all select * from project_delete $$,
+  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from asset_update union all select * from project_delete $$,
   array[]::integer[],
-  'anon cannot update or delete protected Studio data'
+  'anon cannot update or delete protected project and asset data'
+);
+-- Fact updates are rejected by table/column privileges before RLS for anon.
+select throws_ok(
+  $$ update public.studio_project_fact_versions set facts = '{}'::jsonb where project_id = '22222222-2222-2222-2222-222222222222' $$,
+  '42501', null::text, 'anon has no fact update privilege'
 );
 select results_eq($$ select count(*) from storage.objects where bucket_id = 'studio-assets' $$, array[0::bigint], 'anon cannot read Studio storage objects');
 select throws_ok(
@@ -232,9 +260,14 @@ select throws_ok(
   '42501', null::text, 'non-admin cannot create Studio assets'
 );
 select results_eq(
-  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), fact_update as (update public.studio_project_fact_versions set facts = '{}'::jsonb where project_id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from fact_update union all select * from asset_update union all select * from project_delete $$,
+  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from asset_update union all select * from project_delete $$,
   array[]::integer[],
-  'non-admin cannot update or delete protected Studio data'
+  'non-admin cannot update or delete protected project and asset data'
+);
+-- Fact updates are rejected by column privileges before RLS for non-admins.
+select throws_ok(
+  $$ update public.studio_project_fact_versions set facts = '{}'::jsonb where project_id = '22222222-2222-2222-2222-222222222222' $$,
+  '42501', null::text, 'non-admin has no fact content update privilege'
 );
 select results_eq($$ select count(*) from storage.objects where bucket_id = 'studio-assets' $$, array[0::bigint], 'non-admin cannot read Studio storage objects');
 select throws_ok(
@@ -275,8 +308,20 @@ select lives_ok(
 );
 select is((select created_by from public.studio_project_fact_versions where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'admin fact creation records auth.uid by default');
 select lives_ok(
+  $$ update public.studio_project_fact_versions set is_current = false where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1 $$,
+  'admin can update a fact current marker'
+);
+select throws_ok(
   $$ update public.studio_project_fact_versions set facts = '{"site":"updated"}'::jsonb where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1 $$,
-  'admin can update Studio facts'
+  '42501', null::text, 'admin cannot rewrite Studio facts'
+);
+select throws_ok(
+  $$ update public.studio_project_fact_versions set created_by = 'cccccccc-cccc-cccc-cccc-cccccccccccc' where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1 $$,
+  '42501', null::text, 'admin cannot forge fact provenance by updating created_by'
+);
+select throws_ok(
+  $$ insert into public.studio_project_fact_versions (project_id, version, facts, is_current, created_by) values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 2, '{"site":"forged"}'::jsonb, false, 'cccccccc-cccc-cccc-cccc-cccccccccccc') $$,
+  '42501', null::text, 'admin cannot forge fact provenance on insert'
 );
 select lives_ok(
   $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'raw/admin.jpg', 'admin.jpg', 'image/jpeg', 1) $$,
@@ -304,9 +349,9 @@ select lives_ok(
   $$ delete from public.studio_assets where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' $$,
   'admin can delete Studio assets'
 );
-select lives_ok(
+select throws_ok(
   $$ delete from public.studio_project_fact_versions where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1 $$,
-  'admin can delete Studio facts'
+  '42501', null::text, 'admin cannot delete Studio facts'
 );
 select lives_ok(
   $$ delete from public.studio_projects where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' $$,

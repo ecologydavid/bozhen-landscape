@@ -32,6 +32,9 @@ create table public.studio_admins (
   created_at timestamptz not null default now()
 );
 
+create unique index studio_admins_singleton
+  on public.studio_admins ((true));
+
 create or replace function public.is_studio_admin()
 returns boolean
 language sql
@@ -91,6 +94,9 @@ create unique index studio_fact_one_current
   on public.studio_project_fact_versions (project_id)
   where is_current;
 
+create index studio_fact_versions_created_by_idx
+  on public.studio_project_fact_versions (created_by);
+
 create table public.studio_assets (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.studio_projects(id) on delete cascade,
@@ -147,9 +153,24 @@ to authenticated
 using ((select public.is_studio_admin()))
 with check ((select public.is_studio_admin()));
 
-create policy "admin manages facts"
+create policy "admin reads facts"
 on public.studio_project_fact_versions
-for all
+for select
+to authenticated
+using ((select public.is_studio_admin()));
+
+create policy "admin appends facts"
+on public.studio_project_fact_versions
+for insert
+to authenticated
+with check (
+  (select public.is_studio_admin())
+  and created_by = (select auth.uid())
+);
+
+create policy "admin marks current facts"
+on public.studio_project_fact_versions
+for update
 to authenticated
 using ((select public.is_studio_admin()))
 with check ((select public.is_studio_admin()));
@@ -205,8 +226,10 @@ grant usage on schema public to anon, authenticated;
 grant usage on type public.studio_audience, public.studio_project_status,
   public.studio_asset_permission, public.studio_asset_processing to anon, authenticated;
 grant select, insert, update, delete on table public.studio_admins,
-  public.studio_projects, public.studio_project_fact_versions,
-  public.studio_assets to anon, authenticated;
+  public.studio_projects, public.studio_assets to anon, authenticated;
+revoke all on table public.studio_project_fact_versions from anon, authenticated;
+grant select, insert on table public.studio_project_fact_versions to anon, authenticated;
+grant update (is_current) on table public.studio_project_fact_versions to authenticated;
 
 revoke all on function public.is_studio_admin() from public;
 grant execute on function public.is_studio_admin() to anon, authenticated;
