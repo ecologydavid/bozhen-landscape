@@ -40,6 +40,7 @@ export default function LeafIcon({ name = 'leaf', label, className = '' }) {
   if (!paths) throw new Error(`Unknown leaf icon: ${name}`)
   return (
     <svg
+      data-icon={name}
       className={`leaf-icon ${className}`.trim()}
       viewBox="0 0 24 24"
       fill="none"

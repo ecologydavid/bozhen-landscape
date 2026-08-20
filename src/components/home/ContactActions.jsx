@@ -35,12 +35,12 @@ export default function ContactActions({ brand, contact }) {
             <a href={contact.phoneHref}>
               <span>撥打 {contact.mobile}</span>
               <small>行動電話</small>
-              <LeafIcon name="leaf" />
+              <LeafIcon name="sprout" />
             </a>
             <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>
               <span>Email 聯絡</span>
               <small>{contact.email}</small>
-              <LeafIcon name="arrowLeaf" />
+              <LeafIcon name="sprout" />
             </a>
           </div>
 

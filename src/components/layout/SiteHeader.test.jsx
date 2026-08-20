@@ -4,6 +4,17 @@ import { MemoryRouter, useNavigate } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import { siteContent } from '../../data/siteContent'
 
+test('uses the approved sprout glyph throughout the navigation', () => {
+  const { container } = render(
+    <MemoryRouter>
+      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  expect(container.querySelectorAll('[data-icon="leaf"], [data-icon="arrowLeaf"]')).toHaveLength(0)
+  expect(container.querySelectorAll('[data-icon="sprout"]')).toHaveLength(6)
+})
+
 test('opens and closes the mobile navigation with every supported control', async () => {
   const user = userEvent.setup()
   const { container } = render(

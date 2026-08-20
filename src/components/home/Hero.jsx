@@ -35,7 +35,7 @@ export default function Hero({ hero, contact }) {
           <p className="hero__description">{hero.description}</p>
           <div className="hero__actions">
             <Link className="hero__projects-link" to="/projects">
-              <LeafIcon name="arrowLeaf" />
+              <LeafIcon name="sprout" />
               <span>瀏覽庭園作品</span>
             </Link>
             <LeafContactLinks contact={contact} />

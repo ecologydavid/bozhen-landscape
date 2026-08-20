@@ -18,7 +18,7 @@ export default function LeafContactLinks({ contact, className = '' }) {
         href={contact.phoneHref}
         aria-label={`撥打 ${contact.mobile}`}
       >
-        <LeafIcon name="leaf" />
+        <LeafIcon name="sprout" />
         <span>撥打電話</span>
       </a>
     </div>

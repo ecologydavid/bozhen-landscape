@@ -17,7 +17,7 @@ export const services = [
     summary: '依環境條件配置植栽層次，兼顧四季景觀與後續照護。',
     image: media('taoyuan-greenwall-01.webp'),
     imageAlt: '植生牆與多層次綠化實景',
-    icon: 'leaf',
+    icon: 'sprout',
   },
   {
     id: 'waterscape',

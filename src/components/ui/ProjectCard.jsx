@@ -29,7 +29,7 @@ export default function ProjectCard({ project, priority = false, index }) {
             <h3>{project.title}</h3>
             <span>{project.location}</span>
           </div>
-          <LeafIcon name="arrowLeaf" className="project-card__arrow" />
+          <LeafIcon name="sprout" className="project-card__arrow" />
         </div>
       </Link>
     </article>

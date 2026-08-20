@@ -179,7 +179,7 @@ export default function SiteHeader({
                   <small>{item.english}</small>
                 </span>
                 <span className="site-nav__arrow">
-                  <LeafIcon name="arrowLeaf" />
+                  <LeafIcon name="sprout" />
                 </span>
               </Link>
             ))}
@@ -200,7 +200,7 @@ export default function SiteHeader({
               aria-label={`撥打 ${contact.mobile}`}
               onClick={() => closeMenu({ returnFocus: true })}
             >
-              <LeafIcon name="leaf" />
+              <LeafIcon name="sprout" />
               <span>撥打電話</span>
             </a>
           </div>

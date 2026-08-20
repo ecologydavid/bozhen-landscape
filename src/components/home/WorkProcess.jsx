@@ -21,7 +21,7 @@ export default function WorkProcess() {
           {processSteps.map(([number, title, description]) => (
             <Reveal as="li" key={number}>
               <span className="process-list__marker" aria-hidden="true">
-                <LeafIcon name="leaf" />
+                <LeafIcon name="sprout" />
               </span>
               <span>{number}</span>
               <h3>{title}</h3>
