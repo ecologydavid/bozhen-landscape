@@ -166,27 +166,33 @@ test.each([
   )
 })
 
-test('normalizes an extension-identifiable HEIC with an unknown browser MIME type', async () => {
+test.each([
+  ['local-qa.heic', 'image/heic'],
+  ['local-qa.heif', 'image/heif'],
+])('normalizes extension-identifiable %s with an empty browser MIME type', async (name, mimeType) => {
   const mock = createClient()
-  const file = createFile('local-qa.heic', '', 5)
+  const file = createFile(name, '', 5)
 
   await upload(mock.client, file)
 
   const [storagePath, uploadedFile, uploadOptions] = mock.upload.mock.calls[0]
-  expect(storagePath).toBe(`raw/${projectId}/${assetId}.heic`)
+  expect(storagePath).toBe(`raw/${projectId}/${assetId}.${mimeType.split('/').pop()}`)
   expect(uploadedFile).not.toBe(file)
   expect(uploadedFile).toBeInstanceOf(File)
-  expect(uploadedFile.type).toBe('image/heic')
-  expect(uploadOptions).toEqual({ contentType: 'image/heic', upsert: false })
+  expect(uploadedFile.type).toBe(mimeType)
+  expect(uploadOptions).toEqual({ contentType: mimeType, upsert: false })
   expect(mock.insert).toHaveBeenCalledWith(expect.objectContaining({
-    mime_type: 'image/heic',
-    original_name: 'local-qa.heic',
+    mime_type: mimeType,
+    original_name: name,
     size_bytes: 5,
   }))
 })
 
 test.each([
   ['unsupported file', projectId, createFile('clip.mp4', 'video/mp4')],
+  ['octet-stream renamed as HEIC', projectId, createFile('renamed.heic', 'application/octet-stream')],
+  ['explicit spoof MIME renamed as HEIF', projectId, createFile('renamed.heif', 'text/plain')],
+  ['unknown empty-MIME extension', projectId, createFile('unknown.bin', '')],
   ['oversized file', projectId, createFile('large.png', 'image/png', 25 * 1024 * 1024 + 1)],
   ['invalid project id', '../another-project', createFile()],
 ])('rejects %s before any network call', async (_name, id, file) => {

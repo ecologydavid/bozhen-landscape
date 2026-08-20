@@ -72,11 +72,11 @@ npm run test:db
 npm test -- --run
 npm run lint
 npm run build
-git diff --check
 npx supabase db lint --local --level error
+git diff --check
 ```
 
-上述命令都應以零結束。2026-08-21 的觀測結果是 pgTAP `123` tests、Vitest `27` files／`274` tests、ESLint 無錯誤、Vite build 成功，以及 DB lint 回報 `No schema errors found`；隨測試演進，總數可能改變。Supabase CLI 的 DB gate 依賴 Supabase config 與 container runtime，不需要 Vite 的 `.env.local`。
+上述命令都應以零結束。2026-08-21 的觀測結果是 pgTAP `123` tests、Vitest `27` files／`281` tests、ESLint 無錯誤、Vite build 成功，以及 DB lint 回報 `No schema errors found`；隨測試演進，總數可能改變。Supabase CLI 的 DB gate 依賴 Supabase config 與 container runtime，不需要 Vite 的 `.env.local`。
 
 常見問題：
 

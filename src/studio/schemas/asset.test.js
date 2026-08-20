@@ -3,6 +3,7 @@ import {
   acceptedImageTypes,
   assetFileSchema,
   assetPermissionSchema,
+  inferAcceptedImageMimeType,
 } from './asset'
 
 function createFile(name, type, size) {
@@ -24,10 +25,14 @@ describe('assetFileSchema', () => {
     expect(assetFileSchema.parse(file)).toBe(file)
   })
 
-  test('accepts a HEIC file when the browser does not infer its MIME type', () => {
-    const file = createFile('photo.heic', '', 1)
+  test.each([
+    ['photo.heic', 'image/heic'],
+    ['photo.heif', 'image/heif'],
+  ])('infers %s when the browser does not provide a MIME type', (name, expectedType) => {
+    const file = createFile(name, '', 1)
 
     expect(assetFileSchema.safeParse(file).success).toBe(true)
+    expect(inferAcceptedImageMimeType(file)).toBe(expectedType)
   })
 
   test('exports the exact accepted image MIME types', () => {
@@ -44,6 +49,8 @@ describe('assetFileSchema', () => {
     ['video/mp4', 'clip.mp4'],
     ['', 'unknown'],
     ['application/octet-stream', 'unknown.bin'],
+    ['application/octet-stream', 'renamed.heic'],
+    ['text/plain', 'renamed.heif'],
   ])('rejects unsupported MIME type %j with the safe validation message', (type, name) => {
     const result = assetFileSchema.safeParse(createFile(name, type, 1))
 
