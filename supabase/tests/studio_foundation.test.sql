@@ -114,19 +114,26 @@ select ok(
       select regexp_replace(lower(pg_get_functiondef(procedure.oid)), '[[:space:]]+', ' ', 'g') as definition
     ) as function_definition
     cross join lateral (
+      select substring(
+        function_definition.definition
+        from position('begin ' in function_definition.definition)
+      ) as body
+    ) as function_body
+    cross join lateral (
       select
-        position('pg_advisory_xact_lock' in function_definition.definition) as lock_position,
-        position('from public.studio_project_fact_versions' in function_definition.definition) as first_fact_state_read_position,
-        position('and fact_version.is_current' in function_definition.definition) as current_lookup_position,
-        position('max(fact_version.version)' in function_definition.definition) as max_version_position
+        position('pg_advisory_xact_lock' in function_body.body) as lock_position,
+        position('studio_project_fact_versions' in function_body.body) as first_fact_table_reference_position,
+        position('and fact_version.is_current' in function_body.body) as current_lookup_position,
+        position('max(fact_version.version)' in function_body.body) as max_version_position
     ) as positions
     where procedure.oid = to_regprocedure('public.studio_save_fact_version(uuid,jsonb)')
+      and position('begin ' in function_definition.definition) > 0
       and positions.lock_position > 0
-      and positions.first_fact_state_read_position > positions.lock_position
+      and positions.first_fact_table_reference_position > positions.lock_position
       and positions.current_lookup_position > positions.lock_position
       and positions.max_version_position > positions.lock_position
   ),
-  'fact-version save RPC locks before every fact-table access, including current lookup and max-version calculation'
+  'fact-version save RPC locks before every qualified or unqualified fact-table access, including current lookup and max-version calculation'
 );
 select ok(
   exists (
