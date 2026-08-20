@@ -14,6 +14,8 @@ const statusLabels = {
   failure: '上傳失敗',
 }
 
+const acceptedImageExtensions = ['.heic', '.heif']
+
 export default function AssetUploader({
   client = supabase,
   projectId,
@@ -163,7 +165,7 @@ export default function AssetUploader({
       <div className="studio-asset-uploader-heading">
         <div>
           <h2 id={`${inputId}-heading`}>上傳案場圖片</h2>
-          <p>支援 JPG、PNG、WebP、HEIC，每張上限 25MB。</p>
+          <p>支援 JPG、PNG、WebP、HEIC、HEIF，每張上限 25MB。</p>
         </div>
         <label className="studio-upload-button" htmlFor={inputId}>
           選擇圖片
@@ -174,7 +176,7 @@ export default function AssetUploader({
         id={inputId}
         ref={inputRef}
         type="file"
-        accept={acceptedImageTypes.join(',')}
+        accept={[...acceptedImageTypes, ...acceptedImageExtensions].join(',')}
         multiple
         disabled={isProcessing}
         onChange={handleFilesSelected}

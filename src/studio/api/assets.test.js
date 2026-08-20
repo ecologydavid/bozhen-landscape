@@ -20,8 +20,13 @@ const uppercaseProjectId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
 const uppercaseAssetId = 'BBBBBBBB-BBBB-4BBB-8BBB-BBBBBBBBBBBB'
 const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
 
-function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5) {
-  const file = new File(['image'], name, { type })
+function createFile(name = 'garden.jpg', type = 'image/jpeg', size = 5, {
+  contents = 'image',
+  lastModified,
+} = {}) {
+  const options = { type }
+  if (lastModified !== undefined) options.lastModified = lastModified
+  const file = new File([contents], name, options)
   Object.defineProperty(file, 'size', { value: size })
   return file
 }
@@ -171,7 +176,9 @@ test.each([
   ['local-qa.heif', 'image/heif'],
 ])('normalizes extension-identifiable %s with an empty browser MIME type', async (name, mimeType) => {
   const mock = createClient()
-  const file = createFile(name, '', 5)
+  const contents = new Uint8Array([0, 17, 255, 42])
+  const lastModified = 1_710_000_000_000
+  const file = createFile(name, '', contents.byteLength, { contents, lastModified })
 
   await upload(mock.client, file)
 
@@ -179,12 +186,17 @@ test.each([
   expect(storagePath).toBe(`raw/${projectId}/${assetId}.${mimeType.split('/').pop()}`)
   expect(uploadedFile).not.toBe(file)
   expect(uploadedFile).toBeInstanceOf(File)
+  expect(uploadedFile.name).toBe(name)
+  expect(uploadedFile.lastModified).toBe(lastModified)
+  expect(Array.from(new Uint8Array(await uploadedFile.arrayBuffer()))).toEqual(
+    Array.from(contents),
+  )
   expect(uploadedFile.type).toBe(mimeType)
   expect(uploadOptions).toEqual({ contentType: mimeType, upsert: false })
   expect(mock.insert).toHaveBeenCalledWith(expect.objectContaining({
     mime_type: mimeType,
     original_name: name,
-    size_bytes: 5,
+    size_bytes: contents.byteLength,
   }))
 })
 
@@ -662,6 +674,24 @@ test('removes the uploaded object before rethrowing the same insert error', asyn
   await expect(upload(mock.client, createFile())).rejects.toBe(insertError)
   expect(mock.remove).toHaveBeenCalledOnce()
   expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.jpg`])
+})
+
+test('rolls back an empty-MIME HEIF with its normalized canonical storage path', async () => {
+  const insertError = new Error('insert rejected')
+  const mock = createClient({ insertResult: { data: null, error: insertError } })
+  const file = createFile('local-qa.heif', '', 5)
+
+  await expect(upload(mock.client, file)).rejects.toBe(insertError)
+  expect(mock.upload).toHaveBeenCalledWith(
+    `raw/${projectId}/${assetId}.heif`,
+    expect.any(File),
+    { contentType: 'image/heif', upsert: false },
+  )
+  expect(mock.remove).toHaveBeenCalledOnce()
+  expect(mock.remove).toHaveBeenCalledWith([`raw/${projectId}/${assetId}.heif`])
+  expect(mock.upload.mock.invocationCallOrder[0]).toBeLessThan(
+    mock.remove.mock.invocationCallOrder[0],
+  )
 })
 
 test('waits for the first insert outcome and retries the same payload without deleting', async () => {

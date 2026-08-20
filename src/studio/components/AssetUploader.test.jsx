@@ -29,10 +29,33 @@ test('provides an accessible multiple image input with an associated label', () 
   const input = screen.getByLabelText('選擇圖片')
   expect(input).toHaveAttribute(
     'accept',
-    'image/jpeg,image/png,image/webp,image/heic,image/heif',
+    'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif',
   )
   expect(input).toHaveAttribute('multiple')
   expect(screen.getByRole('status')).toHaveTextContent('尚未選擇圖片')
+  expect(screen.getByText('支援 JPG、PNG、WebP、HEIC、HEIF，每張上限 25MB。'))
+    .toBeInTheDocument()
+})
+
+test('allows empty-MIME HEIC and HEIF files through the default accept filter only', async () => {
+  const upload = vi.fn().mockResolvedValue({ id: 'asset-1' })
+  const user = userEvent.setup()
+  const heic = createFile('local-qa.heic', '')
+  const heif = createFile('local-qa.heif', '')
+  const unsupported = createFile('unknown.bin', '')
+
+  render(<AssetUploader projectId={projectId} upload={upload} />)
+  const input = screen.getByLabelText('選擇圖片')
+
+  await user.upload(input, [heic, heif, unsupported])
+
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(2))
+  expect(upload).toHaveBeenNthCalledWith(1, expect.anything(), projectId, heic)
+  expect(upload).toHaveBeenNthCalledWith(2, expect.anything(), projectId, heif)
+  expect(upload.mock.calls.map(([, , file]) => file.name)).toEqual([
+    heic.name,
+    heif.name,
+  ])
 })
 
 test('uploads multiple files sequentially in selection order', async () => {
