@@ -12,6 +12,7 @@ import './styles/layout.css'
 import './styles/home.css'
 import './styles/projects.css'
 import './styles/responsive.css'
+import './styles/studio.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

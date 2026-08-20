@@ -3,7 +3,24 @@ import { HashRouter, MemoryRouter } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
 import App from './App'
 
+const { studioRootModuleLoad, studioRootRender } = vi.hoisted(() => ({
+  studioRootModuleLoad: vi.fn(),
+  studioRootRender: vi.fn(),
+}))
+
+vi.mock('./studio/StudioRoot', () => {
+  studioRootModuleLoad()
+  return {
+    default: () => {
+      studioRootRender()
+      return <h1>內容工作室測試替身</h1>
+    },
+  }
+})
+
 beforeEach(() => {
+  studioRootModuleLoad.mockClear()
+  studioRootRender.mockClear()
   Object.defineProperty(window, 'scrollTo', {
     configurable: true,
     value: vi.fn(),
@@ -84,4 +101,43 @@ test('resets the scroll position when opening a route without a section', async 
     }),
   )
   delete window.scrollTo
+})
+
+test('keeps a similar non-Studio prefix in the public 404 app', () => {
+  render(
+    <MemoryRouter initialEntries={['/studio-old']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).toBeInTheDocument()
+  expect(
+    screen.getByRole('heading', { name: '這條路還沒有風景' }),
+  ).toBeInTheDocument()
+  expect(studioRootModuleLoad).not.toHaveBeenCalled()
+  expect(studioRootRender).not.toHaveBeenCalled()
+})
+
+test('marks the Studio lazy-loading fallback as an accessible status view', () => {
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('main')).toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent('正在載入內容工作室…')
+})
+
+test('keeps the public navigation out of Studio routes', async () => {
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <App />
+    </MemoryRouter>,
+  )
+
+  expect(
+    await screen.findByRole('heading', { name: '內容工作室測試替身' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: '主要導覽' })).not.toBeInTheDocument()
 })
