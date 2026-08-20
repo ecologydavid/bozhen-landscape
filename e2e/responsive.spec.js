@@ -7,6 +7,7 @@ const homeUrl = './#/'
 const viewports = [
   { name: 'compact-320', width: 320, height: 720 },
   { name: 'mobile-390', width: 390, height: 844 },
+  { name: 'mobile-560', width: 560, height: 900 },
   { name: 'tablet-768', width: 768, height: 1024 },
   { name: 'desktop-handoff-769', width: 769, height: 900 },
   { name: 'desktop-1280', width: 1280, height: 900 },
@@ -134,15 +135,55 @@ async function expectFooterVisibleAndUncovered(page, viewport) {
 
   const footerImage = await footer.screenshot({ animations: 'disabled' })
   const { data, info } = await sharp(footerImage).raw().toBuffer({ resolveWithObject: true })
-  const sampleX = 8
-  const sampleY = 32
-  const offset = (sampleY * info.width + sampleX) * info.channels
-  const sampledForest = [data[offset], data[offset + 1], data[offset + 2]]
   const expectedForest = [24, 34, 28]
-  const greatestChannelDelta = Math.max(
-    ...sampledForest.map((channel, index) => Math.abs(channel - expectedForest[index])),
-  )
-  expect(greatestChannelDelta).toBeLessThanOrEqual(5)
+  const sampleRegions = [
+    { x: 8, y: 32 },
+    { x: info.width - 9, y: 32 },
+    { x: 8, y: Math.floor(info.height * 0.45) },
+    { x: info.width - 9, y: Math.floor(info.height * 0.45) },
+    { x: 2, y: info.height - 32 },
+    { x: info.width - 3, y: info.height - 32 },
+  ]
+
+  for (const sample of sampleRegions) {
+    let forestPixels = 0
+    let sampledPixels = 0
+    for (let y = sample.y - 1; y <= sample.y + 1; y += 1) {
+      for (let x = sample.x - 1; x <= sample.x + 1; x += 1) {
+        const offset = (y * info.width + x) * info.channels
+        const sampledForest = [data[offset], data[offset + 1], data[offset + 2]]
+        const greatestChannelDelta = Math.max(
+          ...sampledForest.map((channel, index) => Math.abs(channel - expectedForest[index])),
+        )
+        if (greatestChannelDelta <= 8) forestPixels += 1
+        sampledPixels += 1
+      }
+    }
+    expect(forestPixels / sampledPixels).toBeGreaterThanOrEqual(0.85)
+  }
+
+  const footerBottomContrast = await footer.locator('.site-footer__bottom small').first().evaluate((node) => {
+    const parseColor = (value) => value.match(/[\d.]+/g).map(Number)
+    const foreground = parseColor(getComputedStyle(node).color)
+    const background = parseColor(getComputedStyle(node.closest('.site-footer')).backgroundColor)
+    const alpha = foreground[3] ?? 1
+    const composite = foreground.slice(0, 3).map(
+      (channel, index) => channel * alpha + background[index] * (1 - alpha),
+    )
+    const relativeLuminance = (color) => color.reduce((sum, channel, index) => {
+      const srgb = channel / 255
+      const linear = srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
+      return sum + linear * [0.2126, 0.7152, 0.0722][index]
+    }, 0)
+    const lighter = Math.max(relativeLuminance(composite), relativeLuminance(background))
+    const darker = Math.min(relativeLuminance(composite), relativeLuminance(background))
+    return {
+      background: getComputedStyle(node.closest('.site-footer')).backgroundColor,
+      color: getComputedStyle(node).color,
+      contrast: (lighter + 0.05) / (darker + 0.05),
+    }
+  })
+  expect(footerBottomContrast.contrast).toBeGreaterThanOrEqual(4.5)
 }
 
 for (const route of productionRoutes) {
@@ -151,10 +192,7 @@ for (const route of productionRoutes) {
   })
 }
 
-for (const viewport of [
-  { name: 'mobile-390', width: 390, height: 844 },
-  { name: 'desktop-1280', width: 1280, height: 900 },
-]) {
+for (const viewport of viewports) {
   for (const route of productionRoutes) {
     test(`${route.url} paints the complete Footer above the scene at ${viewport.name}`, async ({ page }) => {
       const issues = watchPageHealth(page)
