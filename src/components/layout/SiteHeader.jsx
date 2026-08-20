@@ -69,6 +69,34 @@ export default function SiteHeader({
   }, [])
 
   useEffect(() => {
+    const mobileViewport = window.matchMedia?.('(max-width: 768px)')
+    if (!mobileViewport) return undefined
+
+    const handleViewportChange = (event) => {
+      if (event.matches) return
+      returnFocusRef.current = false
+      setMenuOpen(false)
+    }
+
+    const addChangeListener = mobileViewport.addEventListener
+      ? (listener) => mobileViewport.addEventListener('change', listener)
+      : mobileViewport.addListener
+        ? (listener) => mobileViewport.addListener(listener)
+        : undefined
+    const removeChangeListener = mobileViewport.removeEventListener
+      ? (listener) => mobileViewport.removeEventListener('change', listener)
+      : mobileViewport.removeListener
+        ? (listener) => mobileViewport.removeListener(listener)
+        : undefined
+    if (!addChangeListener || !removeChangeListener) return undefined
+
+    addChangeListener(handleViewportChange)
+    return () => {
+      removeChangeListener(handleViewportChange)
+    }
+  }, [setMenuOpen])
+
+  useEffect(() => {
     if (!menuOpen) return undefined
 
     const handleKeyDown = (event) => {
@@ -98,13 +126,19 @@ export default function SiteHeader({
 
     document.body.classList.add('nav-open')
     window.addEventListener('keydown', handleKeyDown)
-    let cancelled = false
-    queueMicrotask(() => {
-      if (!cancelled) firstLinkRef.current?.focus()
-    })
+    const focusFirstVisibleLink = () => {
+      const firstLink = firstLinkRef.current
+      if (!firstLink || window.getComputedStyle(firstLink).visibility !== 'visible') {
+        focusFrame = window.requestAnimationFrame(focusFirstVisibleLink)
+        return
+      }
+      firstLink.focus()
+    }
+    let focusFrame
+    focusFirstVisibleLink()
 
     return () => {
-      cancelled = true
+      if (focusFrame !== undefined) window.cancelAnimationFrame(focusFrame)
       document.body.classList.remove('nav-open')
       window.removeEventListener('keydown', handleKeyDown)
     }

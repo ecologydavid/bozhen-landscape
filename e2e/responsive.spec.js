@@ -298,6 +298,47 @@ test('mobile menu is full, refined, focus-trapped, and closeable', async ({ page
   expect(issues, issues.join('\n')).toEqual([])
 })
 
+test('reduced motion moves focus into the painted mobile drawer', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  const navigation = page.getByRole('navigation', { name: '主要導覽' })
+  const firstLink = navigation.getByRole('link', { name: '作品案例' })
+  await page.getByRole('button', { name: '開啟選單' }).click()
+
+  await expect(navigation).toHaveClass(/is-open/)
+  await expect(firstLink).toBeVisible()
+  await expect(firstLink).toBeFocused()
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+test('resizing an open drawer from 768px to 769px restores desktop interaction', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 768, height: 1024 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  const content = page.locator('.site-content')
+  const navigation = page.getByRole('navigation', { name: '主要導覽' })
+  await page.getByRole('button', { name: '開啟選單' }).click()
+  await expect(navigation).toHaveClass(/is-open/)
+  await expect(content).toHaveAttribute('inert', '')
+  await expect(content).toHaveAttribute('aria-hidden', 'true')
+
+  await page.setViewportSize({ width: 769, height: 1024 })
+
+  await expect(navigation).not.toHaveClass(/is-open/)
+  await expect(page.locator('body')).not.toHaveClass(/nav-open/)
+  await expect(content).not.toHaveAttribute('inert')
+  await expect(content).not.toHaveAttribute('aria-hidden')
+  const mainLink = page.locator('main a').first()
+  await mainLink.focus()
+  await expect(mainLink).toBeFocused()
+  await expect(page.locator('.nav-toggle')).not.toBeFocused()
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
 test('mobile drawer boundary preserves 82px rows and initially visible contacts', async ({ page }) => {
   const issues = watchPageHealth(page)
 

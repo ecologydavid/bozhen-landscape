@@ -1,8 +1,33 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import { siteContent } from '../../data/siteContent'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+function createMobileMediaQuery() {
+  const listeners = new Set()
+  const mediaQuery = {
+    matches: true,
+    media: '(max-width: 768px)',
+    addEventListener: vi.fn((type, listener) => {
+      if (type === 'change') listeners.add(listener)
+    }),
+    removeEventListener: vi.fn((type, listener) => {
+      if (type === 'change') listeners.delete(listener)
+    }),
+    leaveMobile() {
+      mediaQuery.matches = false
+      listeners.forEach((listener) => listener({ matches: false }))
+    },
+  }
+  return mediaQuery
+}
 
 test('uses the approved sprout glyph and mounts the visual only after opening', async () => {
   const user = userEvent.setup()
@@ -53,7 +78,9 @@ test('opens and closes the mobile navigation with every supported control', asyn
     'href',
     '/projects',
   )
-  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+  await waitFor(() =>
+    expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus(),
+  )
   expect(screen.getByRole('link', { name: '曜聖景觀有限公司' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /LINE 聯絡/ })).toHaveAttribute(
     'href',
@@ -98,7 +125,9 @@ test('traps keyboard focus within the open navigation', async () => {
   )
 
   await user.click(screen.getByRole('button', { name: '開啟選單' }))
-  expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
+  await waitFor(() =>
+    expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus(),
+  )
 
   await user.tab({ shift: true })
   expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toHaveFocus()
@@ -189,4 +218,85 @@ test('reports menu state and clears return focus when location changes', async (
   await waitFor(() => expect(onMenuOpenChange).toHaveBeenLastCalledWith(false))
   expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass('is-open')
   expect(screen.getByRole('button', { name: '開啟選單' })).not.toHaveFocus()
+})
+
+test('waits for a painted frame before focusing the first navigation link and cancels pending focus', async () => {
+  const user = userEvent.setup()
+  const frameCallbacks = []
+  const requestAnimationFrame = vi.fn((callback) => {
+    frameCallbacks.push(callback)
+    return 40 + requestAnimationFrame.mock.calls.length
+  })
+  const cancelAnimationFrame = vi.fn()
+  vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
+  vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrame)
+
+  const { unmount } = render(
+    <MemoryRouter>
+      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  const toggle = screen.getByRole('button', { name: '開啟選單' })
+  const firstLink = screen.getByRole('link', { name: '作品案例' })
+  let linkVisibility = 'hidden'
+  const nativeGetComputedStyle = window.getComputedStyle.bind(window)
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => (
+    element.matches?.('.site-nav__item')
+      ? { visibility: linkVisibility }
+      : nativeGetComputedStyle(element)
+  ))
+  await user.click(toggle)
+
+  expect(requestAnimationFrame).toHaveBeenCalledOnce()
+  expect(toggle).toHaveFocus()
+  act(() => frameCallbacks.shift()())
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(2)
+  expect(toggle).toHaveFocus()
+  act(() => frameCallbacks.shift()())
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(3)
+  expect(toggle).toHaveFocus()
+  linkVisibility = 'visible'
+  act(() => frameCallbacks.shift()())
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(3)
+  expect(firstLink).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: '關閉選單' }))
+  linkVisibility = 'hidden'
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(4)
+  unmount()
+  expect(cancelAnimationFrame).toHaveBeenCalledWith(44)
+  expect(document.body).not.toHaveClass('nav-open')
+})
+
+test('closes without returning focus when leaving mobile and cleans the listener in StrictMode', async () => {
+  const user = userEvent.setup()
+  const mediaQuery = createMobileMediaQuery()
+  const matchMedia = vi.fn(() => mediaQuery)
+  vi.stubGlobal('matchMedia', matchMedia)
+
+  const { unmount } = render(
+    <StrictMode>
+      <MemoryRouter>
+        <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+      </MemoryRouter>
+    </StrictMode>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
+  const firstLink = screen.getByRole('link', { name: '作品案例' })
+  await waitFor(() => expect(firstLink).toHaveFocus())
+
+  act(() => mediaQuery.leaveMobile())
+
+  expect(screen.getByRole('navigation', { name: '主要導覽' })).not.toHaveClass('is-open')
+  expect(document.body).not.toHaveClass('nav-open')
+  expect(screen.getByRole('button', { name: '開啟選單' })).not.toHaveFocus()
+  expect(matchMedia).toHaveBeenCalledWith('(max-width: 768px)')
+  expect(mediaQuery.addEventListener).toHaveBeenCalledTimes(2)
+  expect(mediaQuery.removeEventListener).toHaveBeenCalledTimes(1)
+
+  unmount()
+  expect(mediaQuery.removeEventListener).toHaveBeenCalledTimes(2)
 })
