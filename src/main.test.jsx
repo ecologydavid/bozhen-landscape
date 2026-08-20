@@ -9,6 +9,12 @@ vi.mock('react-dom/client', () => ({
   createRoot: vi.fn(() => ({ render: renderRoot })),
 }))
 
+vi.mock('./App', () => ({
+  default: function AppStub() {
+    return null
+  },
+}))
+
 beforeEach(() => {
   document.body.innerHTML = '<div id="root"></div>'
   renderRoot.mockClear()
