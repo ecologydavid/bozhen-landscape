@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
@@ -92,7 +92,7 @@ test('routes an admin to the new project editor', () => {
 })
 
 test('shows a permission message to an authenticated non-admin', () => {
-  useStudioAuth.mockReturnValue({ status: 'forbidden' })
+  useStudioAuth.mockReturnValue({ status: 'forbidden', signOut: vi.fn() })
 
   render(
     <MemoryRouter initialEntries={['/studio']}>
@@ -104,6 +104,55 @@ test('shows a permission message to an authenticated non-admin', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(
     '此帳號沒有內容工作室權限。',
   )
+  expect(screen.getByRole('button', { name: '登出並切換帳號' })).toBeInTheDocument()
+})
+
+test('signs out a forbidden account once and returns to the Studio login', async () => {
+  const user = userEvent.setup()
+  let resolveSignOut
+  const signOut = vi.fn().mockReturnValue(new Promise((resolve) => {
+    resolveSignOut = resolve
+  }))
+  let authState = { status: 'forbidden', signOut }
+  useStudioAuth.mockImplementation(() => authState)
+  const route = () => (
+    <MemoryRouter initialEntries={['/studio']}>
+      <StudioApp />
+    </MemoryRouter>
+  )
+  const { rerender } = render(route())
+
+  const button = screen.getByRole('button', { name: '登出並切換帳號' })
+  await user.click(button)
+  await user.click(button)
+  expect(signOut).toHaveBeenCalledOnce()
+  expect(button).toBeDisabled()
+  expect(button).toHaveTextContent('登出中…')
+
+  await act(async () => resolveSignOut())
+  authState = { status: 'anonymous', signIn: vi.fn() }
+  rerender(route())
+
+  expect(await screen.findByRole('heading', { name: '內容工作室登入' })).toBeInTheDocument()
+})
+
+test('keeps a useful retry control when forbidden-account sign out fails', async () => {
+  const user = userEvent.setup()
+  const signOut = vi.fn().mockRejectedValue(new Error('session token details'))
+  useStudioAuth.mockReturnValue({ status: 'forbidden', signOut })
+
+  render(
+    <MemoryRouter initialEntries={['/studio']}>
+      <StudioApp />
+    </MemoryRouter>,
+  )
+
+  await user.click(screen.getByRole('button', { name: '登出並切換帳號' }))
+
+  expect(signOut).toHaveBeenCalledOnce()
+  expect(await screen.findByText('無法登出，請再試一次。')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '登出並切換帳號' })).toBeEnabled()
+  expect(screen.queryByText(/session token details/)).not.toBeInTheDocument()
 })
 
 test('marks the loading guard as an accessible status view', () => {

@@ -1,8 +1,22 @@
+import { useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useStudioAuth } from './StudioAuthProvider'
 
 export default function RequireStudioAdmin() {
-  const { status } = useStudioAuth()
+  const { status, signOut } = useStudioAuth()
+  const [signOutState, setSignOutState] = useState('idle')
+
+  async function handleSignOut() {
+    if (signOutState === 'pending') return
+    setSignOutState('pending')
+    try {
+      await signOut()
+    } catch {
+      setSignOutState('error')
+      return
+    }
+    setSignOutState('idle')
+  }
 
   if (status === 'loading') {
     return (
@@ -20,6 +34,10 @@ export default function RequireStudioAdmin() {
     return (
       <main>
         <p role="alert">此帳號沒有內容工作室權限。</p>
+        {signOutState === 'error' ? <p role="alert">無法登出，請再試一次。</p> : null}
+        <button type="button" onClick={handleSignOut} disabled={signOutState === 'pending'}>
+          {signOutState === 'pending' ? '登出中…' : '登出並切換帳號'}
+        </button>
       </main>
     )
   }

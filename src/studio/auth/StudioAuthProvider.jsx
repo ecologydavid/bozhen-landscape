@@ -93,6 +93,7 @@ export default function StudioAuthProvider({ children }) {
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+    setAuthState({ status: 'anonymous', user: null })
   }
 
   return (
