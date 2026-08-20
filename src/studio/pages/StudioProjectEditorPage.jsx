@@ -11,13 +11,16 @@ import {
 import FactArrayField from '../components/FactArrayField'
 import ProjectAssetManager from '../components/ProjectAssetManager'
 import {
+  clearCreateProjectDraft,
   clearCreateProjectId,
   clearFactAttempt,
   getOrCreateCreateProjectId,
+  readCreateProjectDraft,
   readFactAttempt,
   reconcileFactAttempt,
   recoverLoadedFactAttempt,
   replaceCreateProjectId,
+  writeCreateProjectDraft,
   writeFactAttempt,
 } from '../lib/projectRecovery'
 import { supabase } from '../lib/supabase'
@@ -238,12 +241,18 @@ function MetadataInput({ id, label, value, error, onChange }) {
 function StudioProjectEditor({ mode, projectId }) {
   const navigate = useNavigate()
   const isEdit = mode === 'edit'
-  const [createProjectId, setCreateProjectId] = useState(
-    () => isEdit ? null : getOrCreateCreateProjectId(),
+  const [recoveredCreateDraft] = useState(
+    () => isEdit ? null : readCreateProjectDraft(),
   )
-  const [metadata, setMetadata] = useState(() => ({ ...emptyMetadata }))
+  const [createProjectId, setCreateProjectId] = useState(
+    () => isEdit ? null : recoveredCreateDraft?.projectId ?? getOrCreateCreateProjectId(),
+  )
+  const [metadata, setMetadata] = useState(
+    () => recoveredCreateDraft?.metadata ?? { ...emptyMetadata },
+  )
   const [facts, setFacts] = useState(() => {
     if (isEdit) return emptyFactsForEditing()
+    if (recoveredCreateDraft) return factsForEditing(recoveredCreateDraft.facts)
     const pendingAttempt = readFactAttempt(createProjectId)
     return pendingAttempt ? factsForEditing(pendingAttempt.facts) : emptyFactsForEditing()
   })
@@ -253,7 +262,11 @@ function StudioProjectEditor({ mode, projectId }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [saveState, setSaveState] = useState('idle')
   const [saveMessage, setSaveMessage] = useState('')
-  const [recoveryMessage, setRecoveryMessage] = useState('')
+  const [recoveryMessage, setRecoveryMessage] = useState(
+    () => recoveredCreateDraft
+      ? '已還原上次未完成的新增案場內容；請再次儲存以完成建立。'
+      : '',
+  )
   const [currentVersion, setCurrentVersion] = useState(null)
   const formRef = useRef(null)
   const isMountedRef = useRef(true)
@@ -347,14 +360,27 @@ function StudioProjectEditor({ mode, projectId }) {
       if (isEdit) {
         await updateProject(supabase, projectId, projectResult.data)
       } else {
-        await createProject(supabase, projectResult.data, { projectId: createProjectId })
+        writeCreateProjectDraft({
+          projectId: targetProjectId,
+          metadata: projectResult.data,
+          facts: factsResult.data,
+          baselineVersion: currentVersion,
+        })
+        await createProject(supabase, projectResult.data, { projectId: targetProjectId })
       }
       if (!isActive()) return
     } catch (error) {
       if (!isActive()) return
       if (!isEdit && error instanceof ProjectIdCollisionError) {
         clearFactAttempt(createProjectId)
-        setCreateProjectId(replaceCreateProjectId())
+        const replacementProjectId = replaceCreateProjectId()
+        writeCreateProjectDraft({
+          projectId: replacementProjectId,
+          metadata: projectResult.data,
+          facts: factsResult.data,
+          baselineVersion: currentVersion,
+        })
+        setCreateProjectId(replacementProjectId)
         setSaveMessage('新增識別碼已更新，請再試一次。')
         setSaveState('metadata-error')
         return
@@ -377,13 +403,22 @@ function StudioProjectEditor({ mode, projectId }) {
       setRecoveryMessage('')
       setSaveState('success')
       if (!isEdit) {
+        clearCreateProjectDraft()
         clearCreateProjectId()
-        navigate(`/studio/projects/${createProjectId}`, { replace: true })
+        navigate(`/studio/projects/${targetProjectId}`, { replace: true })
       }
     } catch {
       if (!isActive()) return
       setSaveMessage('案場資料已儲存，但事實卡版本狀態尚待確認；請再試一次以安全地核對後續動作。')
       setSaveState('facts-error')
+    }
+  }
+
+  function handleCancel() {
+    if (!isEdit) {
+      clearFactAttempt(createProjectId)
+      clearCreateProjectDraft()
+      clearCreateProjectId()
     }
   }
 
@@ -533,7 +568,7 @@ function StudioProjectEditor({ mode, projectId }) {
         ) : null}
 
         <div className="studio-form-actions">
-          <Link className="studio-secondary-link" to="/studio/projects">取消並返回案場列表</Link>
+          <Link className="studio-secondary-link" to="/studio/projects" onClick={handleCancel}>取消並返回案場列表</Link>
           <button className="studio-primary-button" type="submit" disabled={saveState === 'saving'}>
             {saveState === 'saving' ? '儲存中…' : '儲存事實卡版本'}
           </button>

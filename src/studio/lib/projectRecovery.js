@@ -1,7 +1,17 @@
-import { projectFactsSchema } from '../schemas/project'
+import { z } from 'zod'
+import { projectFactsSchema, projectInputSchema } from '../schemas/project'
 
 const createProjectIdKey = 'studio:create-project-id'
+const createProjectDraftKey = 'studio:create-project-draft'
 const factAttemptKeyPrefix = 'studio:fact-attempt:'
+
+const createProjectDraftSchema = z.object({
+  version: z.literal(1),
+  projectId: z.uuid(),
+  metadata: projectInputSchema,
+  facts: projectFactsSchema,
+  baselineVersion: z.number().int().min(1).nullable(),
+}).strict()
 
 function sessionStorageOrNull() {
   try {
@@ -30,12 +40,57 @@ export function getOrCreateCreateProjectId(
   storage = sessionStorageOrNull(),
 ) {
   try {
+    const draft = readCreateProjectDraft(storage)
+    if (draft) return draft.projectId
     const existingId = storage?.getItem(createProjectIdKey)
     if (isUuid(existingId || '')) return existingId
   } catch {
     // Replace unreadable state with a fresh in-memory flow ID.
   }
   return createAndStoreProjectId(createUuid, storage)
+}
+
+export function clearCreateProjectDraft(storage = sessionStorageOrNull()) {
+  try {
+    storage?.removeItem(createProjectDraftKey)
+  } catch {
+    // A user can still continue the mounted create flow when storage is unavailable.
+  }
+}
+
+function clearInvalidCreateProjectDraft(storage) {
+  clearCreateProjectDraft(storage)
+  clearCreateProjectId(storage)
+}
+
+export function readCreateProjectDraft(storage = sessionStorageOrNull()) {
+  try {
+    const serializedDraft = storage?.getItem(createProjectDraftKey)
+    if (!serializedDraft) return null
+    const parsedDraft = createProjectDraftSchema.safeParse(JSON.parse(serializedDraft))
+    if (!parsedDraft.success) {
+      clearInvalidCreateProjectDraft(storage)
+      return null
+    }
+    return parsedDraft.data
+  } catch {
+    clearInvalidCreateProjectDraft(storage)
+    return null
+  }
+}
+
+export function writeCreateProjectDraft(
+  draft,
+  storage = sessionStorageOrNull(),
+) {
+  const normalizedDraft = createProjectDraftSchema.parse({ version: 1, ...draft })
+  try {
+    storage?.setItem(createProjectDraftKey, JSON.stringify(normalizedDraft))
+    storage?.setItem(createProjectIdKey, normalizedDraft.projectId)
+  } catch {
+    // The mounted editor retains the normalized draft even when storage is unavailable.
+  }
+  return normalizedDraft
 }
 
 export function replaceCreateProjectId(

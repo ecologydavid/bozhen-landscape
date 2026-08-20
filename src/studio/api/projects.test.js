@@ -78,6 +78,23 @@ function createConflictRecoveryMock(existingProject) {
   return { client, eq, insert, insertSelect, insertSingle, maybeSingle, readSelect }
 }
 
+function createAmbiguousRecoveryMock(insertError, readResult) {
+  const insertSingle = vi.fn().mockResolvedValue({ data: null, error: insertError })
+  const insertSelect = vi.fn(() => ({ single: insertSingle }))
+  const insert = vi.fn(() => ({ select: insertSelect }))
+  const maybeSingle = vi.fn().mockResolvedValue(readResult)
+  const filtered = { maybeSingle }
+  const eq = vi.fn(() => filtered)
+  filtered.eq = eq
+  const readSelect = vi.fn(() => ({ eq }))
+  const client = {
+    from: vi.fn()
+      .mockReturnValueOnce({ insert })
+      .mockReturnValueOnce({ select: readSelect }),
+  }
+  return { client, maybeSingle }
+}
+
 function createUpdateMock(result = { data: null, error: null }) {
   const single = vi.fn().mockResolvedValue(result)
   const select = vi.fn(() => ({ single }))
@@ -215,6 +232,86 @@ test('reuses the same UUID after a lost create response and recovers the matchin
   await expect(createProject(retry.client, projectInput, { projectId })).resolves.toBe(existingProject)
   expect(firstAttempt.insert.mock.calls[0][0].id).toBe(projectId)
   expect(retry.insert.mock.calls[0][0].id).toBe(projectId)
+})
+
+test('recovers a lost successful create response from the exact requested UUID', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const existingProject = {
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+  }
+  const { client } = createAmbiguousRecoveryMock(
+    { code: 'PGRST000', message: 'connection was lost after insert' },
+    { data: existingProject, error: null },
+  )
+
+  await expect(createProject(client, projectInput, { projectId })).resolves.toBe(existingProject)
+})
+
+test('rethrows the original ambiguous create error when its row cannot be found', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const originalError = { code: 'PGRST000', message: 'connection was lost after insert' }
+  const { client } = createAmbiguousRecoveryMock(originalError, { data: null, error: null })
+
+  await expect(createProject(client, projectInput, { projectId })).rejects.toBe(originalError)
+})
+
+test('does not mask the original ambiguous create error when recovery read fails', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const originalError = { code: 'PGRST000', message: 'connection was lost after insert' }
+  const { client } = createAmbiguousRecoveryMock(originalError, {
+    data: null,
+    error: { code: 'PGRST999', message: 'recovery read unavailable' },
+  })
+
+  await expect(createProject(client, projectInput, { projectId })).rejects.toBe(originalError)
+})
+
+test.each([
+  { code: '42501', message: 'not authorized' },
+  { code: '23514', message: 'validation rejected' },
+])('does not recover a known non-ambiguous create error (%s)', async (originalError) => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const exactProject = {
+    id: projectId,
+    internal_name: '二林企業廠區',
+    public_name: '中部企業廠區景觀',
+    region: '彰化',
+    audience: 'builder',
+    site_type: '企業廠區',
+  }
+  const { client, maybeSingle } = createAmbiguousRecoveryMock(originalError, {
+    data: exactProject,
+    error: null,
+  })
+
+  await expect(createProject(client, projectInput, { projectId })).rejects.toBe(originalError)
+  expect(maybeSingle).not.toHaveBeenCalled()
+})
+
+test('treats an ambiguous response with different stored metadata as a UUID collision', async () => {
+  const projectId = '11111111-1111-4111-8111-111111111111'
+  const { client } = createAmbiguousRecoveryMock(
+    { code: 'PGRST000', message: 'connection was lost after insert' },
+    {
+      data: {
+        id: projectId,
+        internal_name: '其他案場',
+        public_name: '不同公開名稱',
+        region: '台北',
+        audience: 'corporate',
+        site_type: '商業空間',
+      },
+      error: null,
+    },
+  )
+
+  await expect(createProject(client, projectInput, { projectId }))
+    .rejects.toBeInstanceOf(ProjectIdCollisionError)
 })
 
 test('rejects a stale UUID collision without updating or overwriting the project', async () => {

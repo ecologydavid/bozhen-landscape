@@ -26,6 +26,19 @@ function toProjectRow(input) {
   }
 }
 
+function projectMetadataMatches(existingProject, projectRow) {
+  return existingProject
+    && Object.entries(projectRow).every(([field, value]) => existingProject[field] === value)
+}
+
+function isAmbiguousInsertError(error) {
+  if (!error) return false
+  if (error.code === '23505') return true
+  if (error.code === '42501' || error.code === '23514') return false
+  const status = Number(error.status ?? error.statusCode)
+  return !Number.isFinite(status) || status === 0 || status >= 500
+}
+
 export async function listProjects(client) {
   const { data, error } = await client
     .from('studio_projects')
@@ -65,13 +78,15 @@ export async function createProject(client, input, options = {}) {
     .select(projectFields)
     .single()
 
-  if (error && projectId && error.code === '23505') {
-    const existingProject = await getProject(client, projectId)
-    const metadataMatches = existingProject
-      && Object.entries(projectRow).every(([field, value]) => existingProject[field] === value)
-
-    if (metadataMatches) return existingProject
-    throw new ProjectIdCollisionError()
+  if (error && projectId && isAmbiguousInsertError(error)) {
+    let existingProject
+    try {
+      existingProject = await getProject(client, projectId)
+    } catch {
+      throw error
+    }
+    if (projectMetadataMatches(existingProject, projectRow)) return existingProject
+    if (existingProject) throw new ProjectIdCollisionError()
   }
   if (error) throw error
   return data

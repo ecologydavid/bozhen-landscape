@@ -208,6 +208,30 @@ test('creates metadata before saving facts with the returned project id', async 
   )
 })
 
+test('persists the normalized create draft before the project create request', async () => {
+  const user = userEvent.setup()
+  createProject.mockRejectedValue(new Error('transport unavailable'))
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+  await fillCreateForm(user)
+
+  await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
+
+  await waitFor(() => expect(createProject).toHaveBeenCalledOnce())
+  expect(JSON.parse(window.sessionStorage.getItem('studio:create-project-draft'))).toEqual({
+    version: 1,
+    projectId: createProjectId,
+    metadata: {
+      internalName: '二林企業廠區',
+      publicName: '中部企業廠區景觀',
+      region: '彰化',
+      audience: 'builder',
+      siteType: '企業廠區',
+    },
+    facts: createFacts,
+    baselineVersion: null,
+  })
+})
+
 test('loads an editable project and every current fact field', async () => {
   getProject.mockResolvedValue(projectRow)
   getCurrentFacts.mockResolvedValue(factRow)
@@ -519,7 +543,7 @@ test('does not continue an A save after navigating to B', async () => {
   expect(screen.queryByText(/已儲存事實卡版本/)).not.toBeInTheDocument()
 })
 
-test('reuses the same create UUID after a lost response and refresh', async () => {
+test('restores a failed create draft after remount and clears it only after fact save succeeds', async () => {
   const user = userEvent.setup()
   createProject
     .mockRejectedValueOnce(new Error('lost response'))
@@ -534,13 +558,50 @@ test('reuses the same create UUID after a lost response and refresh', async () =
   firstRender.unmount()
 
   render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
-  await fillCreateForm(user)
+  expect(await screen.findByRole('alert')).toHaveTextContent('已還原上次未完成的新增案場內容')
+  expect(screen.getByLabelText('內部名稱')).toHaveValue('二林企業廠區')
+  expect(screen.getByLabelText('公開名稱')).toHaveValue('中部企業廠區景觀')
+  expect(screen.getByLabelText('客戶需求')).toHaveValue('改善入口動線與企業門面。')
+  expect(screen.getByLabelText('已確認服務 1')).toHaveValue('景觀規劃')
   await user.click(screen.getByRole('button', { name: '儲存事實卡版本' }))
   await screen.findByText('已儲存事實卡版本 1')
 
   expect(createProject).toHaveBeenCalledTimes(2)
   expect(createProject.mock.calls[0][2]).toEqual({ projectId: createProjectId })
   expect(createProject.mock.calls[1][2]).toEqual({ projectId: createProjectId })
+  expect(window.sessionStorage.getItem(createProjectIdKey)).toBeNull()
+  expect(window.sessionStorage.getItem('studio:create-project-draft')).toBeNull()
+})
+
+test('ignores and clears a corrupt create draft before rendering controlled fields', () => {
+  window.sessionStorage.setItem('studio:create-project-draft', '{bad-draft')
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+
+  expect(screen.getByLabelText('內部名稱')).toHaveValue('')
+  expect(screen.queryByText('已還原上次未完成的新增案場內容')).not.toBeInTheDocument()
+  expect(window.sessionStorage.getItem('studio:create-project-draft')).toBeNull()
+})
+
+test('deliberately discards a recovered create draft when canceling', async () => {
+  const user = userEvent.setup()
+  window.sessionStorage.setItem('studio:create-project-draft', JSON.stringify({
+    version: 1,
+    projectId: createProjectId,
+    metadata: {
+      internalName: '二林企業廠區',
+      publicName: '中部企業廠區景觀',
+      region: '彰化',
+      audience: 'builder',
+      siteType: '企業廠區',
+    },
+    facts: createFacts,
+    baselineVersion: null,
+  }))
+  render(<MemoryRouter><StudioProjectEditorPage mode="create" /></MemoryRouter>)
+
+  await user.click(screen.getByRole('link', { name: '取消並返回案場列表' }))
+
+  expect(window.sessionStorage.getItem('studio:create-project-draft')).toBeNull()
   expect(window.sessionStorage.getItem(createProjectIdKey)).toBeNull()
 })
 
@@ -707,6 +768,13 @@ test('rotates a stale create UUID after a collision without losing typed values'
   const replacementId = window.sessionStorage.getItem(createProjectIdKey)
   expect(replacementId).not.toBe(createProjectId)
   expect(replacementId).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(JSON.parse(window.sessionStorage.getItem('studio:create-project-draft'))).toEqual(
+    expect.objectContaining({
+      projectId: replacementId,
+      metadata: expect.objectContaining({ publicName: '中部企業廠區景觀' }),
+      facts: createFacts,
+    }),
+  )
 
   createProject.mockResolvedValueOnce({ ...projectRow, id: replacementId })
   saveFactVersion.mockResolvedValueOnce({ ...factRow, project_id: replacementId, version: 1 })

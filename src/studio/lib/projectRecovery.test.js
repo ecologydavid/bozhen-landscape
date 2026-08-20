@@ -1,12 +1,15 @@
 import { beforeEach, expect, test } from 'vitest'
 import {
+  clearCreateProjectDraft,
   clearCreateProjectId,
   getOrCreateCreateProjectId,
   normalizedFactsEqual,
+  readCreateProjectDraft,
   readFactAttempt,
   reconcileFactAttempt,
   recoverLoadedFactAttempt,
   replaceCreateProjectId,
+  writeCreateProjectDraft,
   writeFactAttempt,
 } from './projectRecovery'
 
@@ -34,6 +37,58 @@ test('reuses, replaces, and clears a validated create flow UUID', () => {
   expect(getOrCreateCreateProjectId(() => projectId)).toBe(replacementId)
   clearCreateProjectId()
   expect(window.sessionStorage.getItem('studio:create-project-id')).toBeNull()
+})
+
+test('stores and restores a normalized versioned create draft', () => {
+  const draft = writeCreateProjectDraft({
+    projectId,
+    metadata: {
+      internalName: '  二林企業廠區  ',
+      publicName: '  中部企業廠區景觀  ',
+      region: '  彰化  ',
+      audience: 'builder',
+      siteType: '  企業廠區  ',
+    },
+    facts: { ...facts, services: ['  景觀規劃  '] },
+    baselineVersion: null,
+  })
+
+  expect(draft).toEqual({
+    version: 1,
+    projectId,
+    metadata: {
+      internalName: '二林企業廠區',
+      publicName: '中部企業廠區景觀',
+      region: '彰化',
+      audience: 'builder',
+      siteType: '企業廠區',
+    },
+    facts,
+    baselineVersion: null,
+  })
+  expect(readCreateProjectDraft()).toEqual(draft)
+  expect(getOrCreateCreateProjectId(() => replacementId)).toBe(projectId)
+
+  clearCreateProjectDraft()
+  expect(readCreateProjectDraft()).toBeNull()
+})
+
+test('clears corrupt or stale create draft data without throwing', () => {
+  window.sessionStorage.setItem('studio:create-project-id', projectId)
+  window.sessionStorage.setItem('studio:create-project-draft', '{not-json')
+  expect(readCreateProjectDraft()).toBeNull()
+  expect(window.sessionStorage.getItem('studio:create-project-draft')).toBeNull()
+  expect(window.sessionStorage.getItem('studio:create-project-id')).toBeNull()
+
+  window.sessionStorage.setItem('studio:create-project-draft', JSON.stringify({
+    version: 99,
+    projectId,
+    metadata: {},
+    facts: {},
+    baselineVersion: null,
+  }))
+  expect(readCreateProjectDraft()).toBeNull()
+  expect(window.sessionStorage.getItem('studio:create-project-draft')).toBeNull()
 })
 
 test('parses normalized fact attempts fail-safe', () => {
