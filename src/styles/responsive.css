@@ -179,10 +179,10 @@
     align-items: flex-start;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 26px;
+    gap: 24px;
     height: auto;
     max-height: calc(100dvh - 24px);
-    padding: calc(var(--header-height) + 42px) max(28px, 8vw) calc(96px + env(safe-area-inset-bottom));
+    padding: calc(var(--header-height) + 40px) max(28px, 8vw) calc(96px + env(safe-area-inset-bottom));
     overflow-y: auto;
     overscroll-behavior: contain;
     border-radius: var(--canvas-radius);
@@ -467,7 +467,7 @@
   }
 }
 
-@media (max-width: 768px) and (max-height: 760px) {
+@media (max-width: 768px) and (max-height: 768px) {
   .site-nav {
     gap: 8px;
     padding: calc(var(--header-height) + 8px) max(20px, 6vw) calc(16px + env(safe-area-inset-bottom));

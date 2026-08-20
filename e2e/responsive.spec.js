@@ -168,6 +168,7 @@ test('mobile menu is full, refined, focus-trapped, and closeable', async ({ page
   await expect(firstLink).toBeFocused()
   await expect(navigation.getByRole('link', { name: 'LINE 聯絡' })).toBeVisible()
   await expect(lastLink).toBeVisible()
+  await expect(navigation.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeVisible()
 
   const drawerRect = await navigation.boundingBox()
   expect(drawerRect).not.toBeNull()
@@ -194,23 +195,42 @@ test('mobile menu is full, refined, focus-trapped, and closeable', async ({ page
   expect(issues, issues.join('\n')).toEqual([])
 })
 
-test('short mobile drawers show both contact actions without initial scrolling', async ({ page }) => {
+test('mobile drawer boundary preserves 82px rows and initially visible contacts', async ({ page }) => {
   const issues = watchPageHealth(page)
 
-  for (const height of [568, 720]) {
+  for (const { height, compact } of [
+    { height: 568, compact: true },
+    { height: 720, compact: true },
+    { height: 768, compact: true },
+    { height: 769, compact: false },
+    { height: 800, compact: false },
+  ]) {
     await page.setViewportSize({ width: 320, height })
     await page.goto(homeUrl, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: '開啟選單' }).click()
 
     const navigation = page.getByRole('navigation', { name: '主要導覽' })
+    const visual = navigation.locator('.site-nav__visual')
     const contacts = [
       navigation.getByRole('link', { name: 'LINE 聯絡' }),
       navigation.getByRole('link', { name: '撥打 0921-047-049' }),
     ]
     const drawerRect = await navigation.boundingBox()
+    const rowMetrics = await navigation.locator('.site-nav__item').evaluateAll((rows) => (
+      rows.map((row) => ({
+        height: row.getBoundingClientRect().height,
+        minHeight: getComputedStyle(row).minHeight,
+      }))
+    ))
 
     expect(drawerRect).not.toBeNull()
     expect(await navigation.evaluate((node) => node.scrollTop)).toBe(0)
+    expect(rowMetrics).toHaveLength(4)
+    for (const row of rowMetrics) {
+      expect(row.minHeight).toBe('82px')
+      expect(row.height).toBeGreaterThanOrEqual(82)
+    }
+    await expect(visual).toHaveCSS('display', compact ? 'none' : 'grid')
     for (const contact of contacts) {
       const contactRect = await contact.boundingBox()
       expect(contactRect).not.toBeNull()
@@ -222,6 +242,40 @@ test('short mobile drawers show both contact actions without initial scrolling',
     await page.keyboard.press('Escape')
   }
 
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+test('navigation image fallback keeps one visible tagline without text overlap', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: '開啟選單' }).click()
+
+  const navigation = page.getByRole('navigation', { name: '主要導覽' })
+  const image = navigation.locator('.site-nav__visual img')
+  await image.dispatchEvent('error')
+  await expect(image).toHaveCount(1)
+  await image.dispatchEvent('error')
+
+  const fallback = navigation.getByRole('img', {
+    name: '導覽中的彰化私人住宅庭園實景（圖片暫時無法顯示）',
+  })
+  const tagline = navigation.locator('.site-nav__visual > span')
+  await expect(fallback).toBeVisible()
+  await expect(tagline).toBeVisible()
+  await expect(fallback.locator('span')).toBeHidden()
+  await expect(fallback.locator('strong')).toBeHidden()
+
+  const visibleInternalTextRects = await fallback.locator('span, strong').evaluateAll((nodes) => (
+    nodes.flatMap((node) => {
+      const style = getComputedStyle(node)
+      const rect = node.getBoundingClientRect()
+      return style.visibility === 'visible' && rect.width > 0 && rect.height > 0
+        ? [{ top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left }]
+        : []
+    })
+  ))
+  expect(visibleInternalTextRects).toEqual([])
   expect(issues, issues.join('\n')).toEqual([])
 })
 

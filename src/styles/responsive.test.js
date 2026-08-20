@@ -72,8 +72,8 @@ test('reveals the mobile drawer from left to right without changing its visibili
   expect(openDrawer).toMatch(/transition-delay:\s*0s;/)
 })
 
-test('reduces drawer chrome only when the mobile viewport is short', () => {
-  const marker = '@media (max-width: 768px) and (max-height: 760px)'
+test('reduces drawer chrome through the measured 768 pixel height boundary', () => {
+  const marker = '@media (max-width: 768px) and (max-height: 768px)'
   expect(stylesheet).toContain(marker)
   const shortMobileStyles = stylesheet.slice(stylesheet.indexOf(marker))
   const compactDrawer = rule(shortMobileStyles, '.site-nav')
@@ -81,6 +81,15 @@ test('reduces drawer chrome only when the mobile viewport is short', () => {
   expect(compactDrawer).toMatch(/gap:\s*8px;/)
   expect(compactDrawer).toMatch(
     /padding:\s*calc\(var\(--header-height\) \+ 8px\) max\(20px, 6vw\) calc\(16px \+ env\(safe-area-inset-bottom\)\);/,
+  )
+})
+
+test('compacts the default drawer enough to fit immediately above the boundary', () => {
+  const drawer = rule(mobileStyles, '.site-nav')
+
+  expect(drawer).toMatch(/gap:\s*24px;/)
+  expect(drawer).toMatch(
+    /padding:\s*calc\(var\(--header-height\) \+ 40px\) max\(28px, 8vw\) calc\(96px \+ env\(safe-area-inset-bottom\)\);/,
   )
 })
 
