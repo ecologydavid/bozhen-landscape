@@ -24,6 +24,12 @@ describe('assetFileSchema', () => {
     expect(assetFileSchema.parse(file)).toBe(file)
   })
 
+  test('accepts a HEIC file when the browser does not infer its MIME type', () => {
+    const file = createFile('photo.heic', '', 1)
+
+    expect(assetFileSchema.safeParse(file).success).toBe(true)
+  })
+
   test('exports the exact accepted image MIME types', () => {
     expect(acceptedImageTypes).toEqual([
       'image/jpeg',

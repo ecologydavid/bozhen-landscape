@@ -2,7 +2,7 @@
 
 以 React、Vite 與原生 CSS 製作的靜態形象網站。首頁採「作品先行、報價收尾」架構，包含服務介紹、精選案例、品牌工法、合作流程、報價表單示意、案例總覽與案例詳情。
 
-## 本機開發
+## 本機開發（公開網站）
 
 ```powershell
 npm install
@@ -13,22 +13,21 @@ npm run build
 npm run preview
 ```
 
-## 曜聖｜內容工作室本機設定
+## 曜聖｜內容工作室本機 MVP
 
-### 目前實作狀態（2026-08-18）
-
-> **目前 checkout 只有瀏覽器端與 Studio UI／client 基礎，尚未具備可執行的本機 Supabase／DB 工作流程，也不代表已可供正式環境使用。** 本機 Supabase config、foundation migrations、RLS／Storage policies、不可變事實的 content-idempotent RPC 與 pgTAP 測試等資料庫基礎尚未落地。下方 Supabase 啟動、重設、DB 測試與管理員註冊步驟，是資料庫基礎落地後的**目標工作流程**；現在執行 `npm run supabase:start`、`npm run supabase:reset`、`npm run test:db` 或 `studio_admins` 管理員 INSERT 都不預期成功，也不得作為功能、DB gate 或 production readiness 已完成的證據。
+本機 Supabase workflow 已可執行，包含 migrations、RLS、私有 Storage、append-only／content-idempotent 的事實卡版本 RPC 與 pgTAP gate。這是可驗證的 local MVP foundation，不是 production readiness，也不代表 hosted deployment 已完成。
 
 ### 前置需求
 
 - Node.js 版本必須符合 `package.json` 的 engines：`^22.13.0 || >=24.0.0`。先執行 `node --version` 確認版本；若 npm 顯示 `EBADENGINE`，請升級或切換 Node.js 後再安裝套件。
-- 本機 Supabase 需要 Docker Desktop，或與 Supabase CLI 相容的 Docker／Podman runtime。這台開發機目前尚未安裝可用的 runtime，因此無法在此環境執行 DB gate；資料庫基礎落地前，即使安裝 runtime 也不能啟動這個 checkout 的目標 Supabase workflow。
+- 本機 Supabase 需要 Docker Desktop，或與 Supabase CLI 相容且正在運作的 Docker／Podman runtime。
 - 所有 `VITE_` 變數都會送到瀏覽器。本機開發使用本機 Supabase 的 publishable key（或 legacy anon key）；hosted 部署則使用該 hosted 專案的 URL 與 publishable key（或 legacy anon key），並透過部署平台的環境設定注入為 `VITE_SUPABASE_URL` 與 `VITE_SUPABASE_PUBLISHABLE_KEY`。這兩類 browser-safe key 預期會出現在瀏覽器中。
 - `VITE_`／browser config 嚴禁放入 elevated／server credentials，包括 `sb_secret_`、`service_role` JWT／key、資料庫密碼，以及 management／service secrets。
+- `.env.local` 僅供 Vite／瀏覽器開發與 Studio browser smoke 使用；Supabase CLI 的 reset、DB tests 與 DB lint 不依賴它。
 
 ### 啟動本機環境
 
-資料庫基礎落地後，在專案根目錄依序執行以下目標流程：
+在專案根目錄依序執行：
 
 ```powershell
 npm install
@@ -46,8 +45,6 @@ npm run dev
 
 ### 建立第一位管理員
 
-這也是資料庫基礎落地後的目標流程；目前尚未建立 `public.studio_admins`，請勿執行此 INSERT 或視為已完成設定。
-
 1. 開啟 `npm run supabase:start` 輸出所列的本機 Studio URL，進入 Auth 使用者管理頁面，以預定的管理員 Email 與密碼建立使用者。使用 hosted Supabase 時，則在該專案的 Auth dashboard 建立使用者。
 2. 從同一個 Auth dashboard 複製該使用者的 UUID。
 3. 在該 Supabase 專案的 SQL Editor 執行以下 SQL，將使用者登記為 Studio 管理員：
@@ -57,34 +54,29 @@ insert into public.studio_admins(user_id)
 values ('<Auth user UUID copied from the dashboard>');
 ```
 
-UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登記在 `public.studio_admins` 的使用者可以使用 Studio；正式環境 secrets 永遠不可提交到版本控制。
+UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登記在 `public.studio_admins` 的使用者可以使用 Studio；正式環境 secrets 永遠不可提交到版本控制。MVP 明確支援且強制只有一位管理員：`studio_admins` 有 singleton unique index，第二次 INSERT 會被拒絕，必須先移除或替換現有管理員。
 
 ### 進入 Studio
 
 啟動應用程式後，開啟開發伺服器網址並加上 `#/studio`（應用程式使用 `HashRouter`），再以剛建立的 Email 與密碼登入。公開網站仍維持原有的一般路由與瀏覽流程。
 
-目標 MVP 將支援建立／編輯專案與不可變事實，以及上傳、分類私有的真實專案照片；目前只有 UI／client 基礎，這些能力要等資料庫基礎落地後才可使用。AI 圖片生成、發布與排程尚未提供，會在後續計畫處理。
+本機 MVP 支援建立／編輯專案、append-only／content-idempotent 事實卡版本，以及私有 `studio-assets` bucket 的 JPG、PNG、WebP、HEIC、HEIF 上傳、signed preview 與使用權限分類。內容相同時會保留既有事實版本；內容變更才建立下一版，且每個專案只有一筆 current row。AI 內容／圖片生成、審核或匯出、LINE 通知、Meta 發布與排程均不在 Plan 1，仍屬後續計畫。
 
 ### 驗證與停止
 
-目前可執行、且不依賴本機資料庫的 app gate：
-
-```powershell
-npm test -- --run
-npm run lint
-npm run build
-```
-
-預期結果是 Vitest 無失敗、ESLint 無錯誤，且 Vite 成功產生 `dist/`。
-
-下列 DB gate 目前受阻；只有在資料庫基礎落地，且 Supabase CLI、container runtime 與正確 Node.js 版本都就緒後，才執行：
+Docker runtime 已啟動時，完整 gate 依序為：
 
 ```powershell
 npm run supabase:reset
 npm run test:db
+npm test -- --run
+npm run lint
+npm run build
+git diff --check
+npx supabase db lint --local --level error
 ```
 
-Supabase CLI 的 DB gate 依賴 Supabase config 與 container runtime，不需要 Vite 的 `.env.local`；`.env.local` 是執行 `npm run dev` 與 Studio browser smoke 時才需要。資料庫基礎落地後，完整 gate 的預期結果才包含本機資料庫可重設與 DB 測試通過。上述任一命令非零結束即代表 gate 未通過；資料庫基礎尚未落地，因此尚未執行或宣稱 DB gate 通過。
+上述命令都應以零結束。2026-08-21 的觀測結果是 pgTAP `123` tests、Vitest `27` files／`274` tests、ESLint 無錯誤、Vite build 成功，以及 DB lint 回報 `No schema errors found`；隨測試演進，總數可能改變。Supabase CLI 的 DB gate 依賴 Supabase config 與 container runtime，不需要 Vite 的 `.env.local`。
 
 常見問題：
 

@@ -5,7 +5,11 @@ import {
   recordAssetRecovery,
   triggerAssetRecovery,
 } from '../lib/assetRecovery'
-import { assetFileSchema, assetPermissionSchema } from '../schemas/asset'
+import {
+  assetFileSchema,
+  assetPermissionSchema,
+  inferAcceptedImageMimeType,
+} from '../schemas/asset'
 
 const assetFields = 'id, project_id, storage_path, original_name, mime_type, size_bytes, width, height, permission_status, privacy_flags, processing_status, created_at, updated_at'
 const allowedStorageExtensions = new Set(['jpg', 'png', 'webp', 'heic', 'heif'])
@@ -245,19 +249,26 @@ export async function uploadAsset(
   } = {},
 ) {
   const parsedFile = assetFileSchema.parse(file)
+  const mimeType = inferAcceptedImageMimeType(parsedFile)
   const parsedProjectId = parseProjectId(projectId)
 
   triggerAssetRecovery(client, recoverPending)
 
   const assetId = parseAssetId(randomUUID())
-  const extension = extensionByMimeType[parsedFile.type]
+  const extension = extensionByMimeType[mimeType]
   const storagePath = `raw/${parsedProjectId}/${assetId}.${extension}`
   const bucket = client.storage.from('studio-assets')
+  const uploadFile = parsedFile.type === mimeType
+    ? parsedFile
+    : new File([parsedFile], parsedFile.name, {
+      type: mimeType,
+      lastModified: parsedFile.lastModified,
+    })
   let uploadResult
 
   try {
-    uploadResult = await bucket.upload(storagePath, parsedFile, {
-      contentType: parsedFile.type,
+    uploadResult = await bucket.upload(storagePath, uploadFile, {
+      contentType: mimeType,
       upsert: false,
     })
   } catch (uploadError) {
@@ -293,7 +304,7 @@ export async function uploadAsset(
     project_id: parsedProjectId,
     storage_path: storagePath,
     original_name: parsedFile.name,
-    mime_type: parsedFile.type,
+    mime_type: mimeType,
     size_bytes: parsedFile.size,
     permission_status: 'unconfirmed',
   }

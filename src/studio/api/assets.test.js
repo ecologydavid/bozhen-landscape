@@ -166,6 +166,25 @@ test.each([
   )
 })
 
+test('normalizes an extension-identifiable HEIC with an unknown browser MIME type', async () => {
+  const mock = createClient()
+  const file = createFile('local-qa.heic', '', 5)
+
+  await upload(mock.client, file)
+
+  const [storagePath, uploadedFile, uploadOptions] = mock.upload.mock.calls[0]
+  expect(storagePath).toBe(`raw/${projectId}/${assetId}.heic`)
+  expect(uploadedFile).not.toBe(file)
+  expect(uploadedFile).toBeInstanceOf(File)
+  expect(uploadedFile.type).toBe('image/heic')
+  expect(uploadOptions).toEqual({ contentType: 'image/heic', upsert: false })
+  expect(mock.insert).toHaveBeenCalledWith(expect.objectContaining({
+    mime_type: 'image/heic',
+    original_name: 'local-qa.heic',
+    size_bytes: 5,
+  }))
+})
+
 test.each([
   ['unsupported file', projectId, createFile('clip.mp4', 'video/mp4')],
   ['oversized file', projectId, createFile('large.png', 'image/png', 25 * 1024 * 1024 + 1)],

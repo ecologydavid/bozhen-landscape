@@ -8,9 +8,26 @@ export const acceptedImageTypes = [
   'image/heif',
 ]
 
+const mimeTypeByExtension = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+}
+
+export function inferAcceptedImageMimeType(file) {
+  if (acceptedImageTypes.includes(file.type)) return file.type
+  if (file.type !== '' && file.type !== 'application/octet-stream') return null
+
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  return mimeTypeByExtension[extension] ?? null
+}
+
 export const assetFileSchema = z.instanceof(File)
   .refine(
-    (file) => acceptedImageTypes.includes(file.type),
+    (file) => inferAcceptedImageMimeType(file) !== null,
     '只接受 JPG、PNG、WebP 或 HEIC 圖片',
   )
   .refine(
