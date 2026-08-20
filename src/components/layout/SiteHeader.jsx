@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { navigation } from '../../data/navigation'
+import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
 
 export default function SiteHeader({
   brand,
   contact,
+  navigationImage,
+  navigationImageAlt,
   menuOpen: controlledMenuOpen,
   onMenuOpenChange,
 }) {
@@ -184,6 +187,18 @@ export default function SiteHeader({
               </Link>
             ))}
           </div>
+          {navigationImage && navigationImageAlt ? (
+            <div className="site-nav__visual">
+              <BrandImage
+                src={navigationImage}
+                alt={`導覽中的${navigationImageAlt}`}
+                loading="lazy"
+                decoding="async"
+                sizes="(max-width: 768px) 72vw, 1px"
+              />
+              <span>把自然，安放進日常</span>
+            </div>
+          ) : null}
           <div className="site-nav__contacts">
             <a
               href={contact.lineHref}

@@ -4,6 +4,14 @@ import { expect, test } from 'vitest'
 
 const stylesheet = readFileSync(resolve('src/styles/responsive.css'), 'utf8')
 const tokens = readFileSync(resolve('src/styles/tokens.css'), 'utf8')
+const mobileStyles = stylesheet.slice(stylesheet.indexOf('@media (max-width: 768px)'))
+
+function rule(source, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = source.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))
+  expect(match, `missing CSS rule for ${selector}`).not.toBeNull()
+  return match[1]
+}
 
 test('keeps the Hero direct contact pair visible at mobile widths', () => {
   expect(stylesheet).toMatch(
@@ -48,6 +56,20 @@ test('reveals the mobile drawer before its focus target is scheduled', () => {
   expect(stylesheet).toMatch(
     /\.site-nav\.is-open \{[\s\S]*?visibility: visible;[\s\S]*?transition-delay: 0s;/,
   )
+})
+
+test('reveals the mobile drawer from left to right without changing its visibility delay', () => {
+  const closedDrawer = rule(mobileStyles, '.site-nav')
+  const openDrawer = rule(mobileStyles, '.site-nav.is-open')
+
+  expect(closedDrawer).toMatch(/clip-path:\s*inset\(0 100% 0 0 round var\(--canvas-radius\)\);/)
+  expect(closedDrawer).toMatch(/opacity:\s*0;/)
+  expect(closedDrawer).toMatch(/transform:\s*translateX\(-24px\);/)
+  expect(closedDrawer).toMatch(/visibility 0s linear 220ms;/)
+  expect(openDrawer).toMatch(/clip-path:\s*inset\(0 0 0 0 round var\(--canvas-radius\)\);/)
+  expect(openDrawer).toMatch(/opacity:\s*1;/)
+  expect(openDrawer).toMatch(/transform:\s*translateX\(0\);/)
+  expect(openDrawer).toMatch(/transition-delay:\s*0s;/)
 })
 
 test('lets the document shrink below 320 CSS pixels when a Windows scrollbar is present', () => {

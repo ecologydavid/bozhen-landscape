@@ -188,20 +188,23 @@
     border-radius: var(--canvas-radius);
     background: var(--paper-bright);
     color: var(--ink);
+    clip-path: inset(0 100% 0 0 round var(--canvas-radius));
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-10px);
+    transform: translateX(-24px);
     transition:
+      clip-path 320ms var(--ease),
       opacity 220ms ease,
-      transform 220ms ease,
+      transform 320ms var(--ease),
       visibility 0s linear 220ms;
   }
 
   .site-nav.is-open {
     visibility: visible;
+    clip-path: inset(0 0 0 0 round var(--canvas-radius));
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
+    transform: translateX(0);
     transition-delay: 0s;
   }
 

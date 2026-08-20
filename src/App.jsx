@@ -19,6 +19,8 @@ export default function App() {
       <SiteHeader
         brand={brand}
         contact={contact}
+        navigationImage={siteContent.hero.image}
+        navigationImageAlt={siteContent.hero.alt}
         menuOpen={menuOpen}
         onMenuOpenChange={setMenuOpen}
       />

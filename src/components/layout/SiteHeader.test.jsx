@@ -7,12 +7,21 @@ import { siteContent } from '../../data/siteContent'
 test('uses the approved sprout glyph throughout the navigation', () => {
   const { container } = render(
     <MemoryRouter>
-      <SiteHeader brand={siteContent.brand} contact={siteContent.contact} />
+      <SiteHeader
+        brand={siteContent.brand}
+        contact={siteContent.contact}
+        navigationImage={siteContent.hero.image}
+        navigationImageAlt={siteContent.hero.alt}
+      />
     </MemoryRouter>,
   )
 
   expect(container.querySelectorAll('[data-icon="leaf"], [data-icon="arrowLeaf"]')).toHaveLength(0)
   expect(container.querySelectorAll('[data-icon="sprout"]')).toHaveLength(6)
+  expect(container.querySelectorAll('.site-nav__item')).toHaveLength(4)
+  expect(container.querySelectorAll('.site-nav__item [data-icon="sprout"]')).toHaveLength(4)
+  expect(screen.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeInTheDocument()
+  expect(screen.getByText('把自然，安放進日常')).toBeInTheDocument()
 })
 
 test('opens and closes the mobile navigation with every supported control', async () => {
