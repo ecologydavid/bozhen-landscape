@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(123);
+select no_plan();
 
 select ok(exists (select 1 from pg_extension where extname = 'pgcrypto' and extnamespace = 'extensions'::regnamespace), 'pgcrypto is enabled in the extensions schema');
 select results_eq($$ select unnest(enum_range(null::public.studio_audience))::text $$, array['builder', 'corporate', 'luxury_home'], 'studio_audience values match the Studio contract');
@@ -52,6 +52,34 @@ select has_index('public', 'studio_project_fact_versions', 'studio_fact_one_curr
 select ok(position('WHERE is_current' in pg_get_indexdef('public.studio_fact_one_current'::regclass)) > 0, 'one-current-fact index is partial');
 select has_index('public', 'studio_admins', 'studio_admins_singleton', 'Studio admin membership has a singleton index');
 select has_index('public', 'studio_project_fact_versions', 'studio_fact_versions_created_by_idx', 'fact provenance index exists');
+select ok(
+  exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.studio_assets'::regclass
+      and conname = 'studio_assets_storage_path_canonical'
+      and contype = 'c'
+  ),
+  'asset storage paths have an exact canonical database constraint'
+);
+select results_eq(
+  $$
+    select public.studio_canonical_asset_storage_path(
+      '22222222-2222-2222-2222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+      mime_type
+    )
+    from unnest(array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']) as mime_type
+    order by mime_type
+  $$,
+  array[
+    'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.heic',
+    'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.heif',
+    'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.jpg',
+    'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.png',
+    'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.webp'
+  ],
+  'every supported MIME type maps to its exact canonical raw storage path'
+);
 
 select ok(
   to_regprocedure('public.studio_save_fact_version(uuid,jsonb)') is not null,
@@ -71,10 +99,11 @@ select ok(
     select 1
     from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.studio_save_fact_version(uuid,jsonb)')
-      and not procedure.prosecdef
+      and procedure.prosecdef
+      and procedure.proowner = 'postgres'::regrole
       and procedure.proconfig @> array['search_path=pg_catalog, public, pg_temp']
   ),
-  'fact-version save RPC is security invoker with a locked search path'
+  'fact-version save RPC is owned by postgres, security definer, and has a locked search path'
 );
 select ok(
   exists (
@@ -144,16 +173,16 @@ select ok(
     ) as function_definition
     where procedure.oid = to_regprocedure('public.studio_save_fact_version(uuid,jsonb)')
       and function_definition.definition like '%update public.studio_project_fact_versions set is_current = false%'
-      and function_definition.definition like '%insert into public.studio_project_fact_versions (project_id, version, facts, is_current)%'
+      and function_definition.definition like '%insert into public.studio_project_fact_versions (%project_id, version, facts, is_current, created_by )%'
+      and function_definition.definition like '%values (target_project_id, next_version, next_facts, true, caller_id)%'
       and function_definition.definition not like '%set id =%'
       and function_definition.definition not like '%set project_id =%'
       and function_definition.definition not like '%set version =%'
       and function_definition.definition not like '%set facts =%'
       and function_definition.definition not like '%set created_by =%'
       and function_definition.definition not like '%set created_at =%'
-      and function_definition.definition not like '%insert into public.studio_project_fact_versions (project_id, version, facts, is_current, created_by)%'
   ),
-  'fact-version save RPC uses only the current marker update and default provenance insert'
+  'fact-version save RPC uses only the current marker update and explicit caller provenance insert'
 );
 
 select is((select relrowsecurity from pg_class where oid = 'public.studio_admins'::regclass), true, 'admin membership RLS is enabled');
@@ -195,31 +224,26 @@ select results_eq(
   array['studio_assets', 'studio_projects'],
   'updated-at triggers are attached to projects and assets'
 );
-select ok((
-  select bool_and(has_table_privilege(role_name, relation_name, 'select') and has_table_privilege(role_name, relation_name, 'insert') and has_table_privilege(role_name, relation_name, 'update') and has_table_privilege(role_name, relation_name, 'delete'))
-  from unnest(array['anon', 'authenticated']) as role_name
-  cross join unnest(array['public.studio_admins', 'public.studio_projects', 'public.studio_assets']) as relation_name
-) and has_table_privilege('anon', 'public.studio_project_fact_versions', 'select')
-  and has_table_privilege('anon', 'public.studio_project_fact_versions', 'insert')
-  and not has_table_privilege('anon', 'public.studio_project_fact_versions', 'update')
-  and not has_table_privilege('anon', 'public.studio_project_fact_versions', 'delete')
-  and has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'select')
-  and has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'insert')
-  and not has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'delete'), 'API table privileges keep facts append-only while RLS protects access');
 select ok(
-  has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'is_current', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'id', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'project_id', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'version', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'facts', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'created_by', 'update')
-  and not has_column_privilege('authenticated', 'public.studio_project_fact_versions', 'created_at', 'update'),
-  'authenticated can update only the fact current marker'
+  has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'select')
+  and not has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'insert')
+  and not has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'update')
+  and not has_table_privilege('authenticated', 'public.studio_project_fact_versions', 'delete')
+  and has_table_privilege('anon', 'public.studio_project_fact_versions', 'select')
+  and not has_table_privilege('anon', 'public.studio_project_fact_versions', 'insert,update,delete'),
+  'fact rows are read-only through RLS and writable only through the RPC'
+);
+select ok(
+  not has_table_privilege('anon', 'public.studio_projects', 'delete')
+  and not has_table_privilege('authenticated', 'public.studio_projects', 'delete')
+  and not has_table_privilege('anon', 'public.studio_assets', 'delete')
+  and not has_table_privilege('authenticated', 'public.studio_assets', 'delete'),
+  'browser API roles cannot delete projects or assets'
 );
 select results_eq(
   $$ select policyname::text collate "default" from pg_policies where schemaname = 'public' and tablename in ('studio_admins', 'studio_projects', 'studio_project_fact_versions', 'studio_assets') order by policyname $$,
-  array['admin appends facts', 'admin manages assets', 'admin manages projects', 'admin marks current facts', 'admin reads facts', 'admin reads own membership'],
-  'public Studio policies are limited to the single-admin boundary'
+  array['admin creates assets', 'admin creates projects', 'admin reads assets', 'admin reads facts', 'admin reads own membership', 'admin reads projects', 'admin updates assets', 'admin updates projects'],
+  'public Studio policies omit all direct fact writes and all project or asset deletes'
 );
 select results_eq(
   $$ select policyname::text collate "default" from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'studio admin %' order by policyname $$,
@@ -415,8 +439,8 @@ values ('22222222-2222-2222-2222-222222222222', 'Seed project', 'Seed project', 
 insert into public.studio_project_fact_versions (project_id, version, facts, created_by)
 values ('22222222-2222-2222-2222-222222222222', 1, '{"site":"seed"}'::jsonb, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
 
-insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes)
-values ('22222222-2222-2222-2222-222222222222', 'raw/seed.jpg', 'seed.jpg', 'image/jpeg', 1);
+insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes)
+values ('33333333-3333-4333-8333-333333333333', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.jpg', 'seed.jpg', 'image/jpeg', 1);
 
 insert into storage.objects (bucket_id, name, owner_id)
 values ('studio-assets', 'acceptance/seed.jpg', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
@@ -434,20 +458,40 @@ select throws_ok(
   '23505', null::text, 'only one current fact version is allowed per project'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes) values ('22222222-2222-2222-2222-222222222222', 'raw/invalid.mp4', 'invalid.mp4', 'video/mp4', 1) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000001', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000001.mp4', 'invalid.mp4', 'video/mp4', 1) $$,
   '23514', null::text, 'unsupported asset MIME types are rejected'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes) values ('22222222-2222-2222-2222-222222222222', 'raw/too-large.jpg', 'too-large.jpg', 'image/jpeg', 26214401) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000002', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000002.jpg', 'too-large.jpg', 'image/jpeg', 26214401) $$,
   '23514', null::text, 'assets larger than 25 MiB are rejected'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes, width) values ('22222222-2222-2222-2222-222222222222', 'raw/no-width.jpg', 'no-width.jpg', 'image/jpeg', 1, 0) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes, width) values ('90000000-0000-4000-8000-000000000003', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000003.jpg', 'no-width.jpg', 'image/jpeg', 1, 0) $$,
   '23514', null::text, 'non-positive asset dimensions are rejected'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes, privacy_flags) values ('22222222-2222-2222-2222-222222222222', 'raw/invalid-flags.jpg', 'invalid-flags.jpg', 'image/jpeg', 1, '{}'::jsonb) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes, privacy_flags) values ('90000000-0000-4000-8000-000000000004', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000004.jpg', 'invalid-flags.jpg', 'image/jpeg', 1, '{}'::jsonb) $$,
   '23514', null::text, 'asset privacy flags must be a JSON array'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000005', '22222222-2222-2222-2222-222222222222', 'raw/99999999-9999-4999-8999-999999999999/90000000-0000-4000-8000-000000000005.jpg', 'wrong-project.jpg', 'image/jpeg', 1) $$,
+  '23514', null::text, 'asset canonical path rejects a different project UUID'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000006', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/99999999-9999-4999-8999-999999999999.jpg', 'wrong-asset.jpg', 'image/jpeg', 1) $$,
+  '23514', null::text, 'asset canonical path rejects a different asset UUID'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000007', '22222222-2222-2222-2222-222222222222', 'RAW/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000007.jpg', 'wrong-directory.jpg', 'image/jpeg', 1) $$,
+  '23514', null::text, 'asset canonical path rejects a wrong-case directory'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000008', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000008.jpg.backup', 'extra-suffix.jpg', 'image/jpeg', 1) $$,
+  '23514', null::text, 'asset canonical path rejects extra suffixes'
+);
+select throws_ok(
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000009', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000009.png', 'mime-mismatch.png', 'image/jpeg', 1) $$,
+  '23514', null::text, 'asset canonical path rejects MIME-extension mismatches'
 );
 select is(public.is_supported_studio_image('image/jpeg'), true, 'JPEG is a supported Studio image');
 select is(public.is_supported_studio_image('image/heic'), true, 'HEIC is a supported Studio image');
@@ -476,7 +520,7 @@ select throws_ok(
   '42501', null::text, 'anon cannot create Studio facts'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes) values ('22222222-2222-2222-2222-222222222222', 'raw/anon-rls.jpg', 'anon-rls.jpg', 'image/jpeg', 1) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000010', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000010.jpg', 'anon-rls.jpg', 'image/jpeg', 1) $$,
   '42501', null::text, 'anon cannot create Studio assets'
 );
 select throws_ok(
@@ -484,9 +528,13 @@ select throws_ok(
   '42501', null::text, 'anon cannot change Studio memberships'
 );
 select results_eq(
-  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from asset_update union all select * from project_delete $$,
+  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.jpg' returning 1) select * from project_update union all select * from asset_update $$,
   array[]::integer[],
-  'anon cannot update or delete protected project and asset data'
+  'anon cannot update protected project and asset data'
+);
+select throws_ok(
+  $$ delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' $$,
+  '42501', null::text, 'anon cannot delete Studio projects'
 );
 -- Fact updates are rejected by table/column privileges before RLS for anon.
 select throws_ok(
@@ -528,13 +576,17 @@ select throws_ok(
   '42501', null::text, 'non-admin cannot create Studio facts'
 );
 select throws_ok(
-  $$ insert into public.studio_assets (project_id, storage_path, original_name, mime_type, size_bytes) values ('22222222-2222-2222-2222-222222222222', 'raw/member.jpg', 'member.jpg', 'image/jpeg', 1) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('90000000-0000-4000-8000-000000000011', '22222222-2222-2222-2222-222222222222', 'raw/22222222-2222-2222-2222-222222222222/90000000-0000-4000-8000-000000000011.jpg', 'member.jpg', 'image/jpeg', 1) $$,
   '42501', null::text, 'non-admin cannot create Studio assets'
 );
 select results_eq(
-  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/seed.jpg' returning 1), project_delete as (delete from public.studio_projects where id = '22222222-2222-2222-2222-222222222222' returning 1) select * from project_update union all select * from asset_update union all select * from project_delete $$,
+  $$ with project_update as (update public.studio_projects set public_name = 'Denied' where id = '22222222-2222-2222-2222-222222222222' returning 1), asset_update as (update public.studio_assets set original_name = 'denied.jpg' where storage_path = 'raw/22222222-2222-2222-2222-222222222222/33333333-3333-4333-8333-333333333333.jpg' returning 1) select * from project_update union all select * from asset_update $$,
   array[]::integer[],
-  'non-admin cannot update or delete protected project and asset data'
+  'non-admin cannot update protected project and asset data'
+);
+select throws_ok(
+  $$ delete from public.studio_assets where id = '33333333-3333-4333-8333-333333333333' $$,
+  '42501', null::text, 'non-admin cannot delete Studio assets'
 );
 -- Fact updates are rejected by column privileges before RLS for non-admins.
 select throws_ok(
@@ -700,14 +752,13 @@ select results_eq(
   'same changed-content retry returns version two without another fact row'
 );
 
-select lives_ok(
+select throws_ok(
   $$ insert into public.studio_project_fact_versions (project_id, version, facts, is_current) values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 3, '{"site":"admin"}'::jsonb, false) $$,
-  'admin can create Studio facts'
+  '42501', null::text, 'admin cannot directly create Studio facts'
 );
-select is((select created_by from public.studio_project_fact_versions where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 3), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'admin fact creation records auth.uid by default');
-select lives_ok(
+select throws_ok(
   $$ update public.studio_project_fact_versions set is_current = false where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 2 $$,
-  'admin can update a fact current marker'
+  '42501', null::text, 'admin cannot directly update a fact current marker'
 );
 select throws_ok(
   $$ update public.studio_project_fact_versions set facts = '{"site":"updated"}'::jsonb where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 2 $$,
@@ -721,8 +772,13 @@ select throws_ok(
   $$ insert into public.studio_project_fact_versions (project_id, version, facts, is_current, created_by) values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 4, '{"site":"forged"}'::jsonb, false, 'cccccccc-cccc-cccc-cccc-cccccccccccc') $$,
   '42501', null::text, 'admin cannot forge fact provenance on insert'
 );
+select is(
+  (select count(*) from public.studio_project_fact_versions where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and is_current),
+  1::bigint,
+  'failed direct fact mutations leave exactly one current fact row'
+);
 select lives_ok(
-  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'raw/admin.jpg', 'admin.jpg', 'image/jpeg', 1) $$,
+  $$ insert into public.studio_assets (id, project_id, storage_path, original_name, mime_type, size_bytes) values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'raw/dddddddd-dddd-dddd-dddd-dddddddddddd/eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee.jpg', 'admin.jpg', 'image/jpeg', 1) $$,
   'admin can create Studio assets'
 );
 select lives_ok(
@@ -743,17 +799,17 @@ select lives_ok(
   $$ delete from storage.objects where bucket_id = 'studio-assets' and name = 'acceptance/admin.jpg' $$,
   'admin can delete Studio storage objects'
 );
-select lives_ok(
+select throws_ok(
   $$ delete from public.studio_assets where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' $$,
-  'admin can delete Studio assets'
+  '42501', null::text, 'admin cannot delete Studio assets'
 );
 select throws_ok(
   $$ delete from public.studio_project_fact_versions where project_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' and version = 1 $$,
   '42501', null::text, 'admin cannot delete Studio facts'
 );
-select lives_ok(
+select throws_ok(
   $$ delete from public.studio_projects where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd' $$,
-  'admin can delete Studio projects'
+  '42501', null::text, 'admin cannot delete Studio projects'
 );
 
 select * from finish();

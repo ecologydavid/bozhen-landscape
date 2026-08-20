@@ -15,7 +15,7 @@ npm run preview
 
 ## 曜聖｜內容工作室本機 MVP
 
-本機 Supabase workflow 已可執行，包含 migrations、RLS、私有 Storage、append-only／content-idempotent 的事實卡版本 RPC 與 pgTAP gate。這是可驗證的 local MVP foundation，不是 production readiness，也不代表 hosted deployment 已完成。
+本機 Supabase workflow 已可執行，包含 migrations、RLS、私有 Storage、由受限 RPC 唯一寫入的 append-only／content-idempotent 事實卡版本，以及 pgTAP gate。瀏覽器 API 角色不能直接刪除專案或素材；上傳失敗時仍可刪除私有 Storage 物件以清理孤兒檔。這是可驗證的 local MVP foundation，不是 production readiness，也不代表 hosted deployment 已完成。
 
 ### 前置需求
 
@@ -60,7 +60,7 @@ UUID 必須來自目前使用的本機或 hosted Auth dashboard。只有已登�
 
 啟動應用程式後，開啟開發伺服器網址並加上 `#/studio`（應用程式使用 `HashRouter`），再以剛建立的 Email 與密碼登入。公開網站仍維持原有的一般路由與瀏覽流程。
 
-本機 MVP 支援建立／編輯專案、append-only／content-idempotent 事實卡版本，以及私有 `studio-assets` bucket 的 JPG、PNG、WebP、HEIC、HEIF 上傳、signed preview 與使用權限分類。內容相同時會保留既有事實版本；內容變更才建立下一版，且每個專案只有一筆 current row。AI 內容／圖片生成、審核或匯出、LINE 通知、Meta 發布與排程均不在 Plan 1，仍屬後續計畫。
+本機 MVP 支援建立／編輯專案、由事實卡 RPC 唯一寫入的 append-only／content-idempotent 版本，以及私有 `studio-assets` bucket 的 JPG、PNG、WebP、HEIC、HEIF 上傳、signed preview 與使用權限分類。內容相同時會保留既有事實版本；內容變更才建立下一版，且每個專案只有一筆 current row。素材路徑固定為 `raw/{project_id}/{asset_id}.{extension}`，直接刪除專案／素材不在 Plan 1。AI 內容／圖片生成、審核或匯出、LINE 通知、Meta 發布與排程均不在 Plan 1，仍屬後續計畫。
 
 ### 驗證與停止
 
