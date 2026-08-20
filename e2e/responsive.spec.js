@@ -194,6 +194,37 @@ test('mobile menu is full, refined, focus-trapped, and closeable', async ({ page
   expect(issues, issues.join('\n')).toEqual([])
 })
 
+test('short mobile drawers show both contact actions without initial scrolling', async ({ page }) => {
+  const issues = watchPageHealth(page)
+
+  for (const height of [568, 720]) {
+    await page.setViewportSize({ width: 320, height })
+    await page.goto(homeUrl, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: '開啟選單' }).click()
+
+    const navigation = page.getByRole('navigation', { name: '主要導覽' })
+    const contacts = [
+      navigation.getByRole('link', { name: 'LINE 聯絡' }),
+      navigation.getByRole('link', { name: '撥打 0921-047-049' }),
+    ]
+    const drawerRect = await navigation.boundingBox()
+
+    expect(drawerRect).not.toBeNull()
+    expect(await navigation.evaluate((node) => node.scrollTop)).toBe(0)
+    for (const contact of contacts) {
+      const contactRect = await contact.boundingBox()
+      expect(contactRect).not.toBeNull()
+      expect(contactRect.y).toBeGreaterThanOrEqual(drawerRect.y)
+      expect(contactRect.y + contactRect.height).toBeLessThanOrEqual(
+        drawerRect.y + drawerRect.height,
+      )
+    }
+    await page.keyboard.press('Escape')
+  }
+
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
 test('browser back closes an open menu, restores content, and focuses the returned route', async ({ page }) => {
   const issues = watchPageHealth(page)
   await page.setViewportSize({ width: 390, height: 844 })

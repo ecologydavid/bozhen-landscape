@@ -15,6 +15,9 @@ export default function SiteHeader({
   const location = useLocation()
   const [uncontrolledMenuOpen, setUncontrolledMenuOpen] = useState(false)
   const menuOpen = controlledMenuOpen ?? uncontrolledMenuOpen
+  const [navigationVisualReady, setNavigationVisualReady] = useState(
+    Boolean(controlledMenuOpen),
+  )
   const [scrolled, setScrolled] = useState(false)
   const toggleRef = useRef(null)
   const firstLinkRef = useRef(null)
@@ -27,6 +30,7 @@ export default function SiteHeader({
   })
 
   const setMenuOpen = useCallback((nextOpen) => {
+    if (nextOpen) setNavigationVisualReady(true)
     if (controlledMenuOpen === undefined) setUncontrolledMenuOpen(nextOpen)
     onMenuOpenChange?.(nextOpen)
   }, [controlledMenuOpen, onMenuOpenChange])
@@ -187,7 +191,7 @@ export default function SiteHeader({
               </Link>
             ))}
           </div>
-          {navigationImage && navigationImageAlt ? (
+          {navigationVisualReady && navigationImage && navigationImageAlt ? (
             <div className="site-nav__visual">
               <BrandImage
                 src={navigationImage}

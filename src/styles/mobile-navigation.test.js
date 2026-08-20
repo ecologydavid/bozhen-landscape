@@ -28,3 +28,24 @@ test('gives every mobile editorial row at least 82 pixels of height', () => {
   expect(match).not.toBeNull()
   expect(Number(match[1])).toBeGreaterThanOrEqual(82)
 })
+
+test('fits the image fallback inside the editorial visual frame', () => {
+  const fallback = rule(mobileStyles, '.site-nav__visual .image-fallback')
+
+  expect(fallback).toMatch(/min-height:\s*0;/)
+  expect(fallback).toMatch(/align-content:\s*start;/)
+  expect(fallback).toMatch(/padding:\s*14px 16px 42px;/)
+})
+
+test('compacts the drawer only on short mobile viewports', () => {
+  const marker = '@media (max-width:768px) and (max-height:760px)'
+  expect(stylesheet).toContain(marker)
+  const shortMobileStyles = stylesheet.slice(stylesheet.indexOf(marker))
+  const compactRow = rule(shortMobileStyles, '.site-nav__item')
+  const compactHeight = compactRow.match(/min-height:\s*(\d+)px;/)
+
+  expect(rule(shortMobileStyles, '.site-nav__visual')).toMatch(/display:\s*none;/)
+  expect(compactHeight).not.toBeNull()
+  expect(Number(compactHeight[1])).toBeGreaterThanOrEqual(64)
+  expect(Number(compactHeight[1])).toBeLessThan(82)
+})

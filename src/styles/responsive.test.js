@@ -72,6 +72,18 @@ test('reveals the mobile drawer from left to right without changing its visibili
   expect(openDrawer).toMatch(/transition-delay:\s*0s;/)
 })
 
+test('reduces drawer chrome only when the mobile viewport is short', () => {
+  const marker = '@media (max-width: 768px) and (max-height: 760px)'
+  expect(stylesheet).toContain(marker)
+  const shortMobileStyles = stylesheet.slice(stylesheet.indexOf(marker))
+  const compactDrawer = rule(shortMobileStyles, '.site-nav')
+
+  expect(compactDrawer).toMatch(/gap:\s*8px;/)
+  expect(compactDrawer).toMatch(
+    /padding:\s*calc\(var\(--header-height\) \+ 8px\) max\(20px, 6vw\) calc\(16px \+ env\(safe-area-inset-bottom\)\);/,
+  )
+})
+
 test('lets the document shrink below 320 CSS pixels when a Windows scrollbar is present', () => {
   expect(tokens).toMatch(
     /body \{[\s\S]*?min-width: 0;[\s\S]*?overflow-x: hidden;/,

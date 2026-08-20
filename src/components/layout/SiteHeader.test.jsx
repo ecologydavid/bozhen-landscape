@@ -4,7 +4,8 @@ import { MemoryRouter, useNavigate } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import { siteContent } from '../../data/siteContent'
 
-test('uses the approved sprout glyph throughout the navigation', () => {
+test('uses the approved sprout glyph and mounts the visual only after opening', async () => {
+  const user = userEvent.setup()
   const { container } = render(
     <MemoryRouter>
       <SiteHeader
@@ -20,8 +21,14 @@ test('uses the approved sprout glyph throughout the navigation', () => {
   expect(container.querySelectorAll('[data-icon="sprout"]')).toHaveLength(6)
   expect(container.querySelectorAll('.site-nav__item')).toHaveLength(4)
   expect(container.querySelectorAll('.site-nav__item [data-icon="sprout"]')).toHaveLength(4)
+  expect(screen.queryByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: '開啟選單' }))
   expect(screen.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeInTheDocument()
   expect(screen.getByText('把自然，安放進日常')).toBeInTheDocument()
+
+  await user.keyboard('{Escape}')
+  expect(screen.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeInTheDocument()
 })
 
 test('opens and closes the mobile navigation with every supported control', async () => {
