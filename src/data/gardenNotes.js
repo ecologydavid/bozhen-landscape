@@ -13,7 +13,7 @@ export const gardenNotes = [
     number: '02',
     title: '樹木修剪',
     english: 'TREE FORM',
-    body: '修剪應配合樹勢、生長季、採光與通風分段處理；保留健康骨架，比一次重剪換取短期整齊，更能維持長期樹形。',
+    body: '修剪應配合樹勢、生長季、採光與通風分段處理。保留健康骨架，比一次重剪換取短期整齊，更能維持長期樹形。',
     image: media('tianzhong-courtyard-04.webp'),
     alt: '田中私人庭院完成分段修剪後的樹木輪廓',
   },

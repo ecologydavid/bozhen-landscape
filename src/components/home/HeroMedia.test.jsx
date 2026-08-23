@@ -67,3 +67,21 @@ test('does not mount video when reduced motion is requested', () => {
   expect(screen.queryByTestId('hero-video')).not.toBeInTheDocument()
   expect(screen.getByRole('img', { name: siteContent.hero.alt })).toBeInTheDocument()
 })
+
+test('uses only the responsive poster on mobile to protect first paint', () => {
+  vi.stubGlobal('matchMedia', vi.fn((query) => ({
+    matches: query === '(max-width: 768px)',
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })))
+  render(
+    <HeroMedia
+      image={siteContent.hero.image}
+      alt={siteContent.hero.alt}
+      videoSrc="/hero.mp4"
+    />,
+  )
+
+  expect(screen.queryByTestId('hero-video')).not.toBeInTheDocument()
+  expect(screen.getByRole('img', { name: siteContent.hero.alt })).toBeInTheDocument()
+})

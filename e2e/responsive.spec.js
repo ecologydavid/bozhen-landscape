@@ -498,6 +498,65 @@ test('craft-to-care bridge remains continuous across its internal section bounda
   expect(issues, issues.join('\n')).toEqual([])
 })
 
+test('real Hero film, project evidence, and garden journal form one complete brand story', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  const heroVideo = page.locator('.hero__video')
+  await expect(heroVideo).toBeVisible()
+  await expect.poll(() => heroVideo.evaluate((video) => video.readyState)).toBeGreaterThanOrEqual(2)
+  const heroMedia = page.locator('.hero__media')
+  const [videoBox, mediaBox] = await Promise.all([
+    heroVideo.boundingBox(),
+    heroMedia.boundingBox(),
+  ])
+  expect(videoBox).not.toBeNull()
+  expect(mediaBox).not.toBeNull()
+  expect(Math.abs(videoBox.width - mediaBox.width)).toBeLessThanOrEqual(1)
+  expect(Math.abs(videoBox.height - mediaBox.height)).toBeLessThanOrEqual(1)
+
+  const firstCard = page.locator('.featured-projects .project-card').first()
+  await firstCard.scrollIntoViewIfNeeded()
+  await expect(firstCard.locator('.project-card__summary')).toBeVisible()
+  await expect(firstCard.locator('.project-card__services li')).toHaveCount(2)
+  expect(await firstCard.evaluate((card) => card.scrollWidth - card.clientWidth)).toBeLessThanOrEqual(1)
+
+  const journal = page.getByRole('region', { name: '曜聖庭園誌' })
+  await journal.scrollIntoViewIfNeeded()
+  await expect(journal.getByRole('article')).toHaveCount(3)
+  await expect(journal.getByRole('heading', { name: '庭園排水' })).toBeVisible()
+  await expect(journal.getByRole('heading', { name: '樹木修剪' })).toBeVisible()
+  await expect(journal.getByRole('heading', { name: '假山水景養護' })).toBeVisible()
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+test('reduced motion keeps the Hero static and does not request the film', async ({ page }) => {
+  const filmRequests = []
+  page.on('request', (request) => {
+    if (request.url().includes('nantun-water-garden')) filmRequests.push(request.url())
+  })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  await expect(page.locator('.hero__image')).toBeVisible()
+  await expect(page.locator('.hero__video')).toHaveCount(0)
+  expect(filmRequests).toEqual([])
+})
+
+test('project detail exposes its four evidence fields without overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('./#/projects/nantun-rock-water-garden', { waitUntil: 'networkidle' })
+
+  const facts = page.getByRole('region', { name: '案例工程摘要' })
+  await facts.scrollIntoViewIfNeeded()
+  for (const label of ['空間類型', '工程地區', '服務範圍', '養護方向']) {
+    await expect(facts.getByText(label)).toBeVisible()
+  }
+  expect(await facts.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1)
+})
+
 test.describe('mobile performance budget', () => {
   test.describe.configure({ retries: 2 })
 

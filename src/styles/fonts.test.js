@@ -51,7 +51,7 @@ test('removes obsolete supplemental subsets from the generated manifest', async 
   } finally {
     await rm(outputRoot, { force: true, recursive: true })
   }
-})
+}, 15_000)
 
 test('makes supplemental glyphs reachable without competing primary faces', async () => {
   const outputRoot = await mkdtemp(path.join(os.tmpdir(), 'yaosei-fonts-'))

@@ -2,31 +2,33 @@ import { useEffect, useState } from 'react'
 import BrandImage from '../ui/BrandImage'
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
+const mobileViewportQuery = '(max-width: 768px)'
 
-function getReducedMotionPreference() {
-  return window.matchMedia?.(reducedMotionQuery).matches ?? false
+function getMediaPreference(query) {
+  return window.matchMedia?.(query).matches ?? false
 }
 
-function useReducedMotion() {
-  const [reducedMotion, setReducedMotion] = useState(getReducedMotionPreference)
+function useMediaPreference(query) {
+  const [matches, setMatches] = useState(() => getMediaPreference(query))
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.(reducedMotionQuery)
+    const mediaQuery = window.matchMedia?.(query)
     if (!mediaQuery) return undefined
 
-    const updatePreference = (event) => setReducedMotion(event.matches)
+    const updatePreference = (event) => setMatches(event.matches)
     mediaQuery.addEventListener?.('change', updatePreference)
     return () => mediaQuery.removeEventListener?.('change', updatePreference)
-  }, [])
+  }, [query])
 
-  return reducedMotion
+  return matches
 }
 
 export default function HeroMedia({ image, alt, videoSrc }) {
-  const reducedMotion = useReducedMotion()
+  const reducedMotion = useMediaPreference(reducedMotionQuery)
+  const mobileViewport = useMediaPreference(mobileViewportQuery)
   const [videoFailed, setVideoFailed] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
-  const shouldPlayVideo = Boolean(videoSrc) && !reducedMotion && !videoFailed
+  const shouldPlayVideo = Boolean(videoSrc) && !reducedMotion && !mobileViewport && !videoFailed
 
   return (
     <div className="hero__media">
