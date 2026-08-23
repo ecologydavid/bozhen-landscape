@@ -56,6 +56,7 @@ test('renders the approved works-first homepage sections', () => {
   const bridge = home.querySelector('.craft-care-bridge')
   expect(bridge).toHaveAttribute('data-transition', 'craft-to-care')
   expect([...bridge.querySelectorAll(':scope > section')].map((section) => section.className)).toEqual([
+    'garden-journal section',
     'brand-story section',
     'client-types section',
   ])
@@ -104,6 +105,7 @@ test('renders the approved works-first homepage sections', () => {
   expect(screen.getByRole('region', { name: '作品，是最直接的回答' })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: '以專業工法，完成自然的尺度' })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: '從理解現場，到風景落成' })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: '曜聖庭園誌' })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: '直接與曜聖聯絡' })).toBeInTheDocument()
 })
 

@@ -23,6 +23,34 @@
     gap: 72px;
   }
 
+  .garden-journal__heading,
+  .garden-journal__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .garden-journal__heading {
+    gap: 18px;
+  }
+
+  .garden-note--lead {
+    grid-row: auto;
+  }
+
+  .garden-note article,
+  .garden-note--lead article {
+    grid-template-columns: minmax(190px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .garden-note--lead .garden-note__media,
+  .garden-note__media {
+    min-height: 300px;
+  }
+
+  .garden-note--lead .garden-note__content,
+  .garden-note__content {
+    padding: 24px 0 10px 24px;
+  }
+
   .client-types .container {
     grid-template-columns: 1fr;
     gap: 40px;
@@ -278,6 +306,30 @@
     max-width: 7em;
     font-size: clamp(2.65rem, 12vw, 4.8rem);
     line-height: 1.12;
+  }
+
+  .garden-journal__heading {
+    margin-bottom: 38px;
+  }
+
+  .garden-journal__grid {
+    gap: 48px;
+  }
+
+  .garden-note article,
+  .garden-note--lead article {
+    grid-template-columns: 1fr;
+  }
+
+  .garden-note--lead .garden-note__media,
+  .garden-note__media {
+    min-height: 0;
+    aspect-ratio: 5 / 4;
+  }
+
+  .garden-note--lead .garden-note__content,
+  .garden-note__content {
+    padding: 22px 0 0;
   }
 
   .hero__sun {
