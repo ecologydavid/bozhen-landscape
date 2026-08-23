@@ -52,6 +52,27 @@ export default function ProjectDetailPage() {
         </div>
       </header>
 
+      <section className="project-facts" aria-label="案例工程摘要">
+        <div className="container project-facts__grid">
+          <dl>
+            <dt>空間類型</dt>
+            <dd>{project.category}</dd>
+          </dl>
+          <dl>
+            <dt>工程地區</dt>
+            <dd>{project.location}</dd>
+          </dl>
+          <dl>
+            <dt>服務範圍</dt>
+            <dd>{project.services.join('・')}</dd>
+          </dl>
+          <dl>
+            <dt>養護方向</dt>
+            <dd>{project.maintenanceNote}</dd>
+          </dl>
+        </div>
+      </section>
+
       <section className="project-narrative section">
         <div className="container project-narrative__grid">
           <div>

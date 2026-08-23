@@ -164,6 +164,50 @@
   letter-spacing: 0.12em;
 }
 
+.project-facts {
+  padding-block: 0;
+  background: var(--ivory-100);
+}
+
+.project-facts__grid {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1fr 2fr;
+  border-bottom: 1px solid var(--line);
+}
+
+.project-facts dl {
+  min-width: 0;
+  margin: 0;
+  padding: 34px clamp(20px, 2.4vw, 38px);
+  border-right: 1px solid var(--line);
+}
+
+.project-facts dl:first-child {
+  padding-left: 0;
+}
+
+.project-facts dl:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.project-facts dt {
+  margin-bottom: 12px;
+  color: var(--gold-500);
+  font-family: var(--font-utility);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.project-facts dd {
+  margin: 0;
+  color: var(--forest-900);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.75;
+}
+
 .project-narrative {
   background: var(--paper);
 }
