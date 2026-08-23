@@ -32,6 +32,7 @@
 }
 
 .hero__image,
+.hero__video,
 .hero__media > .image-fallback {
   position: absolute;
   inset: 0;
@@ -39,6 +40,15 @@
   height: 100%;
   object-fit: cover;
   object-position: 50% 52%;
+}
+
+.hero__video {
+  opacity: 0;
+  transition: opacity 700ms var(--ease);
+}
+
+.hero__video.is-ready {
+  opacity: 1;
 }
 
 .hero__shade {

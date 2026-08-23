@@ -1,5 +1,6 @@
 import logoSrc from '../assets/brand/yaosei-logo-compact.webp'
 import companyCardSrc from '../assets/brand/yaosei-company-card.jpg'
+import heroVideoSrc from '../assets/hero/nantun-water-garden.mp4'
 import { media } from './projectMedia'
 
 export const siteContent = {
@@ -30,6 +31,7 @@ export const siteContent = {
     description: '庭園設計・植栽綠化・假山水景・後續養護',
     image: media('changhua-residence-03.webp'),
     alt: '彰化私人住宅庭園實景',
+    videoSrc: heroVideoSrc,
   },
   clients: ['私人住宅', '別墅透天', '社區公設', '企業商空'],
 }

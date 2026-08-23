@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import BrandImage from '../ui/BrandImage'
 import LeafContactLinks from '../ui/LeafContactLinks'
 import LeafIcon from '../ui/LeafIcon'
+import HeroMedia from './HeroMedia'
 
 export default function Hero({ hero, contact }) {
   return (
@@ -17,19 +17,7 @@ export default function Hero({ hero, contact }) {
           <h1 id="hero-title">{hero.title}</h1>
         </div>
 
-        <div className="hero__media">
-          <BrandImage
-            className="hero__image"
-            src={hero.image}
-            alt={hero.alt}
-            sizes="(max-width: 768px) calc(100vw - 52px), (max-width: 1280px) 54vw, 720px"
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-          />
-          <div className="hero__shade" aria-hidden="true" />
-          <span className="hero__sun" aria-hidden="true" />
-        </div>
+        <HeroMedia image={hero.image} alt={hero.alt} videoSrc={hero.videoSrc} />
 
         <div className="hero__contact">
           <p className="hero__description">{hero.description}</p>
