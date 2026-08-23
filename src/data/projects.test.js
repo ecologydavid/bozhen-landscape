@@ -34,6 +34,7 @@ test('project slugs are unique and required content is present', () => {
         gallery: expect.any(Array),
         clientNeed: expect.any(String),
         designApproach: expect.any(String),
+        maintenanceNote: expect.any(String),
         materials: expect.any(Array),
         services: expect.any(Array),
         alt: expect.any(String),
@@ -53,6 +54,8 @@ test('project slugs are unique and required content is present', () => {
       /\.webp$/.test(image.src) && /\.avif$/.test(image.avifSrc)
     ))).toBe(true)
     expect(project.services.length).toBeGreaterThan(0)
+    expect(project.summary.trim()).not.toBe('')
+    expect(project.maintenanceNote.trim()).not.toBe('')
   }
 })
 

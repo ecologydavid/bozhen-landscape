@@ -311,6 +311,14 @@
   padding-top: 20px;
 }
 
+.project-card__content {
+  padding-top: 20px;
+}
+
+.project-card__content .project-card__body {
+  padding-top: 0;
+}
+
 .project-card__index {
   align-self: flex-start;
   flex: 0 0 auto;
@@ -347,6 +355,32 @@
 
 .project-card__link:hover .project-card__arrow {
   transform: translate(4px, -2px) rotate(3deg);
+}
+
+.project-card__summary {
+  max-width: 48em;
+  margin: 16px 0 14px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.75;
+}
+
+.project-card__services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.project-card__services li {
+  padding: 5px 10px;
+  border: 1px solid rgba(49, 87, 67, 0.24);
+  color: var(--moss-800);
+  font-family: var(--font-utility);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .brand-story__grid {

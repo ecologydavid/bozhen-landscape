@@ -23,13 +23,24 @@ export default function ProjectCard({ project, priority = false, index }) {
           />
           <span className="project-card__category">{project.category}</span>
         </div>
-        <div className="project-card__body">
-          {index ? <span className="project-card__index">{index}</span> : null}
-          <div>
-            <h3>{project.title}</h3>
-            <span>{project.location}</span>
+        <div className="project-card__content">
+          <div className="project-card__body">
+            {index ? <span className="project-card__index">{index}</span> : null}
+            <div>
+              <h3>{project.title}</h3>
+              <span>{project.location}</span>
+            </div>
+            <LeafIcon name="sprout" className="project-card__arrow" />
           </div>
-          <LeafIcon name="sprout" className="project-card__arrow" />
+          <p className="project-card__summary">{project.summary}</p>
+          <ul
+            className="project-card__services"
+            aria-label={`${project.title}服務內容`}
+          >
+            {project.services.slice(0, 2).map((service) => (
+              <li key={service}>{service}</li>
+            ))}
+          </ul>
         </div>
       </Link>
     </article>
