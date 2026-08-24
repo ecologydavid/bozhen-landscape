@@ -338,7 +338,7 @@
 .leaf-contact-links--stone-sprout::before {
   position: absolute;
   z-index: 0;
-  inset: 3px -3px -3px 4px;
+  inset: 4px 3px 3px 5px;
   height: auto;
   border: 1px solid rgba(54, 90, 69, 0.24);
   border-radius: 21px 17px 24px 14px;
