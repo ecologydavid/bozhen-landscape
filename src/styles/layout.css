@@ -352,9 +352,10 @@
   z-index: 2;
   top: 7px;
   bottom: 7px;
-  left: 50%;
+  left: 57%;
   width: 1px;
-  background: linear-gradient(180deg, rgba(54, 90, 69, 0.08), rgba(54, 90, 69, 0.62), rgba(54, 90, 69, 0.12));
+  background: linear-gradient(180deg, rgba(251, 250, 245, 0.1), rgba(251, 250, 245, 0.58), rgba(251, 250, 245, 0.12));
+  box-shadow: 1px 0 rgba(54, 90, 69, 0.28), -1px 0 rgba(251, 250, 245, 0.16);
   content: '';
   pointer-events: none;
   transform: rotate(6deg);

@@ -56,6 +56,13 @@ test('builds the stone sprout contacts on an asymmetric isolated stone base', ()
     /border-radius:\s*50% 50% 0 0;/,
   )
   expect(sproutStem).toMatch(/z-index:\s*2;/)
+  expect(sproutStem).toMatch(/left:\s*57%;/)
+  expect(sproutStem).toMatch(
+    /background:\s*linear-gradient\(180deg, rgba\(251, 250, 245, 0\.1\), rgba\(251, 250, 245, 0\.58\), rgba\(251, 250, 245, 0\.12\)\);/,
+  )
+  expect(sproutStem).toMatch(
+    /box-shadow:\s*1px 0 rgba\(54, 90, 69, 0\.28\), -1px 0 rgba\(251, 250, 245, 0\.16\);/,
+  )
   expect(sproutStem).toMatch(/pointer-events:\s*none;/)
   expect(sproutStem).toMatch(/background:\s*linear-gradient\(180deg,/)
   expect(sproutStem).toMatch(/transform:\s*rotate\(6deg\);/)
