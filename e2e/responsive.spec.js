@@ -547,6 +547,14 @@ test('390px Hero film and adaptive contact surfaces preserve their complete mobi
   const heroVideo = page.locator('.hero__video')
   await expect(heroVideo).toBeVisible()
   await expect.poll(() => heroVideo.evaluate((video) => video.readyState)).toBeGreaterThanOrEqual(2)
+  const playbackStart = await heroVideo.evaluate((video) => ({
+    currentTime: video.currentTime,
+    paused: video.paused,
+  }))
+  expect(playbackStart.paused).toBe(false)
+  await expect.poll(() => heroVideo.evaluate((video) => video.currentTime)).toBeGreaterThan(
+    playbackStart.currentTime + 0.1,
+  )
   await expect(heroVideo).toHaveJSProperty('muted', true)
   await expect(heroVideo).toHaveJSProperty('autoplay', true)
   await expect(heroVideo).toHaveJSProperty('loop', true)
@@ -725,7 +733,11 @@ test.describe('mobile performance budget', () => {
     await page.addInitScript(() => {
       window.__yaoseiLcp = []
       new PerformanceObserver((list) => {
-        window.__yaoseiLcp.push(...list.getEntries().map((entry) => entry.startTime))
+        window.__yaoseiLcp.push(...list.getEntries().map((entry) => ({
+          className: entry.element?.getAttribute('class') ?? '',
+          startTime: entry.startTime,
+          tagName: entry.element?.tagName ?? '',
+        })))
       }).observe({ type: 'largest-contentful-paint', buffered: true })
     })
     await page.setViewportSize({ width: 390, height: 844 })
@@ -738,11 +750,17 @@ test.describe('mobile performance budget', () => {
 
     const result = await page.locator('.hero__image').evaluate((image) => ({
       currentSrc: image.currentSrc,
-      lcp: Math.max(...window.__yaoseiLcp),
+      entries: window.__yaoseiLcp,
+      lcp: Math.max(...window.__yaoseiLcp.map((entry) => entry.startTime)),
     }))
     expect(result.currentSrc).toMatch(/changhua-residence-03-480.*\.avif(?:\?|$)/)
     expect(result.lcp).toBeGreaterThan(0)
-    expect(result.lcp).toBeLessThanOrEqual(2_500)
+    expect(
+      result.lcp,
+      `LCP entries: ${result.entries.map(({ className, startTime, tagName }) => (
+        `${startTime}ms ${tagName}.${className}`
+      )).join(', ')}`,
+    ).toBeLessThanOrEqual(2_500)
   })
 })
 

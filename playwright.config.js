@@ -3,8 +3,9 @@ import process from 'node:process'
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  fullyParallel: false,
+  workers: 1,
+  retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173/bozhen-landscape/',
