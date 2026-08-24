@@ -144,6 +144,25 @@ test('plays the hero film on a 390px viewport when motion and data saving are al
   expect(video).toHaveProperty('muted', true)
 })
 
+test('selects the lightweight mobile film at a 390px viewport', () => {
+  mockViewport(390)
+  vi.stubGlobal('matchMedia', vi.fn((query) => ({
+    matches: query === '(max-width: 768px)' && window.innerWidth <= 768,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })))
+  mockConnectionPreference(false)
+  render(
+    <HeroMedia
+      image={siteContent.hero.image}
+      alt={siteContent.hero.alt}
+      videoSrc={{ desktop: '/hero-desktop.mp4', mobile: '/hero-mobile.mp4' }}
+    />,
+  )
+
+  expect(screen.getByTestId('hero-video')).toHaveAttribute('src', '/hero-mobile.mp4')
+})
+
 test('keeps the static hero image when the connection requests data saving', () => {
   mockMotionPreference(false)
   mockConnectionPreference(true)

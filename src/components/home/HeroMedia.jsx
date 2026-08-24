@@ -2,6 +2,7 @@ import { useCallback, useState, useSyncExternalStore } from 'react'
 import BrandImage from '../ui/BrandImage'
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
+const mobileViewportQuery = '(max-width: 768px)'
 const getStaticPreference = () => false
 const getClientReady = () => true
 const subscribeToNothing = () => () => {}
@@ -71,13 +72,21 @@ function HeroVideo({ videoSrc, onError }) {
   )
 }
 
+function selectVideoSource(videoSrc, mobileViewport) {
+  if (typeof videoSrc === 'string') return videoSrc
+  if (!videoSrc) return ''
+  return mobileViewport ? videoSrc.mobile : videoSrc.desktop
+}
+
 export default function HeroMedia({ image, alt, videoSrc }) {
   const reducedMotion = useMediaPreference(reducedMotionQuery)
+  const mobileViewport = useMediaPreference(mobileViewportQuery)
   const saveData = useDataSavingPreference()
   const clientReady = useClientReady()
   const [videoFailed, setVideoFailed] = useState(false)
+  const selectedVideoSrc = selectVideoSource(videoSrc, mobileViewport)
   const shouldPlayVideo = clientReady
-    && Boolean(videoSrc)
+    && Boolean(selectedVideoSrc)
     && !reducedMotion
     && !saveData
     && !videoFailed
@@ -94,7 +103,7 @@ export default function HeroMedia({ image, alt, videoSrc }) {
         fetchPriority="high"
       />
       {shouldPlayVideo ? (
-        <HeroVideo videoSrc={videoSrc} onError={() => setVideoFailed(true)} />
+        <HeroVideo key={selectedVideoSrc} videoSrc={selectedVideoSrc} onError={() => setVideoFailed(true)} />
       ) : null}
       <div className="hero__shade" aria-hidden="true" />
       <span className="hero__sun" aria-hidden="true" />
