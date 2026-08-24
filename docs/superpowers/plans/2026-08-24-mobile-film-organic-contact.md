@@ -17,6 +17,7 @@
 - Modify `src/components/ui/LeafContactLinks.jsx`: render the shared stone-and-sprout modifier and decorative arrows without changing link data.
 - Modify `src/components/ui/LeafContactLinks.test.jsx`: verify modifier, icons, arrows, links, and text.
 - Modify `src/components/home/Hero.jsx`: opt the Hero pair into the stone-and-sprout modifier.
+- Create `src/components/home/Hero.test.jsx`: verify that the Hero opts its contact pair into the approved modifier.
 - Modify `src/components/layout/MobileQuoteBar.jsx`: opt the fixed mobile pair into the same modifier while retaining its visibility controller.
 - Modify `src/styles/layout.css`: replace the old paired-leaf geometry with the shared stone base, organic action surfaces, and restrained states.
 - Modify `src/styles/responsive.css`: preserve compact geometry and disable transforms under reduced motion.
@@ -165,6 +166,7 @@ git commit -m "feat: enable adaptive mobile hero film"
 - Modify: `src/components/ui/LeafContactLinks.test.jsx`
 - Modify: `src/components/ui/LeafContactLinks.jsx`
 - Modify: `src/components/home/Hero.jsx`
+- Create: `src/components/home/Hero.test.jsx`
 - Modify: `src/components/layout/MobileQuoteBar.jsx`
 
 - [ ] **Step 1: Write failing component tests for the explicit modifier and arrows**
@@ -188,7 +190,29 @@ test('renders the stone-and-sprout modifier with two decorative arrows', () => {
 })
 ```
 
-In `Hero.test.jsx` and `MobileQuoteBar.test.jsx`, assert the rendered contact wrapper contains `leaf-contact-links--stone-sprout`.
+Create `Hero.test.jsx` with:
+
+```jsx
+import { render } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { expect, test } from 'vitest'
+import Hero from './Hero'
+import { siteContent } from '../../data/siteContent'
+
+test('opts the Hero contact pair into the stone-and-sprout treatment', () => {
+  const { container } = render(
+    <MemoryRouter>
+      <Hero hero={siteContent.hero} contact={siteContent.contact} />
+    </MemoryRouter>,
+  )
+
+  expect(container.querySelector('.hero__actions .leaf-contact-links')).toHaveClass(
+    'leaf-contact-links--stone-sprout',
+  )
+})
+```
+
+In `MobileQuoteBar.test.jsx`, assert the rendered contact wrapper contains `leaf-contact-links--stone-sprout`.
 
 - [ ] **Step 2: Run the component tests and verify RED**
 
