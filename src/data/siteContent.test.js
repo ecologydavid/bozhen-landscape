@@ -37,11 +37,12 @@ test('stores the official Yao Sei brand and direct contact details', () => {
   })
 })
 
-test('keeps the approved mobile hero film materially smaller than the desktop source', () => {
+test('keeps the mobile hero film clear without matching the full desktop transfer', () => {
   const desktop = statSync(resolve('src/assets/hero/nantun-water-garden.mp4'))
   const mobile = statSync(resolve('src/assets/hero/nantun-water-garden-mobile.mp4'))
 
-  expect(mobile.size).toBeLessThan(desktop.size * 0.25)
+  expect(mobile.size).toBeGreaterThan(desktop.size * 0.4)
+  expect(mobile.size).toBeLessThan(desktop.size * 0.85)
 })
 
 test('serves a compact WebP logo while retaining the printed brand artwork', () => {
