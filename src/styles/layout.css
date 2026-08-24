@@ -349,7 +349,7 @@
 
 .leaf-contact-links--stone-sprout::after {
   position: absolute;
-  z-index: 0;
+  z-index: 2;
   top: 7px;
   bottom: 7px;
   left: 50%;
@@ -409,6 +409,11 @@
 
 .leaf-contact-links--stone-sprout .leaf-contact-links__item:focus-visible {
   outline: 3px solid var(--gold-400);
+  outline-offset: 3px;
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__phone:focus-visible {
+  outline: 3px solid var(--moss-800);
   outline-offset: 3px;
 }
 

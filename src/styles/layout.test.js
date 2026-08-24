@@ -55,6 +55,8 @@ test('builds the stone sprout contacts on an asymmetric isolated stone base', ()
   expect(rule(stylesheet, '.leaf-contact-links::before')).toMatch(
     /border-radius:\s*50% 50% 0 0;/,
   )
+  expect(sproutStem).toMatch(/z-index:\s*2;/)
+  expect(sproutStem).toMatch(/pointer-events:\s*none;/)
   expect(sproutStem).toMatch(/background:\s*linear-gradient\(180deg,/)
   expect(sproutStem).toMatch(/transform:\s*rotate\(6deg\);/)
 })
@@ -88,6 +90,10 @@ test('keeps stone sprout actions compact, organic, and accessible', () => {
     stylesheet,
     '.leaf-contact-links--stone-sprout .leaf-contact-links__item:focus-visible',
   )
+  const phoneFocus = rule(
+    stylesheet,
+    '.leaf-contact-links--stone-sprout .leaf-contact-links__phone:focus-visible',
+  )
 
   expect(item).toMatch(/min-width:\s*0;/)
   expect(item).toMatch(/min-height:\s*56px;/)
@@ -101,6 +107,8 @@ test('keeps stone sprout actions compact, organic, and accessible', () => {
   expect(hover).toMatch(/transform:\s*translateY\(-2px\);/)
   expect(active).toMatch(/transform:\s*scale\(\.99\);/)
   expect(focus).toMatch(/outline:\s*3px solid var\(--gold-400\);/)
+  expect(phoneFocus).toMatch(/outline:\s*3px solid var\(--moss-800\);/)
+  expect(phoneFocus).toMatch(/outline-offset:\s*3px;/)
   expect(stylesheet).toMatch(
     /\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:hover \.leaf-contact-links__arrow,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:focus-visible \.leaf-contact-links__arrow \{\s*transform:\s*translate\(3px, -2px\);/,
   )
