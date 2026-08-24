@@ -41,7 +41,7 @@ test('keeps the approved mobile hero film materially smaller than the desktop so
   const desktop = statSync(resolve('src/assets/hero/nantun-water-garden.mp4'))
   const mobile = statSync(resolve('src/assets/hero/nantun-water-garden-mobile.mp4'))
 
-  expect(mobile.size).toBeLessThan(desktop.size * 0.6)
+  expect(mobile.size).toBeLessThan(desktop.size * 0.25)
 })
 
 test('serves a compact WebP logo while retaining the printed brand artwork', () => {
