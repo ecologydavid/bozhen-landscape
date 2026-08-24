@@ -51,7 +51,7 @@ function useClientReady() {
   return useSyncExternalStore(subscribeToNothing, getClientReady, getStaticPreference)
 }
 
-function HeroVideo({ image, videoSrc, onError }) {
+function HeroVideo({ videoSrc, onError }) {
   const [videoReady, setVideoReady] = useState(false)
 
   return (
@@ -59,7 +59,6 @@ function HeroVideo({ image, videoSrc, onError }) {
       data-testid="hero-video"
       className={`hero__video${videoReady ? ' is-ready' : ''}`}
       src={videoSrc}
-      poster={image.src}
       autoPlay
       muted
       loop
@@ -95,7 +94,7 @@ export default function HeroMedia({ image, alt, videoSrc }) {
         fetchPriority="high"
       />
       {shouldPlayVideo ? (
-        <HeroVideo image={image} videoSrc={videoSrc} onError={() => setVideoFailed(true)} />
+        <HeroVideo videoSrc={videoSrc} onError={() => setVideoFailed(true)} />
       ) : null}
       <div className="hero__shade" aria-hidden="true" />
       <span className="hero__sun" aria-hidden="true" />

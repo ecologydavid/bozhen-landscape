@@ -67,7 +67,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-test('renders a muted inline loop over the static hero image', () => {
+test('renders a muted inline loop over the responsive static hero image without a duplicate video poster', () => {
   mockMotionPreference(false)
   render(
     <HeroMedia
@@ -79,7 +79,7 @@ test('renders a muted inline loop over the static hero image', () => {
 
   const video = screen.getByTestId('hero-video')
   expect(video).toHaveAttribute('src', '/hero.mp4')
-  expect(video).toHaveAttribute('poster', siteContent.hero.image.src)
+  expect(video).not.toHaveAttribute('poster')
   expect(video).toHaveAttribute('autoplay')
   expect(video).toHaveAttribute('loop')
   expect(video).toHaveAttribute('playsinline')
