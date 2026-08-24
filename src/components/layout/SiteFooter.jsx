@@ -34,7 +34,6 @@ export default function SiteFooter({ brand, contact }) {
       </div>
       <div className="site-footer__bottom">
         <small>© {new Date().getFullYear()} {brand.name}</small>
-        <small>統一編號 {contact.taxId}</small>
       </div>
     </footer>
   )

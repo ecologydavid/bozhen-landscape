@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HashRouter, MemoryRouter, useNavigate } from 'react-router-dom'
 import { beforeEach, vi } from 'vitest'
@@ -39,7 +39,10 @@ test('renders the official brand and primary direct contact action', () => {
   expect(container.querySelector('.site-footer__english-name')).toHaveTextContent(
     'YAO SEI LIMITED COMPANY',
   )
-  expect(screen.getByText('統一編號 00111874')).toBeInTheDocument()
+  expect(screen.queryByText('統一編號 00111874')).not.toBeInTheDocument()
+  const contactPanel = container.querySelector('.contact-panel')
+  expect(within(contactPanel).getByText('統一編號')).toBeInTheDocument()
+  expect(within(contactPanel).getByText('00111874')).toBeInTheDocument()
   expect(
     screen.getAllByRole('link', { name: /a74964163285@gmail.com/ }).length,
   ).toBeGreaterThan(0)
