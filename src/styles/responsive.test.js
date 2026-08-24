@@ -108,3 +108,25 @@ test('keeps the mobile Footer compact through the 768 pixel handoff', () => {
     /@media \(max-width: 768px\) \{[\s\S]*?\.site-footer__inner \{[\s\S]*?gap: 30px;[\s\S]*?padding-bottom: 40px;/,
   )
 })
+
+test('compacts stone sprout action spacing for the 320 pixel Hero width', () => {
+  const narrowMobileStyles = stylesheet.slice(stylesheet.indexOf('@media (max-width: 560px)'))
+  const compactItem = rule(
+    narrowMobileStyles,
+    '.leaf-contact-links--stone-sprout .leaf-contact-links__item',
+  )
+
+  expect(compactItem).toMatch(/gap:\s*5px;/)
+  expect(compactItem).toMatch(/padding-inline:\s*6px;/)
+  expect(compactItem).toMatch(/font-size:\s*0\.75rem;/)
+})
+
+test('removes stone sprout contact motion for reduced-motion users', () => {
+  const reducedMotionStyles = stylesheet.slice(
+    stylesheet.indexOf('@media (prefers-reduced-motion: reduce)'),
+  )
+
+  expect(reducedMotionStyles).toMatch(
+    /\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:hover,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:focus-visible,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:active,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:hover \.leaf-contact-links__arrow,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:focus-visible \.leaf-contact-links__arrow \{\s*transform:\s*none;/,
+  )
+})

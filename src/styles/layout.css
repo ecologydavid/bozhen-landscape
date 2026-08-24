@@ -319,6 +319,99 @@
   transform: scale(0.98);
 }
 
+.leaf-contact-links--stone-sprout {
+  isolation: isolate;
+  gap: 0;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(54, 90, 69, 0.28);
+  border-radius: 17px 25px 15px 21px;
+  background: linear-gradient(
+    136deg,
+    rgba(225, 229, 217, 0.96),
+    rgba(251, 250, 245, 0.94) 58%,
+    rgba(218, 223, 211, 0.9)
+  );
+  box-shadow: 0 6px 18px rgba(31, 48, 35, 0.13);
+}
+
+.leaf-contact-links--stone-sprout::before {
+  position: absolute;
+  z-index: 0;
+  inset: 3px -3px -3px 4px;
+  height: auto;
+  border: 1px solid rgba(54, 90, 69, 0.24);
+  border-radius: 21px 17px 24px 14px;
+  content: '';
+  pointer-events: none;
+  transform: rotate(-2deg);
+}
+
+.leaf-contact-links--stone-sprout::after {
+  position: absolute;
+  z-index: 0;
+  top: 7px;
+  bottom: 7px;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(54, 90, 69, 0.08), rgba(54, 90, 69, 0.62), rgba(54, 90, 69, 0.12));
+  content: '';
+  pointer-events: none;
+  transform: rotate(6deg);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__item {
+  z-index: 1;
+  min-width: 0;
+  min-height: 56px;
+  gap: clamp(6px, 1.5vw, 9px);
+  padding-inline: clamp(7px, 1.8vw, 11px);
+  box-shadow: 0 4px 10px rgba(31, 48, 35, 0.12);
+  white-space: nowrap;
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__line {
+  border-color: var(--moss-800);
+  border-radius: 11px 22px 12px 18px;
+  background: var(--moss-800);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__phone {
+  z-index: 1;
+  min-height: 56px;
+  margin: 0;
+  border-color: rgba(54, 90, 69, 0.48);
+  border-radius: 21px 11px 18px 12px;
+  background: rgba(251, 250, 245, 0.88);
+  box-shadow: 0 3px 8px rgba(31, 48, 35, 0.1);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  transition: transform 220ms var(--ease);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__item:hover {
+  box-shadow: 0 7px 14px rgba(31, 48, 35, 0.16);
+  transform: translateY(-2px);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__item:hover .leaf-contact-links__arrow,
+.leaf-contact-links--stone-sprout .leaf-contact-links__item:focus-visible .leaf-contact-links__arrow {
+  transform: translate(3px, -2px);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__item:active {
+  transform: scale(.99);
+}
+
+.leaf-contact-links--stone-sprout .leaf-contact-links__item:focus-visible {
+  outline: 3px solid var(--gold-400);
+  outline-offset: 3px;
+}
+
 .mobile-contact-bar {
   display: none;
 }
