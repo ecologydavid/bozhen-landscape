@@ -551,6 +551,8 @@ test('390px Hero film and adaptive contact surfaces preserve their complete mobi
   await expect(heroVideo).toHaveJSProperty('autoplay', true)
   await expect(heroVideo).toHaveJSProperty('loop', true)
   await expect(heroVideo).toHaveJSProperty('playsInline', true)
+  await expect(heroVideo).not.toHaveAttribute('poster')
+  await expect(heroVideo).toHaveJSProperty('poster', '')
   await expect(heroVideo).toHaveAttribute('preload', 'metadata')
 
   const heroPair = page.locator('.hero__actions .leaf-contact-links')
