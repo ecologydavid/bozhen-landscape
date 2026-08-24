@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { afterEach, vi } from 'vitest'
 import HeroMedia from './HeroMedia'
 import { siteContent } from '../../data/siteContent'
@@ -135,7 +136,10 @@ test('plays the hero film on a 390px viewport when motion and data saving are al
 
   const video = screen.getByTestId('hero-video')
   expect(video).toHaveAttribute('autoplay')
+  expect(video).toHaveAttribute('loop')
   expect(video).toHaveAttribute('playsinline')
+  expect(video).toHaveAttribute('preload', 'metadata')
+  expect(video).toHaveProperty('muted', true)
 })
 
 test('keeps the static hero image when the connection requests data saving', () => {
@@ -170,4 +174,28 @@ test('cleans up the connection change listener when unmounted', () => {
   unmount()
 
   expect(connection.removeEventListener).toHaveBeenCalledWith('change', changeListener)
+})
+
+test('renders on the server when window is unavailable', () => {
+  const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: undefined,
+  })
+
+  try {
+    expect(() => renderToString(
+      <HeroMedia
+        image={siteContent.hero.image}
+        alt={siteContent.hero.alt}
+        videoSrc="/hero.mp4"
+      />,
+    )).not.toThrow()
+  } finally {
+    if (originalWindowDescriptor) {
+      Object.defineProperty(globalThis, 'window', originalWindowDescriptor)
+    } else {
+      delete globalThis.window
+    }
+  }
 })

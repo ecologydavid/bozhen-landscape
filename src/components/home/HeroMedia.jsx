@@ -4,7 +4,7 @@ import BrandImage from '../ui/BrandImage'
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
 
 function getMediaPreference(query) {
-  return window.matchMedia?.(query).matches ?? false
+  return typeof window !== 'undefined' && window.matchMedia?.(query).matches === true
 }
 
 function useMediaPreference(query) {
