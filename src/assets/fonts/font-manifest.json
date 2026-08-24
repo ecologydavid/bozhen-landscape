@@ -50,6 +50,14 @@
     },
     {
       "family": "Noto Serif TC",
+      "weight": "500",
+      "source": "node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-500-normal.woff2",
+      "output": "noto-serif-tc-500-extra-94.woff2",
+      "packageName": "@fontsource/noto-serif-tc",
+      "unicodeRange": "U+2197"
+    },
+    {
+      "family": "Noto Serif TC",
       "weight": "600",
       "source": "node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-600-normal.woff2",
       "output": "noto-serif-tc-600.woff2",
@@ -98,6 +106,14 @@
     },
     {
       "family": "Noto Serif TC",
+      "weight": "600",
+      "source": "node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-600-normal.woff2",
+      "output": "noto-serif-tc-600-extra-94.woff2",
+      "packageName": "@fontsource/noto-serif-tc",
+      "unicodeRange": "U+2197"
+    },
+    {
+      "family": "Noto Serif TC",
       "weight": "700",
       "source": "node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-700-normal.woff2",
       "output": "noto-serif-tc-700.woff2",
@@ -143,6 +159,14 @@
       "output": "noto-serif-tc-700-extra-123.woff2",
       "packageName": "@fontsource/noto-serif-tc",
       "unicodeRange": "U+FF0C, U+FF1A"
+    },
+    {
+      "family": "Noto Serif TC",
+      "weight": "700",
+      "source": "node_modules/@fontsource/noto-serif-tc/files/noto-serif-tc-chinese-traditional-700-normal.woff2",
+      "output": "noto-serif-tc-700-extra-94.woff2",
+      "packageName": "@fontsource/noto-serif-tc",
+      "unicodeRange": "U+2197"
     },
     {
       "family": "Noto Sans TC",
@@ -194,6 +218,14 @@
     },
     {
       "family": "Noto Sans TC",
+      "weight": "400",
+      "source": "node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff2",
+      "output": "noto-sans-tc-400-extra-90.woff2",
+      "packageName": "@fontsource/noto-sans-tc",
+      "unicodeRange": "U+2197"
+    },
+    {
+      "family": "Noto Sans TC",
       "weight": "500",
       "source": "node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-500-normal.woff2",
       "output": "noto-sans-tc-500.woff2",
@@ -242,6 +274,14 @@
     },
     {
       "family": "Noto Sans TC",
+      "weight": "500",
+      "source": "node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-500-normal.woff2",
+      "output": "noto-sans-tc-500-extra-90.woff2",
+      "packageName": "@fontsource/noto-sans-tc",
+      "unicodeRange": "U+2197"
+    },
+    {
+      "family": "Noto Sans TC",
       "weight": "700",
       "source": "node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-700-normal.woff2",
       "output": "noto-sans-tc-700.woff2",
@@ -287,6 +327,14 @@
       "output": "noto-sans-tc-700-extra-119.woff2",
       "packageName": "@fontsource/noto-sans-tc",
       "unicodeRange": "U+FF0C, U+FF1A"
+    },
+    {
+      "family": "Noto Sans TC",
+      "weight": "700",
+      "source": "node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-700-normal.woff2",
+      "output": "noto-sans-tc-700-extra-90.woff2",
+      "packageName": "@fontsource/noto-sans-tc",
+      "unicodeRange": "U+2197"
     },
     {
       "family": "Manrope Variable",
