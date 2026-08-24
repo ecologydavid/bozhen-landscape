@@ -51,14 +51,11 @@ async function expectHealthyProductionPage(page, route) {
   expect(issues, issues.join('\n')).toEqual([])
 }
 
-async function expectVisibleContactPairToFit(page) {
-  const pairs = page.locator('.leaf-contact-links:visible')
-  expect(await pairs.count()).toBeGreaterThanOrEqual(1)
+async function expectContactPairToFit(pair) {
+  const links = pair.locator('.leaf-contact-links__item')
+  await expect(links).toHaveCount(2)
 
-  for (let pairIndex = 0; pairIndex < await pairs.count(); pairIndex += 1) {
-    const links = pairs.nth(pairIndex).locator('.leaf-contact-links__item')
-    await expect(links).toHaveCount(2)
-    for (let index = 0; index < await links.count(); index += 1) {
+  for (let index = 0; index < await links.count(); index += 1) {
     const geometry = await links.nth(index).evaluate((anchor) => {
       const label = anchor.querySelector(':scope > span')
       if (!label) return null
@@ -95,8 +92,81 @@ async function expectVisibleContactPairToFit(page) {
     expect(geometry.label.right).toBeLessThanOrEqual(geometry.anchor.right + 1)
     expect(geometry.label.top).toBeGreaterThanOrEqual(geometry.anchor.top - 1)
     expect(geometry.label.bottom).toBeLessThanOrEqual(geometry.anchor.bottom + 1)
-    }
   }
+}
+
+async function expectVisibleContactPairToFit(page) {
+  const pairs = page.locator('.leaf-contact-links:visible')
+  expect(await pairs.count()).toBeGreaterThanOrEqual(1)
+
+  for (let pairIndex = 0; pairIndex < await pairs.count(); pairIndex += 1) {
+    await expectContactPairToFit(pairs.nth(pairIndex))
+  }
+}
+
+async function expectOrganicStoneSproutContactPair(page, pair) {
+  await expect(pair).toHaveClass(/leaf-contact-links--stone-sprout/)
+  await expectContactPairToFit(pair)
+
+  const geometry = await pair.evaluate((node) => {
+    const pairRect = node.getBoundingClientRect()
+    const stem = getComputedStyle(node, '::after')
+    const stemTop = pairRect.top + Number.parseFloat(stem.top)
+    const stemBottom = pairRect.bottom - Number.parseFloat(stem.bottom)
+    const stemX = pairRect.left + Number.parseFloat(stem.left)
+    const links = Array.from(node.querySelectorAll('.leaf-contact-links__item')).map((link) => {
+      const rect = link.getBoundingClientRect()
+      const label = link.querySelector(':scope > span:not(.leaf-contact-links__arrow)')
+      const labelRect = label?.getBoundingClientRect()
+      return {
+        height: rect.height,
+        width: rect.width,
+        label: labelRect && {
+          top: labelRect.top,
+          right: labelRect.right,
+          bottom: labelRect.bottom,
+          left: labelRect.left,
+        },
+      }
+    })
+    const stemCrossesLabel = links.some(({ label }) => label
+      && stemX >= label.left
+      && stemX <= label.right
+      && stemBottom >= label.top
+      && stemTop <= label.bottom)
+
+    return {
+      pairWidth: pairRect.width,
+      pairOverflow: node.scrollWidth - node.clientWidth,
+      documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      stem: {
+        leftRatio: Number.parseFloat(stem.left) / pairRect.width,
+        pointerEvents: stem.pointerEvents,
+        zIndex: stem.zIndex,
+      },
+      stemCrossesLabel,
+      links,
+    }
+  })
+
+  expect(geometry.stem.leftRatio).toBeCloseTo(0.57, 2)
+  expect(geometry.stem.zIndex).toBe('2')
+  expect(geometry.stem.pointerEvents).toBe('none')
+  expect(geometry.pairOverflow).toBeLessThanOrEqual(1)
+  expect(geometry.documentOverflow).toBeLessThanOrEqual(1)
+  expect(geometry.stemCrossesLabel).toBe(false)
+  expect(geometry.links).toHaveLength(2)
+  for (const link of geometry.links) {
+    expect(link.width).toBeGreaterThanOrEqual(56)
+    expect(link.height).toBeGreaterThanOrEqual(56)
+  }
+
+  const phone = pair.getByRole('link', { name: '撥打 0921-047-049' })
+  await phone.focus()
+  await expect(phone).toBeFocused()
+  await expect(phone).toHaveCSS('outline-width', '3px')
+  await expect(phone).toHaveCSS('outline-style', 'solid')
+  await expect(phone).toHaveCSS('outline-color', 'rgb(54, 90, 69)')
 }
 
 async function expectFooterVisibleAndUncovered(page, viewport) {
@@ -115,7 +185,9 @@ async function expectFooterVisibleAndUncovered(page, viewport) {
   }
 
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-  await expect(footer.locator('.site-footer__bottom')).toBeVisible()
+  const footerBottom = footer.locator('.site-footer__bottom')
+  await expect(footerBottom).toBeVisible()
+  await expect(footerBottom.locator('small')).toHaveCount(1)
 
   if (viewport.width <= 768) {
     const overlap = await page.evaluate(() => {
@@ -162,7 +234,7 @@ async function expectFooterVisibleAndUncovered(page, viewport) {
     expect(forestPixels / sampledPixels).toBeGreaterThanOrEqual(0.85)
   }
 
-  const footerBottomContrast = await footer.locator('.site-footer__bottom small').first().evaluate((node) => {
+  const footerBottomContrast = await footerBottom.locator('small').evaluate((node) => {
     const parseColor = (value) => value.match(/[\d.]+/g).map(Number)
     const foreground = parseColor(getComputedStyle(node).color)
     const background = parseColor(getComputedStyle(node.closest('.site-footer')).backgroundColor)
@@ -467,6 +539,83 @@ for (const width of [360, 768]) {
   })
 }
 
+test('390px Hero film and adaptive contact surfaces preserve their complete mobile contract', async ({ page }) => {
+  const issues = watchPageHealth(page)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  const heroVideo = page.locator('.hero__video')
+  await expect(heroVideo).toBeVisible()
+  await expect.poll(() => heroVideo.evaluate((video) => video.readyState)).toBeGreaterThanOrEqual(2)
+  await expect(heroVideo).toHaveJSProperty('muted', true)
+  await expect(heroVideo).toHaveJSProperty('autoplay', true)
+  await expect(heroVideo).toHaveJSProperty('loop', true)
+  await expect(heroVideo).toHaveJSProperty('playsInline', true)
+  await expect(heroVideo).toHaveAttribute('preload', 'metadata')
+
+  const heroPair = page.locator('.hero__actions .leaf-contact-links')
+  await expect(heroPair).toHaveClass(/leaf-contact-links--stone-sprout/)
+  await expectContactPairToFit(heroPair)
+
+  await page.locator('#services').scrollIntoViewIfNeeded()
+  const mobileBar = page.locator('.mobile-contact-bar')
+  await expect(mobileBar).toHaveClass(/is-visible/)
+  const mobilePair = mobileBar.locator('.leaf-contact-links')
+  await expect(mobilePair).toHaveClass(/leaf-contact-links--mobile/)
+  await expect(mobilePair).toHaveClass(/leaf-contact-links--stone-sprout/)
+  await expectContactPairToFit(mobilePair)
+
+  const footer = page.locator('.site-footer')
+  await footer.scrollIntoViewIfNeeded()
+  await expect(footer.getByText(/統一編號\s*00111874/)).toHaveCount(0)
+  const contact = page.getByRole('region', { name: '直接與曜聖聯絡' })
+  await contact.scrollIntoViewIfNeeded()
+  await expect(contact.getByText('統一編號', { exact: true })).toBeVisible()
+  await expect(contact.getByText('00111874', { exact: true })).toBeVisible()
+  expect(issues, issues.join('\n')).toEqual([])
+})
+
+test('390px Save-Data keeps the Hero static without fetching the film', async ({ page }) => {
+  const filmRequests = []
+  page.on('request', (request) => {
+    if (request.url().includes('nantun-water-garden')) filmRequests.push(request.url())
+  })
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'connection', {
+      configurable: true,
+      value: { saveData: true },
+    })
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+  await expect(page.locator('.hero__image')).toBeVisible()
+  await expect(page.locator('.hero__video')).toHaveCount(0)
+  expect(filmRequests).toEqual([])
+})
+
+for (const width of [320, 390]) {
+  test(`${width}px stone-and-sprout contact pairs keep their organic stem out of link text`, async ({ page }) => {
+    const issues = watchPageHealth(page)
+    await page.setViewportSize({ width, height: width === 320 ? 720 : 844 })
+    await page.goto(homeUrl, { waitUntil: 'networkidle' })
+
+    await expectOrganicStoneSproutContactPair(
+      page,
+      page.locator('.hero__actions .leaf-contact-links'),
+    )
+
+    await page.locator('#services').scrollIntoViewIfNeeded()
+    const mobileBar = page.locator('.mobile-contact-bar')
+    await expect(mobileBar).toHaveClass(/is-visible/)
+    await expectOrganicStoneSproutContactPair(
+      page,
+      mobileBar.locator('.leaf-contact-links'),
+    )
+    expect(issues, issues.join('\n')).toEqual([])
+  })
+}
+
 test('craft-to-care bridge remains continuous across its internal section boundary', async ({ page }) => {
   const issues = watchPageHealth(page)
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -558,7 +707,7 @@ test('project detail exposes its four evidence fields without overflow', async (
 })
 
 test.describe('mobile performance budget', () => {
-  test.describe.configure({ retries: 2 })
+  test.describe.configure({ retries: 0 })
 
   test('390px selects the 480 AVIF Hero and reaches LCP within 2.5 seconds', async ({ page, context }) => {
     const client = await context.newCDPSession(page)
@@ -580,6 +729,9 @@ test.describe('mobile performance budget', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(homeUrl, { waitUntil: 'networkidle' })
     await expect(page.locator('.hero__image')).toBeVisible()
+    const heroVideo = page.locator('.hero__video')
+    await expect(heroVideo).toBeVisible()
+    await expect.poll(() => heroVideo.evaluate((video) => video.readyState)).toBeGreaterThanOrEqual(2)
     await page.waitForTimeout(500)
 
     const result = await page.locator('.hero__image').evaluate((image) => ({
