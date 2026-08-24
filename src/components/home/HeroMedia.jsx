@@ -1,54 +1,87 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import BrandImage from '../ui/BrandImage'
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
+const getStaticPreference = () => false
+const getClientReady = () => true
+const subscribeToNothing = () => () => {}
 
 function getMediaPreference(query) {
   return typeof window !== 'undefined' && window.matchMedia?.(query).matches === true
 }
 
 function useMediaPreference(query) {
-  const [matches, setMatches] = useState(() => getMediaPreference(query))
+  const subscribe = useCallback((onStoreChange) => {
+    if (typeof window === 'undefined') return subscribeToNothing()
 
-  useEffect(() => {
     const mediaQuery = window.matchMedia?.(query)
-    if (!mediaQuery) return undefined
+    if (!mediaQuery?.addEventListener) return subscribeToNothing()
 
-    const updatePreference = (event) => setMatches(event.matches)
-    mediaQuery.addEventListener?.('change', updatePreference)
-    return () => mediaQuery.removeEventListener?.('change', updatePreference)
+    mediaQuery.addEventListener('change', onStoreChange)
+    return () => mediaQuery.removeEventListener?.('change', onStoreChange)
   }, [query])
+  const getSnapshot = useCallback(() => getMediaPreference(query), [query])
 
-  return matches
+  return useSyncExternalStore(subscribe, getSnapshot, getStaticPreference)
 }
 
 function getDataSavingPreference() {
   return typeof navigator !== 'undefined' && navigator.connection?.saveData === true
 }
 
+function subscribeToDataSavingPreference(onStoreChange) {
+  if (typeof navigator === 'undefined') return subscribeToNothing()
+
+  const connection = navigator.connection
+  if (!connection?.addEventListener) return subscribeToNothing()
+
+  connection.addEventListener('change', onStoreChange)
+  return () => connection.removeEventListener?.('change', onStoreChange)
+}
+
 function useDataSavingPreference() {
-  const [saveData, setSaveData] = useState(getDataSavingPreference)
+  return useSyncExternalStore(
+    subscribeToDataSavingPreference,
+    getDataSavingPreference,
+    getStaticPreference,
+  )
+}
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined') return undefined
+function useClientReady() {
+  return useSyncExternalStore(subscribeToNothing, getClientReady, getStaticPreference)
+}
 
-    const connection = navigator.connection
-    if (!connection?.addEventListener) return undefined
+function HeroVideo({ image, videoSrc, onError }) {
+  const [videoReady, setVideoReady] = useState(false)
 
-    const updatePreference = () => setSaveData(getDataSavingPreference())
-    connection.addEventListener('change', updatePreference)
-    return () => connection.removeEventListener?.('change', updatePreference)
-  }, [])
-
-  return saveData
+  return (
+    <video
+      data-testid="hero-video"
+      className={`hero__video${videoReady ? ' is-ready' : ''}`}
+      src={videoSrc}
+      poster={image.src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      aria-hidden="true"
+      onCanPlay={() => setVideoReady(true)}
+      onError={onError}
+    />
+  )
 }
 
 export default function HeroMedia({ image, alt, videoSrc }) {
   const reducedMotion = useMediaPreference(reducedMotionQuery)
   const saveData = useDataSavingPreference()
+  const clientReady = useClientReady()
   const [videoFailed, setVideoFailed] = useState(false)
-  const [videoReady, setVideoReady] = useState(false)
-  const shouldPlayVideo = Boolean(videoSrc) && !reducedMotion && !saveData && !videoFailed
+  const shouldPlayVideo = clientReady
+    && Boolean(videoSrc)
+    && !reducedMotion
+    && !saveData
+    && !videoFailed
 
   return (
     <div className="hero__media">
@@ -62,20 +95,7 @@ export default function HeroMedia({ image, alt, videoSrc }) {
         fetchPriority="high"
       />
       {shouldPlayVideo ? (
-        <video
-          data-testid="hero-video"
-          className={`hero__video${videoReady ? ' is-ready' : ''}`}
-          src={videoSrc}
-          poster={image.src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-hidden="true"
-          onCanPlay={() => setVideoReady(true)}
-          onError={() => setVideoFailed(true)}
-        />
+        <HeroVideo image={image} videoSrc={videoSrc} onError={() => setVideoFailed(true)} />
       ) : null}
       <div className="hero__shade" aria-hidden="true" />
       <span className="hero__sun" aria-hidden="true" />

@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { act, StrictMode } from 'react'
+import { hydrateRoot } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { afterEach, vi } from 'vitest'
 import HeroMedia from './HeroMedia'
@@ -157,10 +159,37 @@ test('keeps the static hero image when the connection requests data saving', () 
   expect(screen.getByRole('img', { name: siteContent.hero.alt })).toBeInTheDocument()
 })
 
-test('cleans up the connection change listener when unmounted', () => {
+test('balances connection change listener setup and cleanup in StrictMode', () => {
   mockMotionPreference(false)
   const connection = mockConnectionPreference(false)
   const { unmount } = render(
+    <StrictMode>
+      <HeroMedia
+        image={siteContent.hero.image}
+        alt={siteContent.hero.alt}
+        videoSrc="/hero.mp4"
+      />
+    </StrictMode>,
+  )
+
+  const addedListeners = connection.addEventListener.mock.calls
+    .filter(([eventName]) => eventName === 'change')
+    .map(([, listener]) => listener)
+  expect(addedListeners.length).toBeGreaterThan(0)
+
+  unmount()
+
+  const removedListeners = connection.removeEventListener.mock.calls
+    .filter(([eventName]) => eventName === 'change')
+    .map(([, listener]) => listener)
+  expect(removedListeners).toHaveLength(addedListeners.length)
+  expect(removedListeners).toEqual(expect.arrayContaining(addedListeners))
+})
+
+test('resets video readiness after data saving blocks and re-allows playback', () => {
+  mockMotionPreference(false)
+  const connection = mockConnectionPreference(false)
+  render(
     <HeroMedia
       image={siteContent.hero.image}
       alt={siteContent.hero.alt}
@@ -168,12 +197,77 @@ test('cleans up the connection change listener when unmounted', () => {
     />,
   )
 
-  expect(connection.addEventListener).toHaveBeenCalledWith('change', expect.any(Function))
-  const changeListener = connection.addEventListener.mock.calls[0][1]
+  fireEvent.canPlay(screen.getByTestId('hero-video'))
+  expect(screen.getByTestId('hero-video')).toHaveClass('is-ready')
 
-  unmount()
+  const changeListener = connection.addEventListener.mock.calls
+    .find(([eventName]) => eventName === 'change')[1]
+  act(() => {
+    connection.saveData = true
+    changeListener()
+  })
+  expect(screen.queryByTestId('hero-video')).not.toBeInTheDocument()
 
-  expect(connection.removeEventListener).toHaveBeenCalledWith('change', changeListener)
+  act(() => {
+    connection.saveData = false
+    changeListener()
+  })
+  expect(screen.getByTestId('hero-video')).not.toHaveClass('is-ready')
+})
+
+test('renders no video in the server response before client preferences mount', () => {
+  mockMotionPreference(false)
+  mockConnectionPreference(false)
+
+  const markup = renderToString(
+    <HeroMedia
+      image={siteContent.hero.image}
+      alt={siteContent.hero.alt}
+      videoSrc="/hero.mp4"
+    />,
+  )
+
+  expect(markup).not.toContain('data-testid="hero-video"')
+})
+
+test.each([
+  ['reduced motion', true, false],
+  ['data saving', false, true],
+])('hydrates the static server markup without video when %s is enabled', async (_name, reducedMotion, saveData) => {
+  mockMotionPreference(reducedMotion)
+  mockConnectionPreference(saveData)
+  const container = document.createElement('div')
+  container.innerHTML = renderToString(
+    <HeroMedia
+      image={siteContent.hero.image}
+      alt={siteContent.hero.alt}
+      videoSrc="/hero.mp4"
+    />,
+  )
+  document.body.append(container)
+
+  let root
+  try {
+    expect(container.querySelector('[data-testid="hero-video"]')).not.toBeInTheDocument()
+
+    await act(async () => {
+      root = hydrateRoot(
+        container,
+        <HeroMedia
+          image={siteContent.hero.image}
+          alt={siteContent.hero.alt}
+          videoSrc="/hero.mp4"
+        />,
+      )
+    })
+
+    expect(container.querySelector('[data-testid="hero-video"]')).not.toBeInTheDocument()
+  } finally {
+    if (root) {
+      await act(async () => root.unmount())
+    }
+    container.remove()
+  }
 })
 
 test('renders on the server when window is unavailable', () => {
@@ -184,13 +278,17 @@ test('renders on the server when window is unavailable', () => {
   })
 
   try {
-    expect(() => renderToString(
-      <HeroMedia
-        image={siteContent.hero.image}
-        alt={siteContent.hero.alt}
-        videoSrc="/hero.mp4"
-      />,
-    )).not.toThrow()
+    let markup
+    expect(() => {
+      markup = renderToString(
+        <HeroMedia
+          image={siteContent.hero.image}
+          alt={siteContent.hero.alt}
+          videoSrc="/hero.mp4"
+        />,
+      )
+    }).not.toThrow()
+    expect(markup).not.toContain('data-testid="hero-video"')
   } finally {
     if (originalWindowDescriptor) {
       Object.defineProperty(globalThis, 'window', originalWindowDescriptor)
