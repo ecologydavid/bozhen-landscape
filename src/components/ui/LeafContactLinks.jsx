@@ -12,6 +12,7 @@ export default function LeafContactLinks({ contact, className = '' }) {
       >
         <LeafIcon name="sprout" />
         <span>LINE 聯絡</span>
+        <span className="leaf-contact-links__arrow" aria-hidden="true">↗</span>
       </a>
       <a
         className="leaf-contact-links__item leaf-contact-links__phone"
@@ -20,6 +21,7 @@ export default function LeafContactLinks({ contact, className = '' }) {
       >
         <LeafIcon name="sprout" />
         <span>撥打電話</span>
+        <span className="leaf-contact-links__arrow" aria-hidden="true">↗</span>
       </a>
     </div>
   )

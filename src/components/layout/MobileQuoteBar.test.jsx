@@ -123,6 +123,10 @@ test('shows quick contacts immediately on non-home routes', () => {
   expect(observerInstances).toHaveLength(0)
   expect(screen.getByRole('link', { name: 'LINE 聯絡' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toBeInTheDocument()
+  expect(navigation.querySelector('.leaf-contact-links')).toHaveClass(
+    'leaf-contact-links--mobile',
+    'leaf-contact-links--stone-sprout',
+  )
 })
 
 test('hides quick contacts accessibly while the navigation menu is open', () => {

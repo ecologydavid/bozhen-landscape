@@ -59,7 +59,10 @@ function MobileQuoteBarContent({ contact, isHome }) {
       aria-hidden={!isVisible}
       inert={!isVisible}
     >
-      <LeafContactLinks contact={contact} className="leaf-contact-links--mobile" />
+      <LeafContactLinks
+        contact={contact}
+        className="leaf-contact-links--mobile leaf-contact-links--stone-sprout"
+      />
     </nav>
   )
 }

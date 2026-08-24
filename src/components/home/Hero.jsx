@@ -26,7 +26,10 @@ export default function Hero({ hero, contact }) {
               <LeafIcon name="sprout" />
               <span>瀏覽庭園作品</span>
             </Link>
-            <LeafContactLinks contact={contact} />
+            <LeafContactLinks
+              contact={contact}
+              className="leaf-contact-links--stone-sprout"
+            />
           </div>
         </div>
       </div>
