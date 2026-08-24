@@ -1,6 +1,4 @@
 import { siteContent } from './siteContent'
-import { statSync } from 'node:fs'
-import { resolve } from 'node:path'
 
 test('stores the official Yao Sei brand and direct contact details', () => {
   expect(siteContent.brand).toMatchObject({
@@ -31,18 +29,7 @@ test('stores the official Yao Sei brand and direct contact details', () => {
     src: expect.stringMatching(/\.webp$/),
     avifSrc: expect.stringMatching(/\.avif$/),
   }))
-  expect(siteContent.hero.videoSrc).toMatchObject({
-    desktop: expect.stringMatching(/nantun-water-garden\.mp4$/),
-    mobile: expect.stringMatching(/nantun-water-garden-mobile\.mp4$/),
-  })
-})
-
-test('keeps the mobile hero film clear without matching the full desktop transfer', () => {
-  const desktop = statSync(resolve('src/assets/hero/nantun-water-garden.mp4'))
-  const mobile = statSync(resolve('src/assets/hero/nantun-water-garden-mobile.mp4'))
-
-  expect(mobile.size).toBeGreaterThan(desktop.size * 0.4)
-  expect(mobile.size).toBeLessThan(desktop.size * 0.85)
+  expect(siteContent.hero.videoSrc).toMatch(/nantun-water-garden\.mp4$/)
 })
 
 test('serves a compact WebP logo while retaining the printed brand artwork', () => {
