@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import BrandImage from '../ui/BrandImage'
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
-const mobileViewportQuery = '(max-width: 768px)'
 
 function getMediaPreference(query) {
   return window.matchMedia?.(query).matches ?? false
@@ -23,12 +22,33 @@ function useMediaPreference(query) {
   return matches
 }
 
+function getDataSavingPreference() {
+  return typeof navigator !== 'undefined' && navigator.connection?.saveData === true
+}
+
+function useDataSavingPreference() {
+  const [saveData, setSaveData] = useState(getDataSavingPreference)
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return undefined
+
+    const connection = navigator.connection
+    if (!connection?.addEventListener) return undefined
+
+    const updatePreference = () => setSaveData(getDataSavingPreference())
+    connection.addEventListener('change', updatePreference)
+    return () => connection.removeEventListener?.('change', updatePreference)
+  }, [])
+
+  return saveData
+}
+
 export default function HeroMedia({ image, alt, videoSrc }) {
   const reducedMotion = useMediaPreference(reducedMotionQuery)
-  const mobileViewport = useMediaPreference(mobileViewportQuery)
+  const saveData = useDataSavingPreference()
   const [videoFailed, setVideoFailed] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
-  const shouldPlayVideo = Boolean(videoSrc) && !reducedMotion && !mobileViewport && !videoFailed
+  const shouldPlayVideo = Boolean(videoSrc) && !reducedMotion && !saveData && !videoFailed
 
   return (
     <div className="hero__media">
