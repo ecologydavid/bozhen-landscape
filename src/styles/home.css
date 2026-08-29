@@ -755,6 +755,18 @@
   transition: color 180ms ease, transform 180ms var(--ease);
 }
 
+.contact-panel__socials .social-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  color: var(--gold-400);
+}
+
+.contact-panel__socials .social-icon--facebook {
+  fill: currentColor;
+  stroke: none;
+}
+
 .contact-panel__socials a::after {
   position: absolute;
   right: 0;

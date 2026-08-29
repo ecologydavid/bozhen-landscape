@@ -1,6 +1,7 @@
 import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
+import SocialIcon from '../ui/SocialIcon'
 import { trackEvent } from '../../lib/analytics'
 
 export default function ContactActions({ brand, contact, social = {} }) {
@@ -65,6 +66,7 @@ export default function ContactActions({ brand, contact, social = {} }) {
               aria-label="Facebook 曜聖景觀"
               onClick={() => trackEvent('social_click', { network: 'facebook', location: 'contact_section' })}
             >
+              <SocialIcon name="facebook" />
               Facebook <span>↗</span>
             </a>
             <a
@@ -74,6 +76,7 @@ export default function ContactActions({ brand, contact, social = {} }) {
               aria-label="Instagram 曜聖景觀"
               onClick={() => trackEvent('social_click', { network: 'instagram', location: 'contact_section' })}
             >
+              <SocialIcon name="instagram" />
               Instagram <span>↗</span>
             </a>
           </div>

@@ -40,27 +40,16 @@ test('keeps the Footer above the fixed scene environment', () => {
 
 test('builds the stone sprout contacts on an asymmetric isolated stone base', () => {
   const stoneBase = rule(stylesheet, '.leaf-contact-links--stone-sprout')
-  const sproutStem = rule(stylesheet, '.leaf-contact-links--stone-sprout::after')
 
   expect(stoneBase).toMatch(/isolation:\s*isolate;/)
-  expect(stoneBase).toMatch(/gap:\s*0;/)
+  expect(stoneBase).toMatch(/gap:\s*10px;/)
   expect(stoneBase).toMatch(/padding:\s*7px;/)
   expect(stoneBase).toMatch(/border:\s*1px solid var\(--gold-line\);/)
   expect(stoneBase).toMatch(/border-radius:\s*10px 12px 9px 11px;/)
   expect(stoneBase).toMatch(/background:\s*linear-gradient\(/)
   expect(stylesheet).not.toMatch(/\.leaf-contact-links--stone-sprout::before/)
+  expect(stylesheet).not.toMatch(/\.leaf-contact-links--stone-sprout::after/)
   expect(stylesheet).not.toMatch(/\.leaf-contact-links::before/)
-  expect(sproutStem).toMatch(/z-index:\s*2;/)
-  expect(sproutStem).toMatch(/left:\s*57%;/)
-  expect(sproutStem).toMatch(
-    /background:\s*linear-gradient\(180deg, rgba\(251, 250, 245, 0\.1\), rgba\(251, 250, 245, 0\.58\), rgba\(251, 250, 245, 0\.12\)\);/,
-  )
-  expect(sproutStem).toMatch(
-    /box-shadow:\s*1px 0 rgba\(49, 87, 70, 0\.28\), -1px 0 rgba\(251, 250, 245, 0\.16\);/,
-  )
-  expect(sproutStem).toMatch(/pointer-events:\s*none;/)
-  expect(sproutStem).toMatch(/background:\s*linear-gradient\(180deg,/)
-  expect(sproutStem).toMatch(/transform:\s*none;/)
 })
 
 test('keeps stone sprout actions compact, organic, and accessible', () => {

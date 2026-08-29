@@ -319,7 +319,7 @@
 
 .leaf-contact-links--stone-sprout {
   isolation: isolate;
-  gap: 0;
+  gap: 10px;
   min-width: 0;
   padding: 7px;
   border: 1px solid var(--gold-line);
@@ -331,20 +331,6 @@
     rgba(218, 223, 211, 0.9)
   );
   box-shadow: 0 6px 18px rgba(31, 48, 35, 0.13);
-}
-
-.leaf-contact-links--stone-sprout::after {
-  position: absolute;
-  z-index: 2;
-  top: 7px;
-  bottom: 7px;
-  left: 57%;
-  width: 1px;
-  background: linear-gradient(180deg, rgba(251, 250, 245, 0.1), rgba(251, 250, 245, 0.58), rgba(251, 250, 245, 0.12));
-  box-shadow: 1px 0 rgba(49, 87, 70, 0.28), -1px 0 rgba(251, 250, 245, 0.16);
-  content: '';
-  pointer-events: none;
-  transform: none;
 }
 
 .leaf-contact-links--stone-sprout .leaf-contact-links__item {
