@@ -1,5 +1,5 @@
-import logoSrc from '../assets/brand/yaosei-logo-compact.webp'
-import companyCardSrc from '../assets/brand/yaosei-company-card.jpg'
+import logoSrc from '../assets/brand/yaosei-logo-gold.jpg'
+import companyCardSrc from '../assets/brand/yaosei-company-card-gold.jpg'
 import heroVideoSrc from '../assets/hero/nantun-water-garden.mp4'
 import { media } from './projectMedia'
 
@@ -24,6 +24,10 @@ export const siteContent = {
     officeHref: 'tel:+88648750911',
     emailHref: 'mailto:a74964163285@gmail.com',
     lineHref: 'https://line.me/ti/p/~0921047049',
+  },
+  social: {
+    facebook: 'https://www.facebook.com/profile.php?id=61593424035642',
+    instagram: 'https://www.instagram.com/yaoshenglandscape/',
   },
   hero: {
     eyebrow: 'YAO SEI LANDSCAPE',

@@ -20,6 +20,10 @@ test('stores the official Yao Sei brand and direct contact details', () => {
     emailHref: 'mailto:a74964163285@gmail.com',
     lineHref: 'https://line.me/ti/p/~0921047049',
   })
+  expect(siteContent.social).toEqual({
+    facebook: 'https://www.facebook.com/profile.php?id=61593424035642',
+    instagram: 'https://www.instagram.com/yaoshenglandscape/',
+  })
   expect(siteContent.hero).toMatchObject({
     title: '把自然，安放進日常',
     description: '庭園設計・植栽綠化・假山水景・後續養護',
@@ -32,6 +36,7 @@ test('stores the official Yao Sei brand and direct contact details', () => {
   expect(siteContent.hero.videoSrc).toMatch(/nantun-water-garden\.mp4$/)
 })
 
-test('serves a compact WebP logo while retaining the printed brand artwork', () => {
-  expect(siteContent.brand.logoSrc).toMatch(/yaosei-logo-compact\.webp$/)
+test('serves the approved gold logo and printed brand artwork', () => {
+  expect(siteContent.brand.logoSrc).toMatch(/yaosei-logo-gold\.jpg$/)
+  expect(siteContent.brand.companyCardSrc).toMatch(/yaosei-company-card-gold\.jpg$/)
 })

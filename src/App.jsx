@@ -11,7 +11,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
-  const { brand, contact } = siteContent
+  const { brand, contact, social } = siteContent
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -33,13 +33,13 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={<HomePage brand={brand} contact={contact} hero={siteContent.hero} />}
+            element={<HomePage brand={brand} contact={contact} hero={siteContent.hero} social={social} />}
           />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:slug" element={<ProjectDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-        <SiteFooter brand={brand} contact={contact} />
+        <SiteFooter brand={brand} contact={contact} social={social} />
         <MobileQuoteBar contact={contact} />
       </div>
     </div>

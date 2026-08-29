@@ -28,7 +28,7 @@ test('keeps the stone scene readable over its crossfading environment', () => {
   const stylesheet = readFileSync(resolve('src/styles/scene.css'), 'utf8')
 
   expect(stylesheet).toMatch(
-    /\.scene-section\[data-scene='stone'\]\s*\{[\s\S]*?--ink:\s*#18221c;[\s\S]*?--muted:\s*#48544b;[\s\S]*?--moss-800:\s*#274635;[\s\S]*?--sun-500:\s*#7a5017;[\s\S]*?--gold-500:\s*#7a5017;[\s\S]*?--gold-400:\s*#84591c;[\s\S]*?background:\s*rgba\(250,\s*249,\s*245,\s*0\.88\);[\s\S]*?color:\s*var\(--ink\);/,
+    /\.scene-section\[data-scene='stone'\]\s*\{[\s\S]*?--ink:\s*#202725;[\s\S]*?--muted:\s*#48544b;[\s\S]*?--moss-800:\s*#274635;[\s\S]*?--sun-500:\s*#7a5017;[\s\S]*?--gold-500:\s*#7a5017;[\s\S]*?--gold-400:\s*#84591c;[\s\S]*?background:\s*rgba\(250,\s*249,\s*245,\s*0\.88\);[\s\S]*?color:\s*var\(--ink\);/,
   )
 })
 

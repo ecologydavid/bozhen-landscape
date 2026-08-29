@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { services } from '../../data/services'
 
-export default function SiteFooter({ brand, contact }) {
+export default function SiteFooter({ brand, contact, social = {} }) {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
@@ -30,6 +30,8 @@ export default function SiteFooter({ brand, contact }) {
           <a href={contact.phoneHref}>{contact.mobile}</a>
           <a href={contact.lineHref} target="_blank" rel="noreferrer">LINE</a>
           <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>{contact.email}</a>
+          <a href={social.facebook} target="_blank" rel="noreferrer" aria-label="Facebook 曜聖景觀">Facebook</a>
+          <a href={social.instagram} target="_blank" rel="noreferrer" aria-label="Instagram 曜聖景觀">Instagram</a>
         </div>
       </div>
       <div className="site-footer__bottom">

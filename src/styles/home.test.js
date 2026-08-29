@@ -26,9 +26,9 @@ test('fills service cards with images or accessible fallbacks without duplicate 
   )
 })
 
-test('keeps the printed contact card geometry when its image falls back', () => {
+test('keeps the square printed contact card geometry when its image falls back', () => {
   expect(stylesheet).toMatch(
-    /\.contact-panel__brand img,\s*\.contact-panel__brand > \.image-fallback \{\s*width: 100%;\s*aspect-ratio: 933 \/ 568;\s*border-radius: var\(--radius-image\);/,
+    /\.contact-panel__brand img,\s*\.contact-panel__brand > \.image-fallback \{\s*width: 100%;\s*aspect-ratio: 1 \/ 1;\s*border: 1px solid rgba\(181, 138, 75, 0\.34\);\s*border-radius: var\(--radius-image\);/,
   )
   expect(stylesheet).toMatch(
     /\.contact-panel__brand > \.image-fallback \{\s*min-height: 0;/,

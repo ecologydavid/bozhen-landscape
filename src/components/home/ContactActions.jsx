@@ -2,7 +2,7 @@ import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
 
-export default function ContactActions({ brand, contact }) {
+export default function ContactActions({ brand, contact, social = {} }) {
   return (
     <section
       className="contact-panel section scene-section"
@@ -41,6 +41,15 @@ export default function ContactActions({ brand, contact }) {
               <span>Email 聯絡</span>
               <small>{contact.email}</small>
               <LeafIcon name="sprout" />
+            </a>
+          </div>
+
+          <div className="contact-panel__socials" aria-label="社群連結">
+            <a href={social.facebook} target="_blank" rel="noreferrer" aria-label="Facebook 曜聖景觀">
+              Facebook <span>↗</span>
+            </a>
+            <a href={social.instagram} target="_blank" rel="noreferrer" aria-label="Instagram 曜聖景觀">
+              Instagram <span>↗</span>
             </a>
           </div>
 

@@ -12,7 +12,7 @@ import { homeScenes } from '../data/homeScenes'
 import { gardenNotes } from '../data/gardenNotes'
 import { useActiveScene } from '../hooks/useActiveScene'
 
-export default function HomePage({ brand, contact, hero }) {
+export default function HomePage({ brand, contact, hero, social = {} }) {
   const homeRef = useRef(null)
   const activeScene = useActiveScene(homeScenes.map((scene) => scene.id), homeRef)
 
@@ -28,7 +28,7 @@ export default function HomePage({ brand, contact, hero }) {
         <BrandStory />
         <ClientTypes />
       </div>
-      <ContactActions brand={brand} contact={contact} />
+      <ContactActions brand={brand} contact={contact} social={social} />
     </main>
   )
 }
