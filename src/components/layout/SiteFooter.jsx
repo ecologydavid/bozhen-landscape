@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { services } from '../../data/services'
+import { trackEvent } from '../../lib/analytics'
 
 export default function SiteFooter({ brand, contact, social = {} }) {
   return (
@@ -27,11 +28,45 @@ export default function SiteFooter({ brand, contact, social = {} }) {
 
         <div className="site-footer__contact">
           <span className="site-footer__label">直接聯絡</span>
-          <a href={contact.phoneHref}>{contact.mobile}</a>
-          <a href={contact.lineHref} target="_blank" rel="noreferrer">LINE</a>
-          <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>{contact.email}</a>
-          <a href={social.facebook} target="_blank" rel="noreferrer" aria-label="Facebook 曜聖景觀">Facebook</a>
-          <a href={social.instagram} target="_blank" rel="noreferrer" aria-label="Instagram 曜聖景觀">Instagram</a>
+          <a
+            href={contact.phoneHref}
+            onClick={() => trackEvent('contact_click', { method: 'phone', location: 'footer' })}
+          >
+            {contact.mobile}
+          </a>
+          <a
+            href={contact.lineHref}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackEvent('contact_click', { method: 'line', location: 'footer' })}
+          >
+            LINE
+          </a>
+          <a
+            href={contact.emailHref}
+            aria-label={`Email ${contact.email}`}
+            onClick={() => trackEvent('contact_click', { method: 'email', location: 'footer' })}
+          >
+            {contact.email}
+          </a>
+          <a
+            href={social.facebook}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Facebook 曜聖景觀"
+            onClick={() => trackEvent('social_click', { network: 'facebook', location: 'footer' })}
+          >
+            Facebook
+          </a>
+          <a
+            href={social.instagram}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Instagram 曜聖景觀"
+            onClick={() => trackEvent('social_click', { network: 'instagram', location: 'footer' })}
+          >
+            Instagram
+          </a>
         </div>
       </div>
       <div className="site-footer__bottom">

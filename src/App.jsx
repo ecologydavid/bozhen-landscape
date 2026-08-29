@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import SiteHeader from './components/layout/SiteHeader'
 import SiteFooter from './components/layout/SiteFooter'
 import MobileQuoteBar from './components/layout/MobileQuoteBar'
+import AnalyticsTracker from './components/analytics/AnalyticsTracker'
 import ScrollToHash from './components/routing/ScrollToHash'
 import { siteContent } from './data/siteContent'
 import HomePage from './pages/HomePage'
@@ -29,6 +30,7 @@ export default function App() {
         inert={menuOpen ? true : undefined}
         aria-hidden={menuOpen ? 'true' : undefined}
       >
+        <AnalyticsTracker />
         <ScrollToHash focusBlocked={menuOpen} />
         <Routes>
           <Route

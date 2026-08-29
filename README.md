@@ -24,6 +24,12 @@ npm install
 npm run dev
 ```
 
+## GA4 埋點
+
+將 `.env.example` 複製為 `.env`，填入 GA4 的 `VITE_GA_MEASUREMENT_ID`（格式 `G-XXXXXXXXXX`）後重新啟動 Vite。未設定時不會載入 Google Analytics，適合本機預覽。
+
+目前事件包含：`page_view`、`navigation_toggle`、`navigation_click`、`view_projects_click`、`contact_click`（LINE／電話／Email）與 `social_click`（Facebook／Instagram）。事件會附帶互動位置，例如 `hero`、`header`、`contact_section`、`footer`、`mobile_sticky`。
+
 ## 本機驗證
 
 ```powershell

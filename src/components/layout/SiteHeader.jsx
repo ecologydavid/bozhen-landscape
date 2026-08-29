@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { navigation } from '../../data/navigation'
 import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
+import { trackEvent } from '../../lib/analytics'
 
 export default function SiteHeader({
   brand,
@@ -41,6 +42,7 @@ export default function SiteHeader({
   }, [setMenuOpen])
 
   const toggleMenu = () => {
+    trackEvent('navigation_toggle', { state: menuOpen ? 'closed' : 'opened' })
     if (menuOpen) closeMenu({ returnFocus: true })
     else setMenuOpen(true)
   }
@@ -212,7 +214,10 @@ export default function SiteHeader({
                 className="site-nav__item"
                 to={item.to}
                 aria-label={item.label}
-                onClick={() => closeMenu()}
+                onClick={() => {
+                  trackEvent('navigation_click', { label: item.label, destination: item.to })
+                  closeMenu()
+                }}
               >
                 <span className="site-nav__number">{item.number}</span>
                 <span className="site-nav__wording">
@@ -243,7 +248,10 @@ export default function SiteHeader({
               target="_blank"
               rel="noreferrer"
               aria-label="LINE 聯絡"
-              onClick={() => closeMenu({ returnFocus: true })}
+              onClick={() => {
+                trackEvent('contact_click', { method: 'line', location: 'header' })
+                closeMenu({ returnFocus: true })
+              }}
             >
               <LeafIcon name="sprout" />
               <span>LINE 聯絡</span>
@@ -251,7 +259,10 @@ export default function SiteHeader({
             <a
               href={contact.phoneHref}
               aria-label={`撥打 ${contact.mobile}`}
-              onClick={() => closeMenu({ returnFocus: true })}
+              onClick={() => {
+                trackEvent('contact_click', { method: 'phone', location: 'header' })
+                closeMenu({ returnFocus: true })
+              }}
             >
               <LeafIcon name="sprout" />
               <span>撥打電話</span>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import LeafContactLinks from '../ui/LeafContactLinks'
 import LeafIcon from '../ui/LeafIcon'
 import HeroMedia from './HeroMedia'
+import { trackEvent } from '../../lib/analytics'
 
 export default function Hero({ hero, contact }) {
   return (
@@ -22,7 +23,11 @@ export default function Hero({ hero, contact }) {
         <div className="hero__contact">
           <p className="hero__description">{hero.description}</p>
           <div className="hero__actions">
-            <Link className="hero__projects-link" to="/projects">
+            <Link
+              className="hero__projects-link"
+              to="/projects"
+              onClick={() => trackEvent('view_projects_click', { location: 'hero' })}
+            >
               <LeafIcon name="sprout" />
               <span>瀏覽庭園作品</span>
             </Link>

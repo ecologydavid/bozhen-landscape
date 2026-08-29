@@ -1,6 +1,7 @@
 import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
 import Reveal from '../ui/Reveal'
+import { trackEvent } from '../../lib/analytics'
 
 export default function ContactActions({ brand, contact, social = {} }) {
   return (
@@ -27,17 +28,29 @@ export default function ContactActions({ brand, contact, social = {} }) {
           </p>
 
           <div className="contact-panel__actions">
-            <a href={contact.lineHref} target="_blank" rel="noreferrer">
+            <a
+              href={contact.lineHref}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => trackEvent('contact_click', { method: 'line', location: 'contact_section' })}
+            >
               <span>LINE 聯絡</span>
               <small>ID {contact.lineId}</small>
               <LeafIcon name="sprout" />
             </a>
-            <a href={contact.phoneHref}>
+            <a
+              href={contact.phoneHref}
+              onClick={() => trackEvent('contact_click', { method: 'phone', location: 'contact_section' })}
+            >
               <span>撥打 {contact.mobile}</span>
               <small>行動電話</small>
               <LeafIcon name="sprout" />
             </a>
-            <a href={contact.emailHref} aria-label={`Email ${contact.email}`}>
+            <a
+              href={contact.emailHref}
+              aria-label={`Email ${contact.email}`}
+              onClick={() => trackEvent('contact_click', { method: 'email', location: 'contact_section' })}
+            >
               <span>Email 聯絡</span>
               <small>{contact.email}</small>
               <LeafIcon name="sprout" />
@@ -45,10 +58,22 @@ export default function ContactActions({ brand, contact, social = {} }) {
           </div>
 
           <div className="contact-panel__socials" aria-label="社群連結">
-            <a href={social.facebook} target="_blank" rel="noreferrer" aria-label="Facebook 曜聖景觀">
+            <a
+              href={social.facebook}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Facebook 曜聖景觀"
+              onClick={() => trackEvent('social_click', { network: 'facebook', location: 'contact_section' })}
+            >
               Facebook <span>↗</span>
             </a>
-            <a href={social.instagram} target="_blank" rel="noreferrer" aria-label="Instagram 曜聖景觀">
+            <a
+              href={social.instagram}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Instagram 曜聖景觀"
+              onClick={() => trackEvent('social_click', { network: 'instagram', location: 'contact_section' })}
+            >
               Instagram <span>↗</span>
             </a>
           </div>

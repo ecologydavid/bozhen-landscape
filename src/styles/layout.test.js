@@ -102,14 +102,14 @@ test('keeps stone sprout actions compact, organic, and accessible', () => {
   expect(item).toMatch(/white-space:\s*nowrap;/)
   expect(line).toMatch(/border-radius:\s*10px 12px 10px 8px;/)
   expect(phone).toMatch(/margin:\s*0;/)
-  expect(phone).toMatch(/border-color:\s*rgba\(49, 87, 70, 0\.48\);/)
+  expect(phone).toMatch(/border-color:\s*var\(--gold-line\);/)
   expect(phone).toMatch(/border-radius:\s*12px 9px 8px 10px;/)
   expect(phone).toMatch(/background:\s*rgba\(251, 250, 245, 0\.88\);/)
   expect(arrow).toMatch(/white-space:\s*nowrap;/)
   expect(hover).toMatch(/transform:\s*translateY\(-2px\);/)
   expect(active).toMatch(/transform:\s*scale\(\.99\);/)
   expect(focus).toMatch(/outline:\s*3px solid var\(--gold-400\);/)
-  expect(phoneFocus).toMatch(/outline:\s*3px solid var\(--moss-800\);/)
+  expect(phoneFocus).toMatch(/outline:\s*3px solid var\(--gold-400\);/)
   expect(phoneFocus).toMatch(/outline-offset:\s*3px;/)
   expect(stylesheet).toMatch(
     /\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:hover \.leaf-contact-links__arrow,\s*\.leaf-contact-links--stone-sprout \.leaf-contact-links__item:focus-visible \.leaf-contact-links__arrow \{\s*transform:\s*translate\(3px, -2px\);/,
