@@ -35,9 +35,9 @@ test('renders the official brand and primary direct contact action', () => {
   )
 
   expect(screen.getAllByText('曜聖景觀有限公司').length).toBeGreaterThan(0)
-  expect(screen.getAllByText('YAO SEI LIMITED COMPANY')).toHaveLength(2)
+  expect(screen.getAllByText('YAO SHENG LIMITED COMPANY')).toHaveLength(2)
   expect(container.querySelector('.site-footer__english-name')).toHaveTextContent(
-    'YAO SEI LIMITED COMPANY',
+    'YAO SHENG LIMITED COMPANY',
   )
   expect(screen.queryByText('統一編號 00111874')).not.toBeInTheDocument()
   const contactPanel = container.querySelector('.contact-panel')

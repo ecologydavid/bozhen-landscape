@@ -17,7 +17,7 @@ export default function BrandStory() {
         </Reveal>
 
         <Reveal className="brand-story__content">
-          <p className="section-label">ABOUT YAO SEI</p>
+          <p className="section-label">ABOUT YAO SHENG</p>
           <h2>
             讓庭園隨時間，<br />長成生活的一部分
           </h2>

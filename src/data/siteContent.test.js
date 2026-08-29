@@ -1,11 +1,11 @@
 import { siteContent } from './siteContent'
 
-test('stores the official Yao Sei brand and direct contact details', () => {
+test('stores the official Yao Sheng brand and direct contact details', () => {
   expect(siteContent.brand).toMatchObject({
     name: '曜聖景觀有限公司',
     shortName: '曜聖景觀',
     contactPerson: '葉柏鎮',
-    englishName: 'YAO SEI LIMITED COMPANY',
+    englishName: 'YAO SHENG LIMITED COMPANY',
   })
   expect(siteContent.contact).toMatchObject({
     mobile: '0921-047-049',

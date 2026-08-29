@@ -20,7 +20,7 @@ export default function ContactActions({ brand, contact, social = {} }) {
         </Reveal>
 
         <Reveal className="contact-panel__content">
-          <p className="section-label">CONTACT YAO SEI</p>
+          <p className="section-label">CONTACT YAO SHENG</p>
           <h2 id="contact-panel-title">直接與曜聖聯絡</h2>
           <p className="contact-panel__intro">
             告訴葉先生你的空間位置與需求，我們會與你確認現場條件、服務內容及後續安排。

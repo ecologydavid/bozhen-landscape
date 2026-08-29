@@ -27,7 +27,7 @@
   flex-wrap: wrap;
   gap: 10px 34px;
   padding-bottom: 25px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--gold-line-soft);
 }
 
 .project-filters button {
@@ -172,14 +172,14 @@
 .project-facts__grid {
   display: grid;
   grid-template-columns: 0.8fr 0.8fr 1fr 2fr;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--gold-line-soft);
 }
 
 .project-facts dl {
   min-width: 0;
   margin: 0;
   padding: 34px clamp(20px, 2.4vw, 38px);
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--gold-line-soft);
 }
 
 .project-facts dl:first-child {

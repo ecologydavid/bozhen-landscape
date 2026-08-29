@@ -42,7 +42,9 @@
   --shadow-hover: 0 24px 54px rgba(25, 35, 29, 0.16);
   --shadow-soft: 0 22px 60px rgba(7, 28, 20, 0.13);
   --shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.24);
+  --gold-line-soft: rgba(181, 138, 75, 0.28);
   --gold-line: rgba(181, 138, 75, 0.48);
+  --gold-line-bright: rgba(214, 170, 91, 0.68);
   --scene-transition: 720ms;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --header-height: 72px;

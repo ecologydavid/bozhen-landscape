@@ -10,7 +10,7 @@ export default function GardenJournal({ notes }) {
       <div className="container">
         <Reveal className="garden-journal__heading">
           <div>
-            <p className="section-label">YAO SEI FIELD NOTES</p>
+            <p className="section-label">YAO SHENG FIELD NOTES</p>
             <h2 id="garden-journal-title">曜聖庭園誌</h2>
           </div>
           <p>把現場經驗，整理成庭園長久好看的方法。</p>

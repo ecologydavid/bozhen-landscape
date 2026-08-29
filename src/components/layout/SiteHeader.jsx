@@ -202,7 +202,7 @@ export default function SiteHeader({
         >
           <div className="site-nav__meta" aria-hidden="true">
             <span>MENU / 網站導覽</span>
-            <span>YAO SEI</span>
+            <span>YAO SHENG</span>
           </div>
           <div className="site-nav__index">
             {navigation.map((item, index) => (

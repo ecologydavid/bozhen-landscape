@@ -8,7 +8,7 @@ export const siteContent = {
     name: '曜聖景觀有限公司',
     shortName: '曜聖景觀',
     contactPerson: '葉柏鎮',
-    englishName: 'YAO SEI LIMITED COMPANY',
+    englishName: 'YAO SHENG LIMITED COMPANY',
     logoSrc,
     companyCardSrc,
   },
@@ -30,7 +30,7 @@ export const siteContent = {
     instagram: 'https://www.instagram.com/yaoshenglandscape/',
   },
   hero: {
-    eyebrow: 'YAO SEI LANDSCAPE',
+    eyebrow: 'YAO SHENG LANDSCAPE',
     title: '把自然，安放進日常',
     description: '庭園設計・植栽綠化・假山水景・後續養護',
     image: media('changhua-residence-03.webp'),
