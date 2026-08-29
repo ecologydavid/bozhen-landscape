@@ -19,7 +19,7 @@ export default function HomePage({ brand, contact, hero, social = {} }) {
   return (
     <main ref={homeRef} className="editorial-home" data-active-scene={activeScene}>
       <ScrollEnvironment scenes={homeScenes} activeScene={activeScene} />
-      <Hero hero={hero} contact={contact} />
+      <Hero hero={hero} contact={contact} social={social} />
       <FeaturedProjects />
       <ServiceOverview />
       <WorkProcess />

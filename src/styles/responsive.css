@@ -303,6 +303,23 @@
     transform: none;
   }
 
+  .hero__socials {
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .hero__socials a {
+    padding: 7px 10px;
+    border-color: rgba(238, 221, 183, 0.72);
+    background: rgba(32, 39, 37, 0.5);
+    color: var(--paper-bright);
+    backdrop-filter: blur(8px);
+  }
+
+  .hero__socials .social-icon {
+    color: var(--gold-200);
+  }
+
   .hero__shade {
     background: linear-gradient(180deg, transparent 42%, rgba(23, 26, 23, 0.68));
   }
