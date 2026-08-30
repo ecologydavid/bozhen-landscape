@@ -18,10 +18,12 @@ function initializeAnalytics() {
   window.gtag = window.gtag || function gtag(...args) {
     window.dataLayer.push(args)
   }
-  window.gtag('js', new Date())
-  window.gtag('config', measurementId, { send_page_view: false })
 
+  // index.html owns the official tag in production. Keep this fallback for
+  // isolated embeds/tests where the static tag is not present.
   if (!document.querySelector(`script[data-ga4="${measurementId}"]`)) {
+    window.gtag('js', new Date())
+    window.gtag('config', measurementId, { send_page_view: false })
     const script = document.createElement('script')
     script.async = true
     script.dataset.ga4 = measurementId
