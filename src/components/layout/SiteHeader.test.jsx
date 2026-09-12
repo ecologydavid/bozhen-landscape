@@ -29,31 +29,24 @@ function createMobileMediaQuery() {
   return mediaQuery
 }
 
-test('uses the approved sprout glyph and mounts the visual only after opening', async () => {
+test('uses the approved sprout glyph without mounting menu visuals or contact actions', async () => {
   const user = userEvent.setup()
   const { container } = render(
     <MemoryRouter>
-      <SiteHeader
-        brand={siteContent.brand}
-        contact={siteContent.contact}
-        navigationImage={siteContent.hero.image}
-        navigationImageAlt={siteContent.hero.alt}
-      />
+      <SiteHeader brand={siteContent.brand} />
     </MemoryRouter>,
   )
 
   expect(container.querySelectorAll('[data-icon="leaf"], [data-icon="arrowLeaf"]')).toHaveLength(0)
-  expect(container.querySelectorAll('[data-icon="sprout"]')).toHaveLength(6)
+  expect(container.querySelectorAll('[data-icon="sprout"]')).toHaveLength(4)
   expect(container.querySelectorAll('.site-nav__item')).toHaveLength(4)
   expect(container.querySelectorAll('.site-nav__item [data-icon="sprout"]')).toHaveLength(4)
-  expect(screen.queryByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).not.toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: '開啟選單' }))
-  expect(screen.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeInTheDocument()
-  expect(screen.getByText('把自然，安放進日常')).toBeInTheDocument()
-
-  await user.keyboard('{Escape}')
-  expect(screen.getByRole('img', { name: '導覽中的彰化私人住宅庭園實景' })).toBeInTheDocument()
+  const navigation = screen.getByRole('navigation', { name: '主要導覽' })
+  expect(navigation.querySelector('.site-nav__masthead')).toBeInTheDocument()
+  expect(navigation.querySelector('.site-nav__visual')).not.toBeInTheDocument()
+  expect(navigation.querySelector('.site-nav__contacts')).not.toBeInTheDocument()
 })
 
 test('opens and closes the mobile navigation with every supported control', async () => {
@@ -82,14 +75,7 @@ test('opens and closes the mobile navigation with every supported control', asyn
     expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus(),
   )
   expect(screen.getByRole('link', { name: '曜聖景觀有限公司' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /LINE 聯絡/ })).toHaveAttribute(
-    'href',
-    'https://line.me/ti/p/~0921047049',
-  )
-  expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toHaveAttribute(
-    'href',
-    'tel:+886921047049',
-  )
+  expect(screen.getByRole('navigation', { name: '主要導覽' }).querySelector('.site-nav__contacts')).not.toBeInTheDocument()
   expect(document.body).toHaveClass('nav-open')
 
   await user.keyboard('{Escape}')
@@ -130,13 +116,13 @@ test('traps keyboard focus within the open navigation', async () => {
   )
 
   await user.tab({ shift: true })
-  expect(screen.getByRole('link', { name: '撥打 0921-047-049' })).toHaveFocus()
+  expect(screen.getByRole('link', { name: '聯絡資訊' })).toHaveFocus()
 
   await user.tab()
   expect(screen.getByRole('link', { name: '作品案例' })).toHaveFocus()
 })
 
-test('closes the navigation and restores toggle focus from contact actions', async () => {
+test('does not mount contact actions inside the navigation', async () => {
   const user = userEvent.setup()
   render(
     <MemoryRouter>
@@ -145,22 +131,9 @@ test('closes the navigation and restores toggle focus from contact actions', asy
   )
 
   await user.click(screen.getByRole('button', { name: '開啟選單' }))
-  const lineLink = screen.getByRole('link', { name: 'LINE 聯絡' })
-  lineLink.addEventListener('click', (event) => event.preventDefault(), {
-    once: true,
-  })
-  await user.click(lineLink)
-  expect(document.body).not.toHaveClass('nav-open')
-  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
-
-  await user.click(screen.getByRole('button', { name: '開啟選單' }))
-  const phoneLink = screen.getByRole('link', { name: '撥打 0921-047-049' })
-  phoneLink.addEventListener('click', (event) => event.preventDefault(), {
-    once: true,
-  })
-  await user.click(phoneLink)
-  expect(document.body).not.toHaveClass('nav-open')
-  expect(screen.getByRole('button', { name: '開啟選單' })).toHaveFocus()
+  const navigation = screen.getByRole('navigation', { name: '主要導覽' })
+  expect(navigation.querySelectorAll('.site-nav__contacts a')).toHaveLength(0)
+  expect(navigation.querySelectorAll('.site-nav__visual')).toHaveLength(0)
 })
 
 test('keeps the drawer interactive after the header becomes scrolled', async () => {

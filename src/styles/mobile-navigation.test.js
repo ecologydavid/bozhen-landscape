@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { expect, test } from 'vitest'
 
 const stylesheet = readFileSync(resolve('src/styles/mobile-navigation.css'), 'utf8')
-const mobileStyles = stylesheet.slice(stylesheet.indexOf('@media (max-width:768px)'))
+const mobileStyles = stylesheet.slice(stylesheet.indexOf('@media (max-width: 768px)'))
 
 function rule(source, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -12,41 +12,35 @@ function rule(source, selector) {
   return match[1]
 }
 
-test('keeps the editorial navigation visual mobile-only', () => {
-  expect(rule(stylesheet, '.site-nav__visual')).toMatch(/display:\s*none;/)
-  expect(rule(mobileStyles, '.site-nav__visual')).toMatch(/display:\s*grid;/)
+test('uses a mobile-only masthead instead of a menu visual or contact tray', () => {
+  expect(rule(stylesheet, '.site-nav__masthead')).toMatch(/display:\s*none;/)
+  expect(rule(mobileStyles, '.site-nav__masthead')).toMatch(/display:\s*flex;/)
+  expect(stylesheet).not.toContain('.site-nav__visual')
+  expect(stylesheet).not.toContain('.site-nav__contacts')
 })
 
-test('uses the full drawer width for the editorial index and visual', () => {
-  expect(rule(mobileStyles, '.site-nav__index')).toMatch(/width:\s*100%;/)
-  expect(rule(mobileStyles, '.site-nav__visual')).toMatch(/width:\s*100%;/)
-})
-
-test('keeps every mobile editorial row at the approved 82 pixel minimum', () => {
+test('keeps every mobile navigation row at the approved 82 pixel minimum', () => {
   const match = rule(mobileStyles, '.site-nav__item').match(/min-height:\s*(\d+)px;/)
-
   expect(match).not.toBeNull()
   expect(Number(match[1])).toBe(82)
 })
 
-test('fits the image fallback inside the editorial visual frame', () => {
-  const fallback = rule(mobileStyles, '.site-nav__visual .image-fallback')
-
-  expect(fallback).toMatch(/min-height:\s*0;/)
-  expect(fallback).toMatch(/align-content:\s*start;/)
-  expect(fallback).toMatch(/padding:\s*14px 16px 42px;/)
-  expect(rule(mobileStyles, '.site-nav__visual .image-fallback > *')).toMatch(
-    /visibility:\s*hidden;/,
-  )
+test('builds the green leaf-ring action affordance', () => {
+  const ring = rule(mobileStyles, '.site-nav__arrow')
+  expect(ring).toMatch(/width:\s*38px;/)
+  expect(ring).toMatch(/height:\s*38px;/)
+  expect(ring).toMatch(/border-radius:\s*50%;/)
+  expect(ring).toMatch(/background:\s*#dcebdc;/)
+  expect(rule(mobileStyles, '.site-nav__arrow::before')).toMatch(/border:\s*1\.4px dashed #75a980;/)
 })
 
-test('keeps 82 pixel rows while hiding only the visual on compact-height viewports', () => {
-  const marker = '@media (max-width:768px) and (max-height:768px)'
-  expect(stylesheet).toContain(marker)
-  const shortMobileStyles = stylesheet.slice(stylesheet.indexOf(marker))
+test('preserves a calm lower brand signature in the fullscreen menu', () => {
+  expect(rule(mobileStyles, '.site-nav::after')).toMatch(/YAO SHENG LANDSCAPE DESIGN/)
+  expect(rule(mobileStyles, '.site-nav::after')).toMatch(/margin-top:\s*auto;/)
+})
 
-  expect(rule(shortMobileStyles, '.site-nav__visual')).toMatch(/display:\s*none;/)
-  expect(shortMobileStyles).not.toMatch(
-    /\.site-nav__item\s*\{[^}]*min-height:/,
-  )
+test('removes leaf-ring motion for reduced-motion users', () => {
+  const reducedMotionStyles = stylesheet.slice(stylesheet.indexOf('@media (prefers-reduced-motion: reduce)'))
+  expect(reducedMotionStyles).toMatch(/\.site-nav__arrow[^}]*transition:\s*none;/)
+  expect(reducedMotionStyles).toMatch(/\.site-nav__item:hover \.site-nav__arrow[\s\S]*?transform:\s*none;/)
 })

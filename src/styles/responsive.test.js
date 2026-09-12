@@ -37,9 +37,9 @@ test('stretches the mobile Hero media row through the 768px handoff', () => {
   )
 })
 
-test('sizes the fixed drawer from its mobile insets', () => {
+test('makes the mobile navigation cover the full viewport', () => {
   expect(stylesheet).toMatch(
-    /\.site-nav \{[\s\S]*?inset: 12px 12px 12px max\(52px, 14vw\);[\s\S]*?height: auto;[\s\S]*?max-height: calc\(100dvh - 24px\);/,
+    /\.site-nav \{[\s\S]*?inset: 0;[\s\S]*?min-height: 100dvh;[\s\S]*?max-height: none;/,
   )
 })
 
@@ -58,38 +58,36 @@ test('reveals the mobile drawer before its focus target is scheduled', () => {
   )
 })
 
-test('reveals the mobile drawer from left to right without changing its visibility delay', () => {
+test('reveals the mobile navigation across the full canvas without a side strip', () => {
   const closedDrawer = rule(mobileStyles, '.site-nav')
   const openDrawer = rule(mobileStyles, '.site-nav.is-open')
 
-  expect(closedDrawer).toMatch(/clip-path:\s*inset\(0 100% 0 0 round var\(--canvas-radius\)\);/)
+  expect(closedDrawer).toMatch(/clip-path:\s*inset\(0 0 0 100%\);/)
   expect(closedDrawer).toMatch(/opacity:\s*0;/)
-  expect(closedDrawer).toMatch(/transform:\s*translateX\(-24px\);/)
+  expect(closedDrawer).toMatch(/transform:\s*translateX\(18px\);/)
   expect(closedDrawer).toMatch(/visibility 0s linear 220ms;/)
-  expect(openDrawer).toMatch(/clip-path:\s*inset\(0 0 0 0 round var\(--canvas-radius\)\);/)
+  expect(openDrawer).toMatch(/clip-path:\s*inset\(0 0 0 0\);/)
   expect(openDrawer).toMatch(/opacity:\s*1;/)
   expect(openDrawer).toMatch(/transform:\s*translateX\(0\);/)
   expect(openDrawer).toMatch(/transition-delay:\s*0s;/)
 })
 
-test('reduces drawer chrome through the measured 768 pixel height boundary', () => {
+test('reduces fullscreen navigation spacing through the measured 768 pixel height boundary', () => {
   const marker = '@media (max-width: 768px) and (max-height: 768px)'
   expect(stylesheet).toContain(marker)
   const shortMobileStyles = stylesheet.slice(stylesheet.indexOf(marker))
   const compactDrawer = rule(shortMobileStyles, '.site-nav')
 
-  expect(compactDrawer).toMatch(/gap:\s*8px;/)
-  expect(compactDrawer).toMatch(
-    /padding:\s*calc\(var\(--header-height\) \+ 8px\) max\(20px, 6vw\) calc\(16px \+ env\(safe-area-inset-bottom\)\);/,
-  )
+  expect(compactDrawer).toMatch(/gap:\s*14px;/)
+  expect(compactDrawer).toMatch(/padding-top:\s*18px;/)
 })
 
-test('compacts the default drawer enough to fit immediately above the boundary', () => {
+test('keeps the default fullscreen navigation comfortably spaced', () => {
   const drawer = rule(mobileStyles, '.site-nav')
 
-  expect(drawer).toMatch(/gap:\s*24px;/)
+  expect(drawer).toMatch(/gap:\s*20px;/)
   expect(drawer).toMatch(
-    /padding:\s*calc\(var\(--header-height\) \+ 40px\) max\(28px, 8vw\) calc\(96px \+ env\(safe-area-inset-bottom\)\);/,
+    /padding:\s*24px clamp\(24px, 7vw, 44px\) calc\(30px \+ env\(safe-area-inset-bottom\)\);/,
   )
 })
 

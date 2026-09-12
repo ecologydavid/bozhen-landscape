@@ -1,4 +1,5 @@
-.site-nav__masthead,
+.site-nav__masthead { display: none; }
+
 .site-nav__meta,
 .site-nav__number,
 .site-nav__wording small,
