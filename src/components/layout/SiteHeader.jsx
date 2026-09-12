@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { navigation } from '../../data/navigation'
-import BrandImage from '../ui/BrandImage'
 import LeafIcon from '../ui/LeafIcon'
 import { trackEvent } from '../../lib/analytics'
 
 export default function SiteHeader({
   brand,
-  contact,
-  navigationImage,
-  navigationImageAlt,
   menuOpen: controlledMenuOpen,
   onMenuOpenChange,
 }) {
   const location = useLocation()
   const [uncontrolledMenuOpen, setUncontrolledMenuOpen] = useState(false)
   const menuOpen = controlledMenuOpen ?? uncontrolledMenuOpen
-  const [navigationVisualReady, setNavigationVisualReady] = useState(
-    Boolean(controlledMenuOpen),
-  )
   const [scrolled, setScrolled] = useState(false)
   const toggleRef = useRef(null)
   const firstLinkRef = useRef(null)
@@ -31,7 +24,6 @@ export default function SiteHeader({
   })
 
   const setMenuOpen = useCallback((nextOpen) => {
-    if (nextOpen) setNavigationVisualReady(true)
     if (controlledMenuOpen === undefined) setUncontrolledMenuOpen(nextOpen)
     onMenuOpenChange?.(nextOpen)
   }, [controlledMenuOpen, onMenuOpenChange])
@@ -202,6 +194,13 @@ export default function SiteHeader({
           className={`site-nav${menuOpen ? ' is-open' : ''}`}
           aria-label="主要導覽"
         >
+          <div className="site-nav__masthead" aria-hidden="true">
+            <img src={brand.logoSrc} alt="" />
+            <span>
+              <strong>{brand.shortName}</strong>
+              <small>{brand.englishName}</small>
+            </span>
+          </div>
           <div className="site-nav__meta" aria-hidden="true">
             <span>MENU / 網站導覽</span>
             <span>YAO SHENG</span>
@@ -229,44 +228,6 @@ export default function SiteHeader({
                 </span>
               </Link>
             ))}
-          </div>
-          {navigationVisualReady && navigationImage && navigationImageAlt ? (
-            <div className="site-nav__visual">
-              <BrandImage
-                src={navigationImage}
-                alt={`導覽中的${navigationImageAlt}`}
-                loading="lazy"
-                decoding="async"
-                sizes="(max-width: 768px) 72vw, 1px"
-              />
-              <span>把自然，安放進日常</span>
-            </div>
-          ) : null}
-          <div className="site-nav__contacts">
-            <a
-              href={contact.lineHref}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="LINE 聯絡"
-              onClick={() => {
-                trackEvent('contact_click', { method: 'line', location: 'header' })
-                closeMenu({ returnFocus: true })
-              }}
-            >
-              <LeafIcon name="sprout" />
-              <span>LINE 聯絡</span>
-            </a>
-            <a
-              href={contact.phoneHref}
-              aria-label={`撥打 ${contact.mobile}`}
-              onClick={() => {
-                trackEvent('contact_click', { method: 'phone', location: 'header' })
-                closeMenu({ returnFocus: true })
-              }}
-            >
-              <LeafIcon name="sprout" />
-              <span>撥打電話</span>
-            </a>
           </div>
         </nav>
       </div>

@@ -156,7 +156,7 @@
 
   .nav-toggle {
     position: relative;
-    z-index: 4;
+    z-index: 46;
     display: grid;
     width: 44px;
     height: 44px;
@@ -184,49 +184,34 @@
     transform: translateY(-4px) rotate(-45deg);
   }
 
-  .nav-backdrop {
-    position: fixed;
-    z-index: 1;
-    inset: 0 auto 0 0;
-    display: block;
-    width: max(52px, 14vw);
-    visibility: hidden;
-    background: rgba(23, 26, 23, 0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 220ms ease, visibility 220ms ease;
-  }
-
-  .nav-backdrop.is-visible {
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
-  }
+  .nav-backdrop { display: none; }
 
   .site-nav {
     position: fixed;
-    z-index: 3;
-    inset: 12px 12px 12px max(52px, 14vw);
+    z-index: 45;
+    inset: 0;
     display: flex;
     visibility: hidden;
     align-items: flex-start;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 24px;
-    height: auto;
-    max-height: calc(100dvh - 24px);
-    padding: calc(var(--header-height) + 40px) max(28px, 8vw) calc(96px + env(safe-area-inset-bottom));
+    gap: 20px;
+    min-height: 100dvh;
+    max-height: none;
+    padding: 24px clamp(24px, 7vw, 44px) calc(30px + env(safe-area-inset-bottom));
     overflow-y: auto;
     overscroll-behavior: contain;
-    border: 1px solid var(--gold-line);
-    border-radius: var(--canvas-radius);
-    background: linear-gradient(145deg, #faf9f5 0%, #f2eee5 72%, #e9dfc9 100%);
-    box-shadow: 0 28px 72px rgba(19, 24, 21, 0.28), inset 0 0 0 1px rgba(214, 170, 91, 0.14);
+    border: 0;
+    border-radius: 0;
+    background:
+      radial-gradient(circle at 100% 100%, rgba(214, 234, 214, 0.8), transparent 36%),
+      var(--paper-bright);
+    box-shadow: none;
     color: var(--ink);
-    clip-path: inset(0 100% 0 0 round var(--canvas-radius));
+    clip-path: inset(0 0 0 100%);
     opacity: 0;
     pointer-events: none;
-    transform: translateX(-24px);
+    transform: translateX(18px);
     transition:
       clip-path 320ms var(--ease),
       opacity 220ms ease,
@@ -236,7 +221,7 @@
 
   .site-nav.is-open {
     visibility: visible;
-    clip-path: inset(0 0 0 0 round var(--canvas-radius));
+    clip-path: inset(0 0 0 0);
     opacity: 1;
     pointer-events: auto;
     transform: translateX(0);
@@ -255,10 +240,6 @@
     background: var(--moss-800);
     color: var(--paper-bright);
     transform: rotate(0deg) scale(0.94);
-  }
-
-  .site-nav__arrow {
-    border-color: var(--gold-line);
   }
 
   .section {
@@ -573,10 +554,7 @@
 }
 
 @media (max-width: 768px) and (max-height: 768px) {
-  .site-nav {
-    gap: 8px;
-    padding: calc(var(--header-height) + 8px) max(20px, 6vw) calc(16px + env(safe-area-inset-bottom));
-  }
+  .site-nav { gap: 14px; padding-top: 18px; }
 }
 
 @media (max-width: 560px) {
